@@ -1,0 +1,1 @@
+g++ -lm -std=c++11 SimpleForth.cpp -o SimpleForth
