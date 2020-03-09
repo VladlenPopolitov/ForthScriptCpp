@@ -83,25 +83,30 @@
 \ + update squares attacked incrementally
 \ + enhance evaluation routines
 
+\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\ next definitions are added to original code to define not standard words
+\ Vladlen Popolitov
 : CHAR+ ( c-addr1 -- c-addr2 ) \ 94
-\ Прибавить размер символа к c-addr1 и получить c-addr2.
+\ add char size to c-addr1 and get c-addr2.
   1+
 ;
 : CELL ( -- cellsize )
   1 CELLS
 ;
 : CELL+ ( a-addr1 -- a-addr2 ) \ 94
-\ Прибавить размер ячейки к a-addr1 и получить a-addr2.
+\ add cell size to a-addr1 and get a-addr2.
   1 CELLS +
 ;
 : CELL- ( a-addr1 -- a-addr2 )
-\ Вычесть размер ячейки к a-addr1 и получить a-addr2.
+\ subtract cell size to a-addr1 and get a-addr2.
   1 CELLS -
 ;
 
 : DS>F S>D D>F ;
 : F>DS F>D D>S ;
 : KEY? FALSE ; \ do not stop thinking by key pressed
+\ end of added code
+\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 \ Wil Baden implements wbMACRO for portably inlining code
 : wbMACRO  ( "name <char> ccc<char>" -- )

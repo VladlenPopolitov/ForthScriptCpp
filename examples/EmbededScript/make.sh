@@ -1,0 +1,1 @@
+g++ -lm -std=c++11  -o EmbededScript -O3 *.cpp

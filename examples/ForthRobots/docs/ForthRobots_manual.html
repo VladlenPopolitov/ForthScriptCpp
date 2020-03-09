@@ -187,7 +187,7 @@ number of matches and cpu cycle limit, and can be run overnight.</P>
   <TD>The file name of the FORTHROBOTS source program(s). Up to four files may be
   specified. If only one file is specified, it will be "cloned" into another, so
   that two robots (running the same program) will compete. Any file name may be
-  used, but for consistency use '<code>.r</code>' as an extension.</TD>
+  used, but for consistency use '<code>.fth</code>' as an extension.</TD>
 </TR><TR>
   <TD><code>&gt;file</code> (optional)</TD>
   <TD>Use OS  redirection to get a compile listing (<code>-c</code> option)
@@ -197,10 +197,12 @@ number of matches and cpu cycle limit, and can be run overnight.</P>
 <H3><A name="4-2">4-2.</A> Examples:</H3>
 <OL>
   <LI>Watch three robots compete with full display:<BR>
-  <CODE>A&gt;FORTHROBOTS robot1.fth robot2.fth robot3.fth</CODE>
+  <CODE>C:&gt;FORTHROBOTS -m1 -l500000 robot1.fth robot2.fth robot3.fth</CODE>
   <LI>Run 50 matches, limiting total cpu cycles to 200,000, and save
   results:<BR>
-  <CODE>A&gt;FORTHROBOTS -t -m50 -l200000 robot1.r robot2.r &gt;save</CODE>
+  <CODE>C:&gt;FORTHROBOTS -t -m50 -l200000 robot1.fth robot2.fth &gt;save</CODE>
+  <LI>Check robot compilation:<BR>
+  <CODE>C:&gt;FORTHROBOTS -c  robot1.fth</CODE>
 </OL>
 
 

@@ -5,8 +5,8 @@ EmbedForthCpp: A Forth implementation as C++ Class by Vladlen Popolitov
 
 CORE is fully impelemented, all CORE tests are passed.
 ==============================================
-C++ Class forthcpp::Forth (https://github.com/VladlenPopolitov/EmbedForthCpp) 
-is inspired by Kristopher Johnson's cxxforth. 
+C++ Class forthcpp::Forth (https://github.com/VladlenPopolitov/ForthScriptCpp) 
+is inspired by Kristopher Johnson's cxxforth (https://github.com/kristopherjohnson/cxxforth). 
 
 Though the most lines of code are changed to implements C++ members and virtual 
 forth memory, many method names and comments are unchanged. forthcpp::Forth class
@@ -14,10 +14,12 @@ can be used in C++ program as embeded script language. Forth accesses only virtu
 and cannot harm anything in C++ address space. Forth address space, stacks and definitions
 dictionary are implemented as std::vector.
 
-This free software released into public domain and can be used without any restrctions.
+This free software released into public domain and can be used without any restrictions.
 
  Create forth object:
- Include file EmbedForthCpp.h into your C++ program. Create object forthcpp::Forth .
+ Include file EmbedForthCpp.h into your C++ program. 
+
+ Create object forthcpp::Forth .
 
   forthcpp::Forth Forth{};
 
