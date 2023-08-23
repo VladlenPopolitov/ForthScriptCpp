@@ -311,7 +311,7 @@ TEST(TestSuit1,ForthTestSuit020Float3Test)
 
 TEST(TestSuit1,ForthTestSuit021words)
 {
-		RunCommandAndPrint("words", filenames, 21);
+		RunCommandAndPrint("words", allfilenames, 21);
 }
 
 
