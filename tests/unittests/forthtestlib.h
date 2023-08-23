@@ -7,4 +7,5 @@ void RunCommandAndPrint(const char *command,
     const char *filename[], int numberOfTestFiles);
 void RunAndPrint(const char *command[],
     const char *filename[], int numberOfTestFiles, int Start=0);
-            
+void RunAndPrintSuite(const char* command[],
+    const char* filename[], int numberOfTestFiles, int Start = 0);

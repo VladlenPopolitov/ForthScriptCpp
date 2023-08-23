@@ -161,3 +161,60 @@ void RunAndPrint(const char *command[],
 
 }
 
+
+void RunAndPrintSuite(const char* command[],
+    const char* filename[], int numberOfTestFiles, int Start = 0) {
+    std::string res{}, content{}, error{};
+    try {
+        cppforth::Forth forth{};
+        for (int i = Start; i < numberOfTestFiles; ++i) {
+            try {
+                if (std::strlen(command[i]) == 0) break;
+                std::ifstream is;
+                is.open(command[i], std::ios_base::in);
+                if (is.is_open() && !is.bad()) {
+                    std::stringstream inStrStream{};
+                    inStrStream << is.rdbuf();//read the file
+                    content = inStrStream.str();//
+                    is.close();
+                }
+                else {
+                    content.clear();
+                }
+                forth.ExecuteString(content);
+            }
+            catch (cppforth::Forth::AbortException& ex) {
+                const char* aaa = ex.what();
+                error = aaa;
+            }
+            catch (std::exception& ex) {
+                const char* aaa = ex.what();
+                error = aaa;
+            }
+            catch (...) {
+                error = " Unknown exception";
+            }
+
+            res = forth.ExecutionOutput();
+            forth.ExecutionOutputReset();
+            std::ofstream aa;
+            aa.open(filename[i], std::ios_base::out);
+            aa << "C++ test suite message:" << res << std::endl << error;;
+        }
+        //std::cout << res << std::endl;
+    }
+    catch (cppforth::Forth::AbortException& ex) {
+        const char* aaa = ex.what();
+        ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
+    }
+    catch (std::exception& ex) {
+        const char* aaa = ex.what();
+        ADD_FAILURE() << "Uncaught exception : " << ex.what();
+    }
+    catch (...) {
+        ADD_FAILURE() << "Uncaught exception unknown type ";
+    }
+
+
+}
+

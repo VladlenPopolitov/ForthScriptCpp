@@ -47,9 +47,57 @@
     	"../suit1/tester.fr",
         "../suit1/coreexttest.fth",
 	    "../suit1/filetest.fth",
+		"../suit1/runtestsall.fth",
+
       	"",
 	};
+	const char* allfilenames[] = {
+		"../testresult/alltests1.txt",
+		"../testresult/alltests2.txt",
+		"../testresult/alltests3.txt",
+		"../testresult/alltests4.txt",
+		"../testresult/alltests5.txt",
+		"../testresult/alltests6.txt",
+		"../testresult/alltests7.txt",
+		"../testresult/alltests8.txt",
+		"../testresult/alltests9.txt",
+		"../testresult/alltests10.txt",
+		"../testresult/alltests11.txt",
+		"../testresult/alltests12.txt",
+		"../testresult/alltests13.txt",
+		"../testresult/alltests14.txt",
+		"../testresult/alltests15.txt",
+		"../testresult/alltests16.txt",
+		"../testresult/alltests17.txt",
+		"../testresult/alltests18.txt",
+	};
 
+	const char* allFilesInSuite[] = {
+	"../suit1/prelimtest.fth" ,
+		"../suit1/tester.fr" ,
+		"../suit1/ttester.fs" ,
+		"../suit1/core.fr" ,
+		"../suit1/coreplustest.fth" ,
+		"../suit1/utilities.fth" ,
+		"../suit1/errorreport.fth" ,
+		"../suit1/coreexttest.fth" ,
+		"../suit1/blocktest.fth" ,
+		"../suit1/doubletest.fth" ,
+		"../suit1/exceptiontest.fth" ,
+		"../suit1/facilitytest.fth" ,
+		"../suit1/filetest.fth" ,
+		"../suit1/localstest.fth" ,
+		"../suit1/memorytest.fth" ,
+		"../suit1/toolstest.fth" ,
+		"../suit1/searchordertest.fth" ,
+		"../suit1/stringtest.fth" ,
+		""
+	};
+
+TEST(TestSuit1All, ForthTestSuit000AllTestsInOnce)
+{
+	RunAndPrintSuite(allFilesInSuite, allfilenames, 17);
+}
 TEST(TestSuit1, ForthTestSuit001Prelim)
 {
     RunAndPrint(infilenames, filenames, 1);
@@ -105,11 +153,15 @@ TEST(TestSuit1,ForthTestSuit1995test)
 }
 TEST(TestSuit1,ForthTestSuit008CommandList)
 {
-		RunCommandAndPrint("words", filenames, 15);
+		RunCommandAndPrint("words", filenames, 16);
 }
 TEST(TestSuit1,ForthTestSuit009FileTest)
 {
     RunAndPrint(infilenames, filenames, 14);
+}
+TEST(TestSuit1, ForthTestSuit000AllTests)
+{
+	RunAndPrint(infilenames, filenames, 15);
 }
 
 
