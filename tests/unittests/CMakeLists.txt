@@ -29,3 +29,27 @@ foreach(T ${UNITTEST_TARGETS})
   target_link_libraries(${T} PRIVATE GTest::GTest)
   gtest_discover_tests(${T})
 endforeach()
+
+file( WRITE "${CMAKE_CURRENT_BINARY_DIR}/forthtestsuit1_unittest.vcxproj.user" 
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+<Project ToolsVersion=\"Current\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">
+  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Debug|x64'\">
+    <LocalDebuggerWorkingDirectory>${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)\</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='MinSizeRel|x64'\">
+    <LocalDebuggerWorkingDirectory>${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)\</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\">
+    <LocalDebuggerWorkingDirectory>${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)\</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'\">
+    <LocalDebuggerWorkingDirectory>${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)\</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ShowAllFiles>true</ShowAllFiles>
+  </PropertyGroup>
+</Project>")
