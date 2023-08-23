@@ -75,7 +75,7 @@
 	const char* allFilesInSuite[] = {
 	"../suit1/prelimtest.fth" ,
 		"../suit1/tester.fr" ,
-		"../suit1/ttester.fs" ,
+//		"../suit1/ttester.fs" ,
 		"../suit1/core.fr" ,
 		"../suit1/coreplustest.fth" ,
 		"../suit1/utilities.fth" ,

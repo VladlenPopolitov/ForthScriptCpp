@@ -11,7 +11,7 @@ constructor_unittest
 add_custom_command(
         TARGET forthtestsuit1_unittest POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${CMAKE_CURRENT_SOURCE_DIR}/../suit1
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../external/test-suite/src
                 ${CMAKE_CURRENT_BINARY_DIR}/suit1
 )
 add_custom_command(

@@ -199,7 +199,8 @@ void RunAndPrintSuite(const char* command[],
             forth.ExecutionOutputReset();
             std::ofstream aa;
             aa.open(filename[i], std::ios_base::out);
-            aa << "C++ test suite message:" << res << std::endl << error;;
+            aa << "C++ test suite message (" << command[i] << "):" << std::endl << res << std::endl << error;
+
         }
         //std::cout << res << std::endl;
     }
