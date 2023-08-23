@@ -1,7 +1,6 @@
 
 #include <gtest/gtest.h>
 #include <string>
-#include <iostream>
 
 #define FORTHSCRIPTCPP_ENABLE_FILE   1
 #define FORTHSCRIPTCPP_ENABLE_MEMORY  1
@@ -9,161 +8,7 @@
 #define FORTHSCRIPTCPP_ENABLE_FLOAT_EXT 1
 //#define FORTHSCRIPTCPP_DISABLE_OUTPUT 1
 #include "../../ForthScriptCpp.h"
-#include <fstream>
-#include <exception>
-
-// helper functions;
-void RunAndCompare(const std::string &command, const std::string &result,bool trace=false){
-    std::string res;
-    try{
-        cppforth::Forth forth{};
-#ifdef _DEBUG
-        forth.setTrace(trace);
-#endif
-        forth.ExecuteString(command);
-        res = forth.ExecutionOutput();
-    }
-    catch (cppforth::Forth::AbortException &ex){
-        const char *aaa = ex.what();
-        ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
-    }
-    catch (std::exception &ex){
-        const char *aaa = ex.what();
-        ADD_FAILURE() << "Uncaught exception : " << ex.what();
-    }
-    catch (...){
-        ADD_FAILURE() << "Uncaught exception unknown type " ;
-    }
-    if (res.compare(result)){
-        ADD_FAILURE() << "RunAndCompare faulure: should be: " << result << ", got:"<<res;
-    }
-
-}
-void RunAndPrint(const std::string &command, std::string &result,
-    const std::string &filename){
-    std::string res;
-    try{
-        cppforth::Forth forth{};
-        forth.ExecuteString(command);
-        result = forth.ExecutionOutput();
-        std::ofstream aa;
-        aa.open(filename, std::ios_base::out);
-        aa << result;
-
-        //std::cout << res << std::endl;
-    }
-    catch (cppforth::Forth::AbortException &ex){
-        const char *aaa = ex.what();
-        ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
-    }
-    catch (std::exception &ex){
-        const char *aaa = ex.what();
-        ADD_FAILURE() << "Uncaught exception : " << ex.what();
-    }
-    catch (...){
-        ADD_FAILURE() << "Uncaught exception unknown type " ;
-    }
-
-}
-void RunCommandAndPrint(const char *command,
-    const char *filename[], int numberOfTestFiles){
-    std::string res{}, content{}, error{};
-    try{
-        cppforth::Forth forth{};
-        for (int i = numberOfTestFiles-1; i < numberOfTestFiles; ++i){
-            try{
-
-                forth.ExecuteString(command);
-            }
-            catch (cppforth::Forth::AbortException &ex){
-                const char *aaa = ex.what();
-                error = aaa;
-            }
-            catch (std::exception &ex){
-                const char *aaa = ex.what();
-                error = aaa;
-            }
-            catch (...){
-                error = " Unknown exception";
-            }
-
-            res = forth.ExecutionOutput();
-            forth.ExecutionOutputReset();
-            std::ofstream aa;
-            aa.open(filename[i], std::ios_base::out);
-            aa << res << std::endl << error;;
-        }
-        //std::cout << res << std::endl;
-    }
-    catch (cppforth::Forth::AbortException &ex){
-        const char *aaa = ex.what();
-        ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
-    }
-    catch (std::exception &ex){
-        const char *aaa = ex.what();
-        ADD_FAILURE() << "Uncaught exception : " << ex.what();
-    }
-    catch (...){
-        ADD_FAILURE() << "Uncaught exception unknown type " ;
-    }
-
-
-}
-void RunAndPrint(const char *command[],
-    const char *filename[], int numberOfTestFiles, int Start=0){
-    std::string res{}, content{}, error{};
-    try{
-        cppforth::Forth forth{};
-        for (int i = Start; i < numberOfTestFiles; ++i){
-            try{
-                std::ifstream is;
-                is.open(command[i], std::ios_base::in);
-                if (is.is_open() && !is.bad()){
-                    std::stringstream inStrStream{};
-                    inStrStream << is.rdbuf();//read the file
-                    content = inStrStream.str();//
-                    is.close();
-                }
-                else {
-                    content.clear();
-                }
-                forth.ExecuteString(content);
-            }
-            catch (cppforth::Forth::AbortException &ex){
-                const char *aaa = ex.what();
-                error = aaa;
-            }
-            catch (std::exception &ex){
-                const char *aaa = ex.what();
-                error = aaa;
-            }
-            catch (...){
-                error = " Unknown exception";
-            }
-
-            res = forth.ExecutionOutput();
-            forth.ExecutionOutputReset();
-            std::ofstream aa;
-            aa.open(filename[i], std::ios_base::out);
-            aa << res << std::endl << error;;
-        }
-        //std::cout << res << std::endl;
-    }
-    catch (cppforth::Forth::AbortException &ex){
-        const char *aaa = ex.what();
-        ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
-    }
-    catch (std::exception &ex){
-        const char *aaa = ex.what();
-        ADD_FAILURE() << "Uncaught exception : " << ex.what();
-    }
-    catch (...){
-        ADD_FAILURE() << "Uncaught exception unknown type " ;
-    }
-
-
-}
-
+#include "forthtestlib.h"
 
 
 TEST(BasicFunctions, constructorTest)
@@ -622,16 +467,9 @@ R> BASE ! ; HEX 24 CONSTANT MAX-BASE  0 INVERT CONSTANT MAX-UINT  : stack depth 
     T{ MAX-UINT 0 MAX-BASE GN1 -> MAX-UINT 0 0 }T
     T{ MAX-UINT DUP MAX-BASE GN1 -> MAX-UINT DUP 0 }T
     */
-    cmd += " MAX-UINT DUP MAX-BASE GN1 stack "; res += "30ffffffffffffffff"; // 42949672954294967295
+    cmd += " MAX-UINT DUP MAX-BASE GN1 stack "; res += "30ffffffffffffffff"; 
     RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
-    RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
-    RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
-    RunAndCompare(cmd, res);
-
-
+   
 };
 
 TEST(BasicFunctions,Forth015Source)
@@ -639,18 +477,11 @@ TEST(BasicFunctions,Forth015Source)
     std::string cmd = R"( : GS1 S" SOURCE" 2DUP EVALUATE >R SWAP >R = R> R> = ; : GS4 SOURCE >IN ! DROP ;  : stack depth depth 0 do . loop ;  stack  )";
     std::string res = "0";
     RunAndCompare(cmd, res);
-                cmd += " GS4 123 456 \nstack "; res += "0";
-                RunAndCompare(cmd, res);
-    cmd += " GS1 \nstack "; res += "2-1-1"; // 42949672954294967295
+    cmd += " GS4 123 456 \nstack "; res += "0";
     RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
+    cmd += " GS1 \nstack "; res += "2-1-1"; 
     RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
-    RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
-    RunAndCompare(cmd, res);
-
-
+   
 };
 TEST(BasicFunctions,Forth016MemoryAllocateFree)
 {
@@ -823,7 +654,7 @@ TEST(BasicFunctions,Forth020Float001)
     RunAndCompare(cmd, res);
     cmd += R"( : f1 1 0 D>F  FDUP FDUP F+ F< if 333 else 444 then     ; f1   stack )"; res += "1333";
     RunAndCompare(cmd, res);
-    cmd += R"( : f1 1 0 D>F  F=0 if 0 else 1 then  0 0 D>F  F=0 if 5 else 6 then   ; f1   stack )"; res += "251";
+    cmd += R"( : f1 1 0 D>F  F0= if 0 else 1 then  0 0 D>F  F0= if 5 else 6 then   ; f1   stack )"; res += "251";
     RunAndCompare(cmd, res);
     cmd += R"( : f1 1 0 D>F FDUP F<0 if 0 else 1 then FDEPTH FDROP ; f1 stack )"; res += "211";
     RunAndCompare(cmd, res);
@@ -1131,11 +962,6 @@ TEST(BasicFunctions,Forth024Defer)
     cmd += R"(   1 2 defer2  stack  )";
     res += "13";
     RunAndCompare(cmd, res);
-
-
-
-
-
 }
 
 int main(int argc, char **argv)
