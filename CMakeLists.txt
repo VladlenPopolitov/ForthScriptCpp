@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.13)
+project(ForthScriptCpp VERSION 1.0.0 LANGUAGES CXX )
+option(BUILD_TESTING "Build tests" ON)
+
+if(BUILD_TESTING)
+  find_package(GTest)
+  if(GTest_FOUND)
+    enable_testing()
+    add_subdirectory(tests/unittests)
+  endif()
+endif()
