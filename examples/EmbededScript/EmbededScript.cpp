@@ -38,7 +38,11 @@
   bool isExecutionInputBufferEmpty() const 
 		
 */
-
+#define FORTHSCRIPTCPP_ENABLE_FILE   1
+#define FORTHSCRIPTCPP_ENABLE_MEMORY  1
+#define FORTHSCRIPTCPP_ENABLE_FLOAT 1
+#define FORTHSCRIPTCPP_ENABLE_FLOAT_EXT 1
+//#define FORTHSCRIPTCPP_DISABLE_OUTPUT 1
 #include "../../ForthScriptCpp.h"
 #include <fstream>
 

@@ -1,11 +1,20 @@
 cmake_minimum_required(VERSION 3.13)
 project(ForthScriptCpp VERSION 1.0.0 LANGUAGES CXX )
 option(BUILD_TESTING "Build tests" ON)
+option(BUILD_EXAMPLES "Build examples" ON)
+
+
+if(BUILD_EXAMPLES)
+ add_subdirectory(examples/EmbededScript)
+ add_subdirectory(examples/ForthRobots)
+ add_subdirectory(examples/SimpleForth)
+endif()
 
 if(BUILD_TESTING)
   find_package(GTest)
   if(GTest_FOUND)
     enable_testing()
     add_subdirectory(tests/unittests)
+    add_subdirectory(tests/examples/ForthRobots)
   endif()
 endif()

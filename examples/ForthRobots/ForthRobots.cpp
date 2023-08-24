@@ -8,7 +8,7 @@
 #else
 #include "../../ForthScriptCpp.h"
 #endif
-#define INIT 1 
+
 #include "crobots.h"
 #include <map>
 #include <vector>

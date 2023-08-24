@@ -13,46 +13,51 @@
 
 /* note-the INIT flag (or lack of it) causes extern for all but one module */
 
-#define ILEN      8		/* length of identifiers, also in lexanal.l */
-#define MAXROBOTS 4		/* maximum number of robots */
+#define ILEN      8		    /* length of identifiers, also in lexanal.l */
+#define MAXROBOTS 4		    /* maximum number of robots */
 #define CODESPACE 1000		/* maximum number of machine instructions */
-#define DATASPACE 500		/* maximum number of data stack entries */
-#define UPDATE_CYCLES 30  	/* number of cycles before screen update */
+#define DATASPACE 500		  /* maximum number of data stack entries */
+#define UPDATE_CYCLES 30  /* number of cycles before screen update */
 #define MOTION_CYCLES 15 	/* number of cycles before motion update */
 #define CYCLE_LIMIT 500000L	/* limit of background cycles */
-#define ROBOT_SPEED 7		/* multiplicative speed factor */
-#define TURN_SPEED 50		/* maximum speed for direction change */
+#define ROBOT_SPEED 7		  /* multiplicative speed factor */
+#define TURN_SPEED 50		  /* maximum speed for direction change */
 #define ROBOTACCEL  10		/* acceleration factor per motion cycle */
 
-#define ACTIVE    1		/* robot active & running */
-#define DEAD      0		/* dead robot */
+#define ACTIVE    1		    /* robot active & running */
+#define DEAD      0		    /* dead robot */
+
+#define RAD_DEG 57.29578  /* radian to degrees conversion factor */
+#define SCALE 100000.0    /* define scale factor for trig functions */
+#define RES_LIMIT 10L     /* resolution limit */
+
 
 struct robot {			/* robot context */
-  int status;			/* status of robot, active or dead */
+  int status;			  /* status of robot, active or dead */
   char name[14];		/* name of robot */
-  int x;			/* current x location * 100 */
-  int y;			/* current y location * 100 */
-  int org_x;			/* orgin x location * 100 */
-  int org_y;			/* orgin y location * 100 */
-  int range;			/* distance traveled on this heading * 100 */
-  int last_x;			/* last plotted physical x */
-  int last_y;			/* last plotted physical y */
-  int speed;			/* current speed, 0 - 100 */
+  int x;			      /* current x location * 100 */
+  int y;			      /* current y location * 100 */
+  int org_x;			  /* orgin x location * 100 */
+  int org_y;			  /* orgin y location * 100 */
+  int range;			  /* distance traveled on this heading * 100 */
+  int last_x;			  /* last plotted physical x */
+  int last_y;			  /* last plotted physical y */
+  int speed;			  /* current speed, 0 - 100 */
   int last_speed;		/* last speed, 0 - 100 */
-  int accel;			/* linear acceleration / de-acceleration lag */
+  int accel;			  /* linear acceleration / de-acceleration lag */
   int d_speed;			/* desired speed */
   int heading;			/* current heading, 0 - 359 */
-  int last_heading;		/* last heading, 0 - 359 */
+  int last_heading;	/* last heading, 0 - 359 */
   int d_heading;		/* desired heading, 0 - 359 */
-  int damage;			/* damage sustained, percent */
-  int last_damage;		/* last damage */
-  int scan;			/* current scan direction */
+  int damage;			  /* damage sustained, percent */
+  int last_damage;	/* last damage */
+  int scan;			    /* current scan direction */
   int last_scan;		/* last scan direction */
-  int reload;			/* number of cycles between reloading */
+  int reload;			  /* number of cycles between reloading */
   int ext_count;		/* size of external pool needed */
   long *external;		/* external variable pool */
   long *local;			/* current local variables on stack */
-  long *stackbase;		/* base of local & expression stack */
+  long *stackbase;	/* base of local & expression stack */
   long *stackend;		/* end of stack */
   long *stackptr;		/* current stack pointer, grows up */
   long *retptr;			/* return frame pointers, grow down */
@@ -158,19 +163,19 @@ int r_debug,			/* debug switch */
   
 /* declare the intrinsic functions, all must push a long value on the stack */
 /* these functions don't return a long, but declared long for notation */
-long c_scan(long num, long degree, long res);    /* scan(degree,res);  >0 = robot distance, 0 = nothing */
-long c_cannon(long num, long degree, long dist);  /* cannon(degree,dist); fire cannon */
-long c_drive(long num,long degree, long speed);   /* drive(degree,speed); speed 0-100 in % */
-long c_damage(long num);  /* damage(); = current damage in % */
-long c_speed(long num);   /* speed(); = current speed */
-long c_loc_x(long num);   /* loc_x(); = current x location */
-long c_loc_y(long num);   /* loc_y(); = current y location */
-long c_rand(long limit);    /* rand(limit); = 0 -- limit (2**15)-1 */
-long c_sin(long degree);     /* sin(degree); = sin * 100000 */
-long c_cos(long degree);     /* cos(degree); = cos * 100000 */
-long c_tan(long degree);     /* tan(degree); = tan * 100000 */
-long c_atan(long ratio);    /* atan(ratio); = degree */
-long c_sqrt(long);    /* sqrt(x); = square root */
+long c_scan(long num, long degree, long res);       /* scan(degree,res);  >0 = robot distance, 0 = nothing */
+long c_cannon(long num, long degree, long dist);    /* cannon(degree,dist); fire cannon */
+long c_drive(long num,long degree, long speed);     /* drive(degree,speed); speed 0-100 in % */
+long c_damage(long num);                            /* damage(); = current damage in % */
+long c_speed(long num);                             /* speed(); = current speed */
+long c_loc_x(long num);                             /* loc_x(); = current x location */
+long c_loc_y(long num);                             /* loc_y(); = current y location */
+long c_rand(long limit);                            /* rand(limit); = 0 -- limit (2**15)-1 */
+long c_sin(long degree);                            /* sin(degree); = sin * 100000 */
+long c_cos(long degree);                            /* cos(degree); = cos * 100000 */
+long c_tan(long degree);                            /* tan(degree); = tan * 100000 */
+long c_atan(long ratio);                            /* atan(ratio); = degree */
+long c_sqrt(long);                                  /* sqrt(x); = square root */
 long lsin(long);
 long lcos(long);
 
