@@ -97,24 +97,45 @@
 
 		""
 	};
-
+	int errorInTest{}, errorInForth{};
+	std::string content{};
 	void OKtest(cppforth::Forth* ptr) {
-		EXPECT_TRUE(true);
-		//std::cerr << "OK";
+		//EXPECT_TRUE(true);
+		//std::cout << "OK";
 	}
 	void WrongStackTest(cppforth::Forth* ptr) {
-		ADD_FAILURE() << "WrongStackTest";
-		//std::cerr << "Error";
+		errorInTest++;
+		if (ptr->forth_depth() > 0) {
+			auto offset = ptr->forth_tocell(0);
+			ptr->forth_pop(1);
+			std::string span((offset < 40) ? offset : 40, '-');
+			std::cout << "Fort test error WrongStackSizeTest" << std::endl;
+			std::cout << content.substr(offset < 40 ? 0 : offset - 40, 70) << std::endl;
+			std::cout << span << "^^" << std::endl;
+		}
+
+		//ADD_FAILURE() << "WrongStackTest";
+		//std::cout << "Error";
 	}
 	void WrongValuesOnStackTest(cppforth::Forth* ptr) {
-		ADD_FAILURE() << "WrongValuesOnStackTest";
-		//std::cerr << "Error";
+		if (ptr->forth_depth() > 0) {
+			auto offset = ptr->forth_tocell(0);
+			ptr->forth_pop(1);
+			std::string span((offset < 40) ? offset : 40, '-');
+			std::cout << "Fort test error WrongValuesOnStackTest" << std::endl;
+			std::cout << content.substr(offset < 40 ? 0 : offset - 40, 70) << std::endl;
+			std::cout << span << "^^" << std::endl;
+		}
+		//ADD_FAILURE() << "WrongValuesOnStackTest";
+		errorInTest++;
+		//std::cout << "Error";
 	}
 
 
-	void RunAndPrintSuiteAdvanced(const char* command[],
+	void RunAndPrintSuiteAdvancedFile(const char* command[],
 		const char* filename[], int numberOfTestFiles, int Start = 0) {
 		std::string res{}, content{}, error{};
+		errorInTest = 0;
 		try {
 			cppforth::Forth forth{};
 			
@@ -165,16 +186,19 @@
 				catch (cppforth::Forth::AbortException& ex) {
 					const char* aaa = ex.what();
 					error = aaa;
-					ADD_FAILURE() << "Uncaught exception Forth: " << command[i] << std::endl << ex.what();
+					errorInTest++;
+					//ADD_FAILURE() << "Uncaught exception Forth: " << command[i] << std::endl << ex.what();
 				}
 				catch (std::exception& ex) {
 					const char* aaa = ex.what();
 					error = aaa;
-					ADD_FAILURE() << "Uncaught exception : " << command[i] << std::endl << ex.what();
+					errorInTest++;
+					//ADD_FAILURE() << "Uncaught exception : " << command[i] << std::endl << ex.what();
 				}
 				catch (...) {
 					error = " Unknown exception";
-					ADD_FAILURE() << "Uncaught exception unknown type " << command[i] << std::endl;
+					errorInTest++;
+					//ADD_FAILURE() << "Uncaught exception unknown type " << command[i] << std::endl;
 				}
 
 				res = forth.ExecutionOutput();
@@ -188,25 +212,207 @@
 		}
 		catch (cppforth::Forth::AbortException& ex) {
 			const char* aaa = ex.what();
-			ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
+			errorInTest++;
+			//ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
 		}
 		catch (std::exception& ex) {
 			const char* aaa = ex.what();
-			ADD_FAILURE() << "Uncaught exception : " << ex.what();
+			errorInTest++;
+			//ADD_FAILURE() << "Uncaught exception : " << ex.what();
 		}
 		catch (...) {
-			ADD_FAILURE() << "Uncaught exception unknown type ";
+			errorInTest++;
+			//ADD_FAILURE() << "Uncaught exception unknown type ";
 		}
+		EXPECT_EQ(errorInTest, 0);
+	}
+
+	void RunAndPrintSuiteAdvanced(const char* command[],
+		const char* filename[], int numberOfTestFiles, int Start = 0) {
+		std::string res{},  error{};
+		errorInTest = 0;
+		errorInForth = 0;
+		content.clear();
+		try {
+			cppforth::Forth forth{};
+
+			// Execute string  f.e. from configuration file
+
+			for (int i = Start; i < numberOfTestFiles; ++i) {
+				try {
+					if (std::strlen(command[i]) == 0) break;
+					if (i > 4 && i != (numberOfTestFiles - 1)) continue; // skip all cycles except tested
+					
+					std::ifstream is;
+					content.clear();
+					is.open(command[i], std::ios_base::in);
+					if (is.is_open() && !is.bad()) {
+						if ((i< (numberOfTestFiles - 1)) || numberOfTestFiles<=5) {
+							std::stringstream inStrStream{};
+							inStrStream << is.rdbuf();//read the file
+							content = inStrStream.str();//
+							forth.ExecuteString(content);
+						}
+						else {
+							if (i == (numberOfTestFiles - 1)) {
+								forth.forth_setcfunction(OKtest, "GtestOK");
+								forth.forth_setcfunction(WrongStackTest, "GtestFailStack");
+								forth.forth_setcfunction(WrongValuesOnStackTest, "GtestFailValues");
+
+								forth.ExecuteString(
+									R"( 
+				VARIABLE #GTESTERRORS 
+				: }T							\ ( ... -- ) COMPARE STACK (EXPECTED) CONTENTS WITH SAVED
+				0 #GTESTERRORS !
+												\ (ACTUAL)CONTENTS.
+				DEPTH ACTUAL-DEPTH @ = IF		 \ IF DEPTHS MATCH
+				DEPTH ?DUP IF					\ IF THERE IS SOMETHING ON THE STACK
+				0  DO							\ FOR EACH STACK ITEM
+				ACTUAL-RESULTS I CELLS + @		\ COMPARE ACTUAL WITH EXPECTED
+				= 0= IF 1 #GTESTERRORS ! >IN @ GtestFailValues  S" INCORRECT RESULT: " ERROR LEAVE THEN
+				LOOP
+				THEN
+				ELSE							\ DEPTH MISMATCH
+				1 #GTESTERRORS ! >IN @ GtestFailStack 
+				S" WRONG NUMBER OF RESULTS: " ERROR
+				THEN 
+				#GTESTERRORS @ 0 = IF GtestOK THEN
+				; )");
+							}
+							int count{};
+							while (std::getline(is, content)) {
+								++count;
+								try {
+									if (content.length() > 0) {
+										auto saveError = errorInTest;
+										if (count == 186 && (numberOfTestFiles )==6) {
+											count=count;
+										}
+
+										forth.ExecuteString(content);
+										if (errorInTest != saveError) {
+											std::cout << "Test Forth error: " << command[i] << std::endl <<
+												content << std::endl;
+											// clar stack after error
+											forth.ExecuteString(": clearstack depth 0 > IF depth 0 do drop loop ELSE ; clearstack ");
+										}
+									}
+
+								}
+								catch (cppforth::Forth::AbortException& ex) {
+									const char* aaa = ex.what();
+									error = aaa;
+									errorInForth++;
+									//ADD_FAILURE() << "Uncaught exception Forth: " << command[i] << std::endl << ex.what();
+									std::cout << "1.Uncaught exception Forth: " << command[i] << std::endl << ex.what();
+								}
+								catch (std::exception& ex) {
+									const char* aaa = ex.what();
+									error = aaa;
+									errorInForth++;
+									//ADD_FAILURE() << "Uncaught exception : " << command[i] << std::endl << ex.what();
+									std::cout << "1.Uncaught exception : " << command[i] << std::endl << ex.what();
+								}
+								catch (...) {
+									error = " 1.Unknown exception";
+									errorInForth++;
+									//ADD_FAILURE() << "Uncaught exception unknown type " << command[i] << std::endl;
+									std::cout << "1.Uncaught exception unknown type " << command[i] << std::endl;
+								}
+							}
+
+						}
+
+						is.close();
+					}
+					
+					if (i == 0) {
+						forth.forth_setcfunction(OKtest, "GtestOK");
+						forth.forth_setcfunction(WrongStackTest, "GtestFailStack");
+						forth.forth_setcfunction(WrongValuesOnStackTest, "GtestFailValues");
+
+						forth.ExecuteString(
+							R"( 
+				VARIABLE #GTESTERRORS 
+				: }T							\ ( ... -- ) COMPARE STACK (EXPECTED) CONTENTS WITH SAVED
+				0 #GTESTERRORS !
+												\ (ACTUAL)CONTENTS.
+				DEPTH ACTUAL-DEPTH @ = IF		 \ IF DEPTHS MATCH
+				DEPTH ?DUP IF					\ IF THERE IS SOMETHING ON THE STACK
+				0  DO							\ FOR EACH STACK ITEM
+				ACTUAL-RESULTS I CELLS + @		\ COMPARE ACTUAL WITH EXPECTED
+				= 0= IF 1 #GTESTERRORS ! >IN @ GtestFailValues  S" INCORRECT RESULT: " ERROR LEAVE THEN
+				LOOP
+				THEN
+				ELSE							\ DEPTH MISMATCH
+				1 #GTESTERRORS ! >IN @ GtestFailStack 
+				S" WRONG NUMBER OF RESULTS: " ERROR
+				THEN 
+				#GTESTERRORS @ 0 = IF GtestOK THEN
+				; )");
+					}
+				}
+				catch (cppforth::Forth::AbortException& ex) {
+					const char* aaa = ex.what();
+					error = aaa;
+					errorInForth++;
+					//ADD_FAILURE() << "Uncaught exception Forth: " << command[i] << std::endl << ex.what();
+					std::cout << "1.Uncaught exception Forth: " << command[i] << std::endl << ex.what();
+				}
+				catch (std::exception& ex) {
+					const char* aaa = ex.what();
+					error = aaa;
+					errorInForth++;
+					//ADD_FAILURE() << "Uncaught exception : " << command[i] << std::endl << ex.what();
+					std::cout << "1.Uncaught exception : " << command[i] << std::endl << ex.what();
+				}
+				catch (...) {
+					error = " 1.Unknown exception";
+					errorInForth++;
+					//ADD_FAILURE() << "Uncaught exception unknown type " << command[i] << std::endl;
+					std::cout << "1.Uncaught exception unknown type " << command[i] << std::endl;
+				}
+
+				res = forth.ExecutionOutput();
+				forth.ExecutionOutputReset();
+				std::ofstream aa;
+				aa.open(filename[i], std::ios_base::out);
+				aa << "C++ test suite message (" << command[i] << "):" << std::endl << res << std::endl << error;
+
+			}
+			//std::cout << res << std::endl;
+		}
+		catch (cppforth::Forth::AbortException& ex) {
+			const char* aaa = ex.what();
+			errorInForth++;
+			//ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
+			std::cout << "2.Uncaught exception Forth: " << ex.what();
+		}
+		catch (std::exception& ex) {
+			const char* aaa = ex.what();
+			errorInForth++;
+			//ADD_FAILURE() << "Uncaught exception : " << ex.what();
+			std::cout << "2.Uncaught exception : " << ex.what();
+		}
+		catch (...) {
+			errorInForth++;
+			//ADD_FAILURE() << "Uncaught exception unknown type ";
+			std::cout << "2.Uncaught exception unknown type ";
+		}
+		if (errorInForth > 0 || errorInTest > 0) {
+			ADD_FAILURE() << "Test error " << command[numberOfTestFiles-1] <<", Forth errors:"<<errorInForth<<", Tests errors:"<<errorInTest << std::endl;
+		}
+		
 	}
 
 
-TEST(TestSuit1All, ForthTestSuit000AllTestsInOnce)
-{
+//TEST(TestSuit1All, ForthTestSuit000AllTestsInOnce)
+//{
 	//RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 17);
-}
+//}
 TEST(TestSuit1, ForthTestSuit001Tester)
 {
-	RunAndPrint(infilenames, filenames, 1);
+	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 1);
 }
 
 TEST(TestSuit1, ForthTestSuit002Utilities)
@@ -216,16 +422,18 @@ TEST(TestSuit1, ForthTestSuit002Utilities)
 }
 TEST(TestSuit1, ForthTestSuit003ErrorReports)
 {
-	RunAndPrint(infilenames, filenames, 3);
+	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 3);
 }
+
 TEST(TestSuit1, ForthTestSuit004Prelim)
 {
-    RunAndPrint(infilenames, filenames, 4);
+	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 4);
 }
 TEST(TestSuit1,ForthTestSuit005Core)
 {
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 5);
 }
+
 TEST(TestSuit1,ForthTestSuit006CorePlus)
 {
     //RunAndPrint(infilenames, filenames, 4);

@@ -811,7 +811,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		numbers of cells on the data and return stacks
 		****/
 
-		const size_t FORTHSCRIPTCPP_DATASPACE_SIZE = (16 * 1024 * 1024 * sizeof(Cell));
+		const size_t FORTHSCRIPTCPP_DATASPACE_SIZE = (1 * 1024 * 1024 * sizeof(Cell));
 		const size_t FORTHSCRIPTCPP_DSTACK_COUNT = 1556;
 		const size_t FORTHSCRIPTCPP_RSTACK_COUNT = 1556;
 
@@ -857,7 +857,6 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		struct Definition {
 
 			Code   code;
-//			AAddr  does;
 			Cell  does;
 			AAddr  parameter;
 			Cell   flags;
@@ -2214,14 +2213,14 @@ Code Reserved for	Code Reserved for
 				// Skip leading delimiters
 				while (getSourceBufferOffset() < inputSize &&
 					((sourceBufferVirtual[getSourceBufferOffset()] == delim)
-					|| (delim == ' ' && (ch=isspace(sourceBufferVirtual.at(getSourceBufferOffset()))))
+					|| (delim == ' ' && (ch=isspace(static_cast<unsigned char>(sourceBufferVirtual.at(getSourceBufferOffset())))))
 					))
 					incSourceBufferOffset();
 				if (1){
 					// Copy characters until we see the delimiter again.
 					while (getSourceBufferOffset() < inputSize 
 						&& sourceBufferVirtual[getSourceBufferOffset()] != delim
-						&& !(delim == ' ' && (ch=isspace(sourceBufferVirtual.at(getSourceBufferOffset()))))
+						&& !(delim == ' ' && (ch=isspace(static_cast<unsigned char>(sourceBufferVirtual.at(getSourceBufferOffset())))))
 						) {
 						wordBuffer.push_back(sourceBufferVirtual[getSourceBufferOffset()]);
 						incSourceBufferOffset();
@@ -2258,7 +2257,7 @@ Code Reserved for	Code Reserved for
 						if (!exits){
 							auto ch = VirtualMemory.at(vmSegmentSourceBuffer).segment.at(getSourceBufferOffset());
 							incSourceBufferOffset();
-							if ((delim == ' ' && isspace(ch)) || (delim == ch)){
+							if ((delim == ' ' && isspace(static_cast<unsigned char>(ch))) || (delim == ch)){
 								exits = true;
 							}
 							else {
@@ -2345,7 +2344,7 @@ Code Reserved for	Code Reserved for
 				// next char
 				auto ch = VirtualMemory.at(vmSegmentSourceBuffer).segment.at(getSourceBufferOffset());
 				incSourceBufferOffset();
-				if ((delim == ' ' && isspace(ch)) || (delim == ch)){
+				if ((delim == ' ' && isspace(static_cast<unsigned char>(ch))) || (delim == ch)){
 					exits = true;
 				}
 				else {
