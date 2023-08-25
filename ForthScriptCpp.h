@@ -302,6 +302,7 @@ A Forth variable is just a named location in dataspace.  We'll use `CREATE` and 
 ": variable   create 0 , ; "
 ": ?  @ . ; "
 
+
 /****
 
 A Forth constant is similar to a variable in that it is a value stored in
@@ -311,6 +312,7 @@ can implement this using `CREATE...DOES>`.
 ****/
 ": constant    create ,    does>  @ ; "
 ": 2constant   create , ,  does>  dup cell+ @ swap @ ; "
+": 2VARIABLE ALIGN HERE 2 CELLS ALLOT CONSTANT ; "
 
 /****
 
@@ -360,6 +362,7 @@ Because we'll be using `(lit)` in other word definitions, we'll create a constan
 
 "' (lit)     constant '(lit) "
 ": literal   '(lit) , , ; immediate "
+": 2literal swap '(lit) , , '(lit) , , ; immediate "
 
 /****
 
@@ -393,7 +396,8 @@ Because we'll be using `(lit)` in other word definitions, we'll create a constan
  ": MOD /MOD drop ; "
  ": 2@ DUP CELL+ @ SWAP @ ; "
  ": 2! SWAP OVER ! CELL+ ! ; "
- ": DABS 2DUP SWAP DROP 0 < IF DNEGATE THEN ; "
+ ": 2VALUE CREATE , , DOES> 2@ ; "
+  ": DABS 2DUP SWAP DROP 0 < IF DNEGATE THEN ; "
  ": D.   DUP >R DABS <# #S R> SIGN #> TYPE SPACE ; " // ( d -- )
  ": U. 0 D. ; " // ( u-- )
  ": U.R  >R 0 <# #S #> R> OVER - 0 MAX SPACES TYPE ; " // ( u n -- )
@@ -444,7 +448,7 @@ Because we'll be using `(lit)` in other word definitions, we'll create a constan
 "           else "
 "               ' value! "
 "           then ; immediate "
-
+//": TO ' >BODY STATE @ IF POSTPONE 2LITERAL POSTPONE 2! ELSE 2! THEN ; IMMEDIATE "
 /****
 
 `DEFER` and `IS` are similar to `VALUE` and `TO`, except that the value is an
@@ -739,7 +743,11 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				struct {
 					Cell lo, hi;
 				} Cells;
+				struct {
+					SCell lo, hi;
+				} SCells;
 				unsigned long long int Dcells;
+				signed long long int SDcells;
 			} data_;
 			DCell()  { data_.Cells.lo = 0; data_.Cells.hi = 0; };
 			DCell(Cell valueLo,Cell valueHi) { data_.Cells.lo = valueLo; data_.Cells.hi = valueHi; };
@@ -2364,7 +2372,6 @@ Code Reserved for	Code Reserved for
 		definition of `SPACE`.
 
 		****/
-
 		// BL ( -- char )
 		void bl() {
 			REQUIRE_DSTACK_AVAILABLE(1, "BL");
@@ -2430,7 +2437,7 @@ Code Reserved for	Code Reserved for
 #define REQUIRE_FSTACK_DEPTH(n, name)        requireFStackDepth(n, name)
 #define REQUIRE_FSTACK_AVAILABLE(n, name)    requireFStackAvailable(n, name)
 		void requireFStackDepth(std::size_t n, const char* name) {
-			RUNTIME_ERROR_IF(fStack.stackDepth() < static_cast<std::ptrdiff_t>(n),
+			RUNTIME_ERROR_IF(fStack.stackDepth() < static_cast<size_t>(n),
 				std::string(name) + ": stack underflow", errorStackUnderflow);
 		}
 
@@ -2530,7 +2537,7 @@ Code Reserved for	Code Reserved for
 			REQUIRE_DSTACK_DEPTH(2, "D>F");
 			REQUIRE_FSTACK_AVAILABLE(1, "D>F");
 			DCell d1(dStack.getTop(1), dStack.getTop()); dStack.pop(); dStack.pop();
-			fStack.push(d1.data_.Dcells);
+			fStack.push(d1.data_.SDcells);
 		}
 		// F>D ( -- d ) ( F: r -- ) or ( r -- d )
 		void f_ftod(){
@@ -4148,7 +4155,12 @@ Code Reserved for	Code Reserved for
 			std::regex regexInt{ "^[\\-]?\\d+$" };
 			std::regex regexDouble{ "^\\d+\\.$" };
 			std::regex regexNegativeDouble{ "^\\-\\d+\\.$" };
+			std::regex regexDoubleNot10{ "^[\\dA-Za-z]+\\.$" };
+			std::regex regexNegativeDoubleNot10{ "^\\-[\\dA-Za-z]+\\.$" };
 			std::regex regexInt10{ "^#([\\-]?\\d+)$" };
+			std::regex regexDouble10{ "^#([\\-]?\\d+)\\.$" };
+			std::regex regexDouble16{ "^\\$([\\-]?[\\dA-Fa-f]+)\\.$" };
+			std::regex regexDouble2{ "^%([\\-]?[01]+)\\.$" };
 			std::regex regexInt16{ "^\\$([\\-]?[0-9A-Fa-f]+)$" };
 			std::regex regexInt2{ "^%([\\-]?[01]+)$" };
 			std::regex regexIntChar{ "^\'(.{1,1})\'$" };
@@ -4210,6 +4222,41 @@ Code Reserved for	Code Reserved for
 				}
 #endif
 			}
+			found = regex_search(value, m1, regexDoubleNot10);
+			if (found) {
+				size_t ptr{};
+				unsigned long long int number = std::stoll(value,&ptr, base);
+				DCell numberD(number);
+				if (getIsCompiling()) {
+					data(CELL(doLiteralXt));
+					data(numberD.data_.Cells.lo);
+					data(CELL(doLiteralXt));
+					data(numberD.data_.Cells.hi);
+
+				}
+				else {
+					push(numberD.data_.Cells.lo);
+					push(numberD.data_.Cells.hi);
+				}
+				return true;
+			}
+			found = regex_search(value, m1, regexNegativeDoubleNot10);
+			if (found) {
+				size_t ptr{};
+				long long int number = std::stoll(value,&ptr,base);
+				SDCell numberD(number);
+				if (getIsCompiling()) {
+					data(CELL(doLiteralXt));
+					data(numberD.data_.Cells.lo);
+					data(CELL(doLiteralXt));
+					data(numberD.data_.Cells.hi);
+				}
+				else {
+					push(numberD.data_.Cells.lo);
+					push(numberD.data_.Cells.hi);
+				}
+				return true;
+			}
 				found = regex_search(value, m1, regexInt10);
 				if (found){
 					size_t ptr; int number;
@@ -4225,6 +4272,72 @@ Code Reserved for	Code Reserved for
 					}
 					else {
 						push(number);
+					}
+					return true;
+				}
+				found = regex_search(value, m1, regexDouble10);
+				if (found) {
+					size_t ptr; long long number;
+					try {
+						number = std::stoll(m1[1], &ptr, 10);
+					}
+					catch (...) {
+						ptr = ptr;
+					}
+					SDCell numberD(number);
+					if (getIsCompiling()) {
+						data(CELL(doLiteralXt));
+						data(numberD.data_.Cells.lo);
+						data(CELL(doLiteralXt));
+						data(numberD.data_.Cells.hi);
+					}
+					else {
+						push(numberD.data_.Cells.lo);
+						push(numberD.data_.Cells.hi);
+					}
+					return true;
+				}
+				found = regex_search(value, m1, regexDouble16);
+				if (found) {
+					size_t ptr; long long number;
+					try {
+						number = std::stoll(m1[1], &ptr, 16);
+					}
+					catch (...) {
+						ptr = ptr;
+					}
+					SDCell numberD(number);
+					if (getIsCompiling()) {
+						data(CELL(doLiteralXt));
+						data(numberD.data_.Cells.lo);
+						data(CELL(doLiteralXt));
+						data(numberD.data_.Cells.hi);
+					}
+					else {
+						push(numberD.data_.Cells.lo);
+						push(numberD.data_.Cells.hi);
+					}
+					return true;
+				}
+				found = regex_search(value, m1, regexDouble2);
+				if (found) {
+					size_t ptr; long long number;
+					try {
+						number = std::stoll(m1[1], &ptr, 2);
+					}
+					catch (...) {
+						ptr = ptr;
+					}
+					SDCell numberD(number);
+					if (getIsCompiling()) {
+						data(CELL(doLiteralXt));
+						data(numberD.data_.Cells.lo);
+						data(CELL(doLiteralXt));
+						data(numberD.data_.Cells.hi);
+					}
+					else {
+						push(numberD.data_.Cells.lo);
+						push(numberD.data_.Cells.hi);
 					}
 					return true;
 				}
@@ -4496,12 +4609,10 @@ Code Reserved for	Code Reserved for
 		// D>S ( d -- n )  
 		void DtoS(){
 			REQUIRE_DSTACK_DEPTH(2, "D>S");
-			SCell top = dStack.getTop(); dStack.pop();
-			if (top < 0){
-				SCell n = dStack.getTop();
-				dStack.setTop(-n);
-			}
-
+			DCell d(dStack.getTop(1), dStack.getTop());
+			dStack.pop();
+			SCell n = d.data_.SDcells;
+			dStack.setTop(0,n);
 		}
 		// M*
 		void MultD(){
@@ -4599,11 +4710,171 @@ Code Reserved for	Code Reserved for
 			dStack.setTop(1, d1.data_.Cells.lo);
 			dStack.setTop(0, d1.data_.Cells.hi);
 		}
+		// D+ ( d1 | ud1 d2 | ud2 -- d3 | ud3 )
+		void dplus(){
+			REQUIRE_DSTACK_DEPTH(4, "D+");
+			DCell d1(dStack.getTop(1), dStack.getTop());
+			DCell d2(dStack.getTop(3), dStack.getTop(2));
+			dStack.pop();dStack.pop();
+			d1.data_.Dcells = d1.data_.Dcells+d2.data_.Dcells;
+			dStack.setTop(1, d1.data_.Cells.lo);
+			dStack.setTop(0, d1.data_.Cells.hi);
+		}
+		// M+ ( d1 | ud1 n -- d2 | ud2 ) Add n to d1 | ud1, giving the sum d2 | ud2.
+		void mplus(){
+			REQUIRE_DSTACK_DEPTH(3, "M+");
+			SCell n(dStack.getTop());
+			DCell d1(dStack.getTop(2), dStack.getTop(1));
+			dStack.pop();
+			d1.data_.Dcells = d1.data_.Dcells+n;
+			dStack.setTop(1, d1.data_.Cells.lo);
+			dStack.setTop(0, d1.data_.Cells.hi);
+		}
+		/// M*/ ( d1 n1 +n2 -- d2 ) Multiply d1 by n1 producing the triple-cell intermediate result t. 
+		// Divide t by +n2 giving the double-cell quotient d2. An ambiguous condition exists if +n2 is zero or negative, 
+		// or the quotient lies outside of the range of a double-precision signed integer.
+		void mstarslash(){
+			bool changeSign=false;
+			REQUIRE_DSTACK_DEPTH(4, "M*/");
+			SCell n2(dStack.getTop());
+			SCell n1(dStack.getTop(1));
+			DCell d1(dStack.getTop(3), dStack.getTop(2));
+			dStack.pop();dStack.pop();
+			// make all operations with positive unsigned values
+			// sign apply later
+			if(n2!=0){
+			if(n2<0){
+				n2=-n2; changeSign=!changeSign;
+			}
+			if(n1<0){
+				n1=-n1; changeSign=!changeSign;
+			}
+			if(d1.data_.SDcells<0){
+				d1.data_.SDcells=-d1.data_.SDcells; changeSign=!changeSign;
+			}
+			DCell l(d1.data_.Cells.lo,0);
+			DCell h(d1.data_.Cells.hi,0);
+			l.data_.Dcells *= static_cast<Cell>(n1);
+			h.data_.Dcells *= static_cast<Cell>(n1);
+			DCell ldiv =  l.data_.Dcells / static_cast<Cell>(n2); // first add
+			DCell hdiv =  h.data_.Dcells / static_cast<Cell>(n2);
+			DCell second(0,hdiv.data_.Cells.lo);				  // second add
+			Cell lmod =  l.data_.Dcells % static_cast<Cell>(n2);
+			Cell hmod =  h.data_.Dcells % static_cast<Cell>(n2);
+			DCell third(lmod,hmod);
+			third= third.data_.Dcells / static_cast<Cell>(n2); // third add
+
+			d1.data_.Dcells = ldiv.data_.Dcells+second.data_.Dcells+third.data_.Dcells;
+			if(changeSign){
+				d1.data_.SDcells=-d1.data_.SDcells;
+			}
+
+			dStack.setTop(1, d1.data_.Cells.lo);
+			dStack.setTop(0, d1.data_.Cells.hi);
+			} else {
+				/// throw exception
+			}
+		}
+
+		// D-  ( d1 | ud1 d2 | ud2 -- d3 | ud3 )  d1 - d2
+		void dminus(){
+			REQUIRE_DSTACK_DEPTH(4, "D-");
+			DCell d2(dStack.getTop(1), dStack.getTop());
+			DCell d1(dStack.getTop(3), dStack.getTop(2));
+			d1.data_.Dcells = d1.data_.Dcells-d2.data_.Dcells;
+			dStack.pop();dStack.pop();
+			dStack.setTop(1, d1.data_.Cells.lo);
+			dStack.setTop(0, d1.data_.Cells.hi);
+		}
+		// D<  ( d1 d2 -- flag )  d1 < d2
+		void dless(){
+			REQUIRE_DSTACK_DEPTH(4, "D<");
+			DCell d2(dStack.getTop(1), dStack.getTop());
+			DCell d1(dStack.getTop(3), dStack.getTop(2));
+			auto result = d1.data_.SDcells<d2.data_.SDcells;
+			dStack.pop();dStack.pop();dStack.pop();
+			dStack.setTop(0, result? True : False);
+		}
+		// DU<  ( ud1 ud2 -- flag )  ud1 < ud2
+		void duless(){
+			REQUIRE_DSTACK_DEPTH(4, "DU<");
+			DCell d2(dStack.getTop(1), dStack.getTop());
+			DCell d1(dStack.getTop(3), dStack.getTop(2));
+			auto result = d1.data_.Dcells<d2.data_.Dcells;
+			dStack.pop();dStack.pop();dStack.pop();
+			dStack.setTop(0, result? True : False);
+		}
+		// D0=  ( xd -- flag ) flag is true if and only if xd is equal to zero.
+		void dzeroequal(){
+			REQUIRE_DSTACK_DEPTH(2, "D0=");
+			DCell d1(dStack.getTop(1), dStack.getTop());
+			auto result = d1.data_.SDcells==0;
+			dStack.pop();
+			dStack.setTop(0, result? True : False);
+		}
+		// D0<  ( d -- flag ) flag is true if and only if d is less than zero.
+		void dzeroless(){
+			REQUIRE_DSTACK_DEPTH(2, "D0<");
+			DCell d1(dStack.getTop(1), dStack.getTop());
+			auto result = d1.data_.SDcells<0;
+			dStack.pop();
+			dStack.setTop(0, result? True : False);
+		}
+		// D=  ( xd1 xd2 -- flag ) flag is true if and only if xd1 is bit-for-bit the same as xd2.
+		void dequal(){
+			REQUIRE_DSTACK_DEPTH(4, "D=");
+			DCell d2(dStack.getTop(1), dStack.getTop());
+			DCell d1(dStack.getTop(3), dStack.getTop(2));
+			auto result = d1.data_.SDcells==d2.data_.SDcells;
+			dStack.pop();dStack.pop();dStack.pop();
+			dStack.setTop(0, result? True : False);
+		}
+		// D2* ( xd1 -- xd2 ) xd2 is the result of shifting xd1 one bit toward the most-significant bit, filling the vacated least-significant bit with zero.
+		void d2star(){
+			REQUIRE_DSTACK_DEPTH(2, "D2*");
+			DCell d1(dStack.getTop(1), dStack.getTop());
+			d1.data_.Dcells <<= 1;
+			dStack.setTop(1, d1.data_.Cells.lo);
+			dStack.setTop(0, d1.data_.Cells.hi);
+		}
+		// D2/  ( xd1 -- xd2 ) xd2 is the result of shifting xd1 one bit toward the least-significant bit, leaving the most-significant bit unchanged.
+
+
+		void d2slash(){
+			REQUIRE_DSTACK_DEPTH(2, "D2/");
+			DCell d1(dStack.getTop(1), dStack.getTop());
+			d1.data_.SDcells >>= 1;
+			dStack.setTop(1, d1.data_.Cells.lo);
+			dStack.setTop(0, d1.data_.Cells.hi);
+		}
+		// DMAX  ( d1 | ud1 d2 | ud2 -- d3 | ud3 )  d1 - d2
+		void dmax(){
+			REQUIRE_DSTACK_DEPTH(4, "DMAX");
+			DCell d2(dStack.getTop(1), dStack.getTop());
+			DCell d1(dStack.getTop(3), dStack.getTop(2));
+			dStack.pop();dStack.pop();
+			if(d2.data_.SDcells>d1.data_.SDcells){
+			 dStack.setTop(1, d2.data_.Cells.lo);
+			 dStack.setTop(0, d2.data_.Cells.hi);
+			}
+		}
+		/// DMIN
+		void dmin(){
+			REQUIRE_DSTACK_DEPTH(4, "DMIN");
+			DCell d2(dStack.getTop(1), dStack.getTop());
+			DCell d1(dStack.getTop(3), dStack.getTop(2));
+			dStack.pop();dStack.pop();
+			if(d2.data_.SDcells<d1.data_.SDcells){
+			 dStack.setTop(1, d2.data_.Cells.lo);
+			 dStack.setTop(0, d2.data_.Cells.hi);
+			}
+		}
+
 		/*****
 		The pictured input buffer 
 		
 		*****/
-		// >NUMBER       ud1 c-addr1 u1 – ud2 c-addr2 u2 
+		// >NUMBER       ud1 c-addr1 u1 ï¿½ ud2 c-addr2 u2 
 		void toNumber(){
 			REQUIRE_DSTACK_DEPTH(4, ">NUMBER");
 			Cell u1 = dStack.getTop();
@@ -4661,7 +4932,7 @@ Code Reserved for	Code Reserved for
 				picturedInputBuffer.push_back(static_cast<Char>('-'));
 			}
 		}
-		// #>     (  xd – addr u )
+		// #>     (  xd ï¿½ addr u )
 		void PicturedInputBufferEnd(){
 			REQUIRE_DSTACK_DEPTH(2, "#>");
 			auto dataInDataSpace = PutStringToEndOfDataSpace(std::string(picturedInputBuffer.rbegin(), picturedInputBuffer.rend()));
@@ -4990,6 +5261,19 @@ Code Reserved for	Code Reserved for
 				{ "*/", &Forth::MultDivide, false }, // CORE
 				{ "*/MOD", &Forth::MultDivideMod, false }, // CORE
 				{ "DNEGATE", &Forth::dnegate, false }, // DOUBLE-NUMBER
+				{ "D+", &Forth::dplus, false }, // DOUBLE-NUMBER
+				{ "M+", &Forth::mplus, false }, // DOUBLE-NUMBER
+				{ "M*/", &Forth::mstarslash, false }, // DOUBLE-NUMBER
+				{ "D-", &Forth::dminus, false }, // DOUBLE-NUMBER
+				{ "D<", &Forth::dless, false }, // DOUBLE-NUMBER
+				{ "DU<", &Forth::duless, false }, // DOUBLE-NUMBER
+				{ "D0=", &Forth::dzeroequal, false }, // DOUBLE-NUMBER
+				{ "D0<", &Forth::dzeroless, false }, // DOUBLE-NUMBER
+				{ "D2*", &Forth::d2star, false }, // DOUBLE-NUMBER
+				{ "D2/", &Forth::d2slash, false }, // DOUBLE-NUMBER
+				{ "D=",  &Forth::dequal, false }, // DOUBLE-NUMBER
+				{ "DMAX",  &Forth::dmax, false }, // DOUBLE-NUMBER
+				{ "DMIN",  &Forth::dmin, false }, // DOUBLE-NUMBER
 				{ ">NUMBER", &Forth::toNumber, false }, // CORE
 				{ "CATCHBEFORE", &Forth::exceptionsCatchBefore, false }, // not standerd word
 				{ "CATCHAFTER", &Forth::exceptionsCatchAfter, false }, // not standerd word

@@ -11,7 +11,7 @@
 //#define FORTHSCRIPTCPP_DISABLE_OUTPUT 1
 #include "../../ForthScriptCpp.h"
 #include "forthtestlib.h"
-
+/*
 	const char *filenames[] = { 
         "../testresult/test1.txt",
 		"../testresult/test2.txt",
@@ -51,49 +51,55 @@
 
       	"",
 	};
+	*/
 	const char* allfilenames[] = {
-		"../testresult/alltests1.txt", // 1
-		"../testresult/alltests2.txt", // 2
-		"../testresult/alltests3.txt", // 3
-		"../testresult/alltests4.txt", // 4
-		"../testresult/alltests5.txt", // 5
-		"../testresult/alltests6.txt", // 6
-		"../testresult/alltests7.txt", // 7
-		"../testresult/alltests8.txt", // 8
-		"../testresult/alltests9.txt", // 9
-		"../testresult/alltests10.txt",// 10
-		"../testresult/alltests11.txt",// 11
-		"../testresult/alltests12.txt",
-		"../testresult/alltests13.txt",
-		"../testresult/alltests14.txt",
-		"../testresult/alltests15.txt",
-		"../testresult/alltests16.txt",
-		"../testresult/alltests17.txt",
-		"../testresult/alltests18.txt",
+		"./testresult/alltests1.txt", // 1
+		"./testresult/alltests2.txt", // 2
+		"./testresult/alltests3.txt", // 3
+		"./testresult/alltests4.txt", // 4
+		"./testresult/alltests5.txt", // 5
+		"./testresult/alltests6.txt", // 6
+		"./testresult/alltests7.txt", // 7
+		"./testresult/alltests8.txt", // 8
+		"./testresult/alltests9.txt", // 9
+		"./testresult/alltests10.txt",// 10
+		"./testresult/alltests11.txt",// 11
+		"./testresult/alltests12.txt",
+		"./testresult/alltests13.txt",
+		"./testresult/alltests14.txt",
+		"./testresult/alltests15.txt",
+		"./testresult/alltests16.txt",
+		"./testresult/alltests17.txt",
+		"./testresult/alltests18.txt",
+		"./testresult/alltests19.txt",
+		"./testresult/alltests20.txt",
+		"./testresult/alltests21.txt",
+		"./testresult/alltests22.txt",
+		"./testresult/alltests23.txt",
 	};
 
 	const char* allFilesInSuite[] = {
-		"../suit1/tester.fr" ,				// 1
-		"../suit1/utilities.fth" ,			// 2
-		"../suit1/errorreport.fth" ,		// 3
-		"../suit1/prelimtest.fth" ,			// 4
-		//		"../suit1/ttester.fs" ,
-		"../suit1/core.fr" ,				// 5
-		"../suit1/coreplustest.fth" ,		// 6
-		"../suit1/coreexttest.fth" ,		// 7
-		"../suit1/blocktest.fth" ,			// 8
-		"../suit1/doubletest.fth" ,			// 9
-		"../suit1/exceptiontest.fth" ,		// 10
-		"../suit1/facilitytest.fth" ,		// 11
-		"../suit1/filetest.fth" ,			// 12
-		"../suit1/localstest.fth" ,			// 13
-		"../suit1/memorytest.fth" ,			// 14
-		"../suit1/toolstest.fth" ,			// 15
-		"../suit1/searchordertest.fth" ,	// 16
-		"../suit1/stringtest.fth" ,			// 17
-		"../suit1/fp/fpzero-test.4th",		// 18
-		"../suit1/fp/ak-fp-test.fth",		// 19
-		"../suit1/fp/paranoia.4th",			// 20
+		"./suit1/tester.fr" ,				// 1
+		"./suit1/utilities.fth" ,			// 2
+		"./suit1/errorreport.fth" ,		// 3
+		"./suit1/prelimtest.fth" ,			// 4
+		//		"./suit1/ttester.fs" ,
+		"./suit1/core.fr" ,				// 5
+		"./suit1/coreplustest.fth" ,		// 6
+		"./suit1/coreexttest.fth" ,		// 7
+		"./suit1/blocktest.fth" ,			// 8
+		"./suit1/doubletest.fth" ,			// 9
+		"./suit1/exceptiontest.fth" ,		// 10
+		"./suit1/facilitytest.fth" ,		// 11
+		"./suit1/filetest.fth" ,			// 12
+		"./suit1/localstest.fth" ,			// 13
+		"./suit1/memorytest.fth" ,			// 14
+		"./suit1/toolstest.fth" ,			// 15
+		"./suit1/searchordertest.fth" ,	// 16
+		"./suit1/stringtest.fth" ,			// 17
+		"./suit1/fp/fpzero-test.4th",		// 18
+		"./suit1/fp/ak-fp-test.fth",		// 19
+		"./suit1/fp/paranoia.4th",			// 20
 
 		""
 	};
