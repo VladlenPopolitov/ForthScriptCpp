@@ -688,7 +688,21 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
  " : [IF] ( flag -- ) 0= IF POSTPONE [ELSE] THEN ; IMMEDIATE  "
  " : [UNDEFINED] BL WORD FIND NIP 0= ; IMMEDIATE  "
 
- 
+ /** 
+  *  Facility implementation
+  * 
+ */
+// ": FALIGNED ALIGNED ; "
+": SFALIGNED ALIGNED ; "
+": DFALIGNED ALIGNED ; "
+": BEGIN-STRUCTURE CREATE HERE 0 0 , DOES> @ ; "
+": END-STRUCTURE SWAP ! ; "
+": +FIELD CREATE OVER , + DOES> @ + ; "
+": FIELD:    ( n1 \"name\" -- n2 ; addr1 -- addr2 )  ALIGNED 1 CELLS +FIELD ; "
+": CFIELD:   ( n1 \"name\" -- n2 ; addr1 -- addr2 )  1 CHARS   +FIELD ; "
+": FFIELD:   ( n1 \"name\" -- n2 ; addr1 -- addr2 )  FALIGNED 1 FLOATS +FIELD ; "
+": SFFIELD:  ( n1 \"name\" -- n2 ; addr1 -- addr2 )  SFALIGNED 1 SFLOATS +FIELD ; "
+": DFFIELD:  ( n1 \"name\" -- n2 ; addr1 -- addr2 )  DFALIGNED 1 DFLOATS +FIELD ; "
 /****
 
 `ABOUT` is not a standard word.  It just prints licensing and credit information.

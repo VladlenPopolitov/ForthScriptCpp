@@ -450,10 +450,10 @@ if (errorInForth != saveErrorForth || errorInTest != saveError)
 
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit009DoubleTest, MyTestSuite, testing::Range(90000, 90438), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit010ExceptionTest, MyTestSuite, testing::Range(100000, 100100), testing::PrintToStringParamName());
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit011facilitytest, MyTestSuite, testing::Range(110000, 111100), testing::PrintToStringParamName());
+INSTANTIATE_TEST_SUITE_P(ForthTestSuit011facilitytest, MyTestSuite, testing::Range(110000, 110143), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit012FileTest,  MyTestSuite, testing::Range(120000, 121100), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit013LocalsTest, MyTestSuite, testing::Range(130000, 131100), testing::PrintToStringParamName());
-INSTANTIATE_TEST_SUITE_P(ForthTestSuit014MemoryTest, MyTestSuite, testing::Range(140000, 140128), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit014MemoryTest, MyTestSuite, testing::Range(140000, 140128), testing::PrintToStringParamName());
 
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit016searchordertesttest, MyTestSuite, testing::Range(160000, 161100), testing::PrintToStringParamName());
 
