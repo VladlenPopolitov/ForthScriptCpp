@@ -439,21 +439,21 @@ TEST_P(MyTestSuite, MyTest)
 if (errorInForth != saveErrorForth || errorInTest != saveError)
             {
                 			ADD_FAILURE() << "Test error " << testFileNamesList[loadedFile-1] <<":"<<(line+1)<<" , Forth errors:"<<errorInForth<<", Tests errors:"<<errorInTest << std::endl
-                            <<content<<std::endl;
+                            ;//<<content.substr(content.size()-50,49)<<std::endl;
             }
     //std::cout << "Example Test Param: " << GetParam() << "" << std::endl;
 }
 
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit005Core,      MyTestSuite, testing::Range(50000, 51100), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit005Core,      MyTestSuite, testing::Range(50000, 51009), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit006CorePlus,  MyTestSuite, testing::Range(60000, 61100), testing::PrintToStringParamName());
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit007CoreExt,   MyTestSuite, testing::Range(70000, 71100), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit007CoreExt,   MyTestSuite, testing::Range(70000, 70772), testing::PrintToStringParamName());
 
-INSTANTIATE_TEST_SUITE_P(ForthTestSuit009DoubleTest, MyTestSuite, testing::Range(90000, 90438), testing::PrintToStringParamName());
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit010ExceptionTest, MyTestSuite, testing::Range(100000, 101100), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit009DoubleTest, MyTestSuite, testing::Range(90000, 90438), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit010ExceptionTest, MyTestSuite, testing::Range(100000, 100100), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit011facilitytest, MyTestSuite, testing::Range(110000, 111100), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit012FileTest,  MyTestSuite, testing::Range(120000, 121100), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit013LocalsTest, MyTestSuite, testing::Range(130000, 131100), testing::PrintToStringParamName());
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit014MemoryTest, MyTestSuite, testing::Range(140000, 141100), testing::PrintToStringParamName());
+INSTANTIATE_TEST_SUITE_P(ForthTestSuit014MemoryTest, MyTestSuite, testing::Range(140000, 140128), testing::PrintToStringParamName());
 
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit016searchordertesttest, MyTestSuite, testing::Range(160000, 161100), testing::PrintToStringParamName());
 

@@ -79,16 +79,19 @@ void GetHeight(cppforth::Forth* ptr){
 int main(int argc, const char** argv) {
 	try {
 		cppforth::Forth forth{};
-		forth.SetExecutionInputBuffer("");
+		forth.SetExecutionInputBuffer(" ");
 	// Register functions as Forth words		
 		forth.forth_setcfunction(SetWidth, "SetWidth");
 		forth.forth_setcfunction(GetWidth, "GetWidth");
 		forth.forth_setcfunction(SetHeight, "SetHeight");
 		forth.forth_setcfunction(GetHeight, "GetHeight");
+		forth.ExecuteString(" : makeaction 100 100 + dup * drop ; ");
 	// Execute string  f.e. from configuration file
-		forth.ExecuteString(" 100 setwidth getwidth 2 / setheight  getwidth . getheight .");
-		std::string res = forth.ExecutionOutput();
-		forth.ExecutionOutputReset();
+		for(int i = 0; i < 1000; ++i) {
+			forth.ExecuteString("");
+			std::string res = forth.ExecutionOutput();
+			forth.ExecutionOutputReset();
+		}
 		std::cout <<" Width "<< Width << ", height " << Height << std::endl;
 //		std::cout <<" Cell "<< sizeof(cppforth::Forth::Cell) << ", DCell " << sizeof(cppforth::Forth::DCell) << std::endl;
 	}

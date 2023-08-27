@@ -64,7 +64,12 @@ TEST(BasicFunctions,Forth006String)
 }
 TEST(BasicFunctions,Forth006StringOutput)
 {
-    RunAndCompare(R"(   : pb1 CR ." You should see 2345: " ." 2345" ; pb1 depth . )", "0");
+    RunAndCompare(R"(   : pb1 CR ." You should see 2345: " ." 2345" ; pb1 depth . )", 
+        "\n"                            // CR
+        "You should see 2345: "         // first message
+        "2345"                          // second message
+        "0"                             // stack size after DEPTH .
+    );
 }
 
 TEST(BasicFunctions,Forth008Loop1)

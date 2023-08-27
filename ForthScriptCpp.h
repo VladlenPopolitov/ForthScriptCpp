@@ -396,15 +396,14 @@ Because we'll be using `(lit)` in other word definitions, we'll create a constan
  ": MOD /MOD drop ; "
  ": 2@ DUP CELL+ @ SWAP @ ; "
  ": 2! SWAP OVER ! CELL+ ! ; "
- ": 2VALUE CREATE , , DOES> 2@ ; "
-  ": DABS 2DUP SWAP DROP 0 < IF DNEGATE THEN ; "
- ": D.   DUP >R DABS <# #S R> SIGN #> TYPE SPACE ; " // ( d -- )
+ ": DABS 2DUP SWAP DROP 0 < IF DNEGATE THEN ; "
+ ": D. DUP >R DABS <# #S R> SIGN #> TYPE SPACE ; " // ( d -- )
  ": U. 0 D. ; " // ( u-- )
  ": U.R  >R 0 <# #S #> R> OVER - 0 MAX SPACES TYPE ; " // ( u n -- )
  ": D.R >R <# #S #>  R> OVER - 0 MAX SPACES TYPE ; " // ( d n -- )
  " : MOVE ROT ROT 2DUP < IF ROT CMOVE> ELSE ROT CMOVE THEN ; "
  " : WITHIN OVER - >R - R> U< ;  "
- " : MARKER CREATE ; immediate  " //@bug - no implemented
+ //" : MARKER CREATE ; immediate  " //@bug - no implemented
  " : BUFFER:  CREATE ALLOT ;  " // (u \"<name>\" --; --addr)
 		/****
 
@@ -428,27 +427,9 @@ Because we'll be using `(lit)` in other word definitions, we'll create a constan
 
 		****/
 
-		": postpone   bl word find  1 = if , else  '(lit) , ,  ['] , ,  then ; immediate "
+		": postpone bl word find  1 = if , else  '(lit) , ,  ['] , ,  then ; immediate "
 
-		/****
 
-		A Forth `VALUE` is just like a constant in that it puts a value on the stack
-		when invoked.  However, the stored value can be modified with `TO`.
-
-		`VALUE` is, in fact, exactly the same as `CONSTANT` in this Forth.  And so you
-		could use `TO` to change the value of a constant, but that's against the rules.
-
-		****/
-
-": value    constant ; "
-
-": value!   >body ! ; "
-": to       state @ if "
-"               postpone ['] postpone value! "
-"           else "
-"               ' value! "
-"           then ; immediate "
-//": TO ' >BODY STATE @ IF POSTPONE 2LITERAL POSTPONE 2! ELSE 2! THEN ; IMMEDIATE "
 /****
 
 `DEFER` and `IS` are similar to `VALUE` and `TO`, except that the value is an
@@ -549,7 +530,6 @@ continue the interpreter loop.
 
 //": (abort\")   rot if abort-message then 2drop ; "
 ": (abort\")   rot if type -1 throw then 2drop ; "
-
 ": abort\"     postpone s\" postpone (abort\") ; immediate "
 
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
@@ -562,6 +542,39 @@ continue the interpreter loop.
 ": F> FSWAP F< ; " // not standard word
 ": SFLOATS FLOATS ; : SFLOAT+ FLOAT+ ; : DFLOATS FLOATS ; : DFLOAT+ FLOAT+ ;  "
 #endif
+
+		/****
+		A Forth `VALUE` is just like a constant in that it puts a value on the stack
+		when invoked.  However, the stored value can be modified with `TO`.
+
+		`VALUE` is implemented as 2 part. 
+		 First part is WORD, that contains VALUE type:
+		 1 - WORD
+		 2 - DOUBLE
+		 3 - FLOAT
+		SECOND part length depends on VALUE type.
+		 for 1 - 1 WORD
+		 for 2 - 1 DOUBLE word (2 WORDs)
+		 for 3 - 1 FLOAT
+		****/
+
+//": value constant ; "
+//": value! >body ! ; "
+//": 2value! >body 2! ; "
+//": 2VALUE CREATE , , DOES> 2@ ; "
+//": VALUE CREATE ,  DOES> @ ; "
+//": to       state @ if postpone ['] postpone value! else ' value! then ; immediate "
+//": TO ' >BODY STATE @ IF POSTPONE 2LITERAL POSTPONE 2! ELSE 2! THEN ; IMMEDIATE "
+//": to       state @ if postpone ['] postpone 2value! else ' 2value! then ; immediate "
+": value create 1 , , does> dup @ 1 = if cell+ @ else then ; "
+": 2value create 2 , , , does> dup @ 2 = if cell+ 2@ else then ; " 
+": fvalue create 3 , F,  does> dup @ 3 = if cell+ F@ else then ; "
+" : to state @ if 3 2 1 then ' >body state @ if "
+"postpone literal postpone dup postpone @ postpone dup postpone literal postpone = "
+"postpone if postpone drop postpone cell+ postpone ! postpone else postpone dup postpone literal postpone = "
+"postpone if postpone drop postpone cell+ postpone 2! postpone else postpone literal postpone = "
+"postpone if postpone cell+ postpone F! postpone then postpone then postpone then "
+"else dup @ dup 1 = if drop cell+ ! else dup 2 = if drop cell+ 2! else 3 = if cell+ F! then then then then ; immediate "
 
 #ifdef FORTHSCRIPTCPP_ENABLE_FILE
 /****
@@ -887,7 +900,13 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				auto saved = pointer.executingWord;
 				pointer.executingWord = numberInVector;
 				//std::cout << numberInVector << " " << name << " " << code << std::endl;
-				CALL_MEMBER_FN(pointer, code)();
+				if (code) {
+					if(pointer.isTraceCalls()) std::cout << name << " ";
+					CALL_MEMBER_FN(pointer, code)();
+				}
+				else {
+					throw AbortException("Word \""+name+"\" has nullptr code");
+				}
 				pointer.executingWord = saved;
 			}
 
@@ -927,14 +946,16 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		// Split std::string by delimiters in tokens
 		void split_str(const std::string& str, std::vector<std::string>& tokens, const std::string& delimiters)
 		{
-			std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-			std::string::size_type pos = str.find_first_of(delimiters, lastPos);
+			std::string::size_type delimitersSize = delimiters.size();
+			std::string::size_type pos = str.find(delimiters, 0);
+			std::string::size_type lastPos = str.find(delimiters, pos + delimitersSize);
+			tokens.push_back(str.substr(0, pos));
 
-			while (std::string::npos != pos || std::string::npos != lastPos)
+			while (str.find_first_not_of(delimiters, pos) != std::wstring::npos)
 			{
-				tokens.push_back(str.substr(lastPos, pos - lastPos));
-				lastPos = str.find_first_not_of(delimiters, pos);
-				pos = str.find_first_of(delimiters, lastPos);
+				tokens.push_back(str.substr(pos + delimitersSize, lastPos - pos - delimitersSize));
+				pos = str.find(delimiters, lastPos);
+				lastPos = str.find(delimiters, pos + delimitersSize);
 			}
 		}
 #ifdef _DEBUG
@@ -1905,7 +1926,7 @@ Code Reserved for	Code Reserved for
 			std::string Word2{};
 			moveFromDataSpace(Word2, caddr2, length2);
 			auto result = Word1.compare(Word2);
-			dStack.setTop(result); // @bug - is not implemented
+			dStack.setTop((result < 0) ? -1 : ((result > 0) ? 1 : 0)); 
 		}
 
 		/****
@@ -2775,6 +2796,25 @@ Code Reserved for	Code Reserved for
 		}
 #endif
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT_EXT
+		/// F>S ( -- n ) ( F: r -- ) or ( r -- n )
+		/// n is the single-cell signed-integer equivalent of the integer portion of r. 
+		/// The fractional portion of r is discarded. An ambiguous condition exists if the integer 
+		/// portion of r cannot be represented as a single-cell signed integer.
+		void f_fmores() {
+			REQUIRE_FSTACK_DEPTH(1, "F>S");
+			REQUIRE_DSTACK_AVAILABLE(1, "F>S");
+			auto r1 = fStack.getTop(0);fStack.pop();
+			dStack.push(SCell(r1));
+		}
+		/// S>F ( n -- ) ( F: -- r ) or ( n -- r ) r is the floating-point equivalent of the single-cell value n. 
+		/// An ambiguous condition exists if n can not be precisely represented as a floating-point value.
+		void f_smoref() {
+			REQUIRE_DSTACK_DEPTH(1, "S>F");
+			REQUIRE_FSTACK_AVAILABLE(1, "S>F");
+			auto r1 = dStack.getTop(0);dStack.pop();
+			fStack.push(FCell(r1));
+		}
+
 		// F ( F: r1 -- r2 ) or ( r1 -- r2 )
 		void f_fabs() {
 			REQUIRE_FSTACK_DEPTH(1, "FABS");
@@ -2933,7 +2973,7 @@ Code Reserved for	Code Reserved for
 				break;
 			case ToStdCout:
 				std::cout << SETBASE() << std::fixed << std::setprecision(precision_) << static_cast<FCell>(fStack.getTop());
-				std::cout.flush();
+				std::cout.flush(); // @bug should we make flush every output
 				break;
 			default:
 				break;
@@ -4152,24 +4192,42 @@ Code Reserved for	Code Reserved for
 		}
 
 		bool interpretNumbers(const std::string &value){
-			std::regex regexInt{ "^[\\-]?\\d+$" };
-			std::regex regexDouble{ "^\\d+\\.$" };
-			std::regex regexNegativeDouble{ "^\\-\\d+\\.$" };
-			std::regex regexDoubleNot10{ "^[\\dA-Za-z]+\\.$" };
-			std::regex regexNegativeDoubleNot10{ "^\\-[\\dA-Za-z]+\\.$" };
-			std::regex regexInt10{ "^#([\\-]?\\d+)$" };
-			std::regex regexDouble10{ "^#([\\-]?\\d+)\\.$" };
-			std::regex regexDouble16{ "^\\$([\\-]?[\\dA-Fa-f]+)\\.$" };
-			std::regex regexDouble2{ "^%([\\-]?[01]+)\\.$" };
-			std::regex regexInt16{ "^\\$([\\-]?[0-9A-Fa-f]+)$" };
-			std::regex regexInt2{ "^%([\\-]?[01]+)$" };
-			std::regex regexIntChar{ "^\'(.{1,1})\'$" };
+			static std::regex regexInt{ "^[\\-]?\\d+$" };
+			static std::regex regexDouble{ "^\\d+\\.$" };
+			static std::regex regexNegativeDouble{ "^\\-\\d+\\.$" };
+			static std::regex regexDoubleNot10{ "^[\\dA-Za-z]+\\.$" };
+			static std::regex regexNegativeDoubleNot10{ "^\\-[\\dA-Za-z]+\\.$" };
+			static std::regex regexInt10{ "^#([\\-]?\\d+)$" };
+			static std::regex regexDouble10{ "^#([\\-]?\\d+)\\.$" };
+			static std::regex regexDouble16{ "^\\$([\\-]?[\\dA-Fa-f]+)\\.$" };
+			static std::regex regexDouble2{ "^%([\\-]?[01]+)\\.$" };
+			static std::regex regexInt16{ "^\\$([\\-]?[0-9A-Fa-f]+)$" };
+			static std::regex regexInt2{ "^%([\\-]?[01]+)$" };
+			static std::regex regexIntChar{ "^\'(.{1,1})\'$" };
 
 			// regex float ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
 			// regex double ^[-+]?\d+\.$
 			// regex int ^[-+]?\d+$
 			int base = getNumericBase();
-
+			// consider it is int
+			if(0){
+			auto size=value.size();
+			if(base==10 && size>0 && value[size-1]>='0' && value[size-1]<='9'){
+				size_t last{};
+				long long int number = std::stoll(value,&last,base);
+				if (last == size && number<=INT32_MAX && number>=INT32_MIN ) {
+					Cell cnumber(number);
+					if (getIsCompiling()) {
+						data(CELL(doLiteralXt));
+						data(cnumber);
+					}
+					else {
+						push(cnumber);
+					}
+					return true;
+				}
+			}
+			}
 			std::smatch m1{};
 			bool found{};
 			if (base == 10){
@@ -4542,7 +4600,7 @@ Code Reserved for	Code Reserved for
 			savedInput.push_back(save);
 		}
 		void SetInput(const std::string &str){
-			std::string tokens{ "\n\r" };
+			std::string tokens{ "\n" }; // @bug \n\r ?
 			inputBufferStrings.clear();
 			split_str(str, inputBufferStrings, tokens);
 			inputBufferStringsCurrent = 0;
@@ -4742,14 +4800,14 @@ Code Reserved for	Code Reserved for
 			dStack.pop();dStack.pop();
 			// make all operations with positive unsigned values
 			// sign apply later
-			if(n2!=0){
-			if(n2<0){
+			if(n2 != 0){
+			if(n2 < 0){
 				n2=-n2; changeSign=!changeSign;
 			}
-			if(n1<0){
+			if(n1 < 0){
 				n1=-n1; changeSign=!changeSign;
 			}
-			if(d1.data_.SDcells<0){
+			if(d1.data_.SDcells < 0){
 				d1.data_.SDcells=-d1.data_.SDcells; changeSign=!changeSign;
 			}
 			DCell l(d1.data_.Cells.lo,0);
@@ -4869,7 +4927,25 @@ Code Reserved for	Code Reserved for
 			 dStack.setTop(0, d2.data_.Cells.hi);
 			}
 		}
-
+		/// <summary>
+		///  2ROT ( x1 x2 x3 x4 x5 x6 -- x3 x4 x5 x6 x1 x2 )
+		/// Rotate the top three cell pairs on the stack bringing cell pair x1 x2 to the top of the stack.
+		/// </summary>
+		void d2rot() {
+			REQUIRE_DSTACK_DEPTH(6, "2ROT");
+			Cell x6(dStack.getTop());
+			Cell x5(dStack.getTop(1));
+			Cell x4(dStack.getTop(2));
+			Cell x3(dStack.getTop(3));
+			Cell x2(dStack.getTop(4));
+			Cell x1(dStack.getTop(5));
+			dStack.setTop(0, x2);
+			dStack.setTop(1, x1);
+			dStack.setTop(2, x6);
+			dStack.setTop(3, x5);
+			dStack.setTop(4, x4);
+			dStack.setTop(5, x3);
+		}
 		/*****
 		The pictured input buffer 
 		
@@ -5274,11 +5350,15 @@ Code Reserved for	Code Reserved for
 				{ "D=",  &Forth::dequal, false }, // DOUBLE-NUMBER
 				{ "DMAX",  &Forth::dmax, false }, // DOUBLE-NUMBER
 				{ "DMIN",  &Forth::dmin, false }, // DOUBLE-NUMBER
+				{ "2ROT",  &Forth::d2rot, false }, // DOUBLE-NUMBER
 				{ ">NUMBER", &Forth::toNumber, false }, // CORE
 				{ "CATCHBEFORE", &Forth::exceptionsCatchBefore, false }, // not standerd word
 				{ "CATCHAFTER", &Forth::exceptionsCatchAfter, false }, // not standerd word
 				{ "THROW", &Forth::exceptionsThrow, false }, // not standerd word
-				{ "ENVIRONMENT?", &Forth::environmentquestion, false }, // not standerd word
+				{ "ENVIRONMENT?", &Forth::environmentquestion, false }, // not standard word
+				{ "TRACEON", &Forth::setTraceOn, false }, // not standard word
+				{ "TRACEOFF", &Forth::setTraceOff, false }, // not standard word
+				
 
 #ifdef FORTHSCRIPTCPP_ENABLE_MEMORY
 				{ "resize", &Forth::memResize , false }, //MEMORY
@@ -5339,6 +5419,8 @@ Code Reserved for	Code Reserved for
 				{ "REPRESENT", &Forth::represent, false },
 #endif
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT_EXT
+				{ "F>S", &Forth::f_fmores, false },
+				{ "S>F", &Forth::f_smoref, false },
 				{ "FABS", &Forth::f_fabs, false },
 				{ "FSIN", &Forth::f_fsin, false },
 				{ "FCOS", &Forth::f_fcos, false },
@@ -5609,6 +5691,21 @@ Code Reserved for	Code Reserved for
 #ifndef			FORTHSCRIPTCPP_DISABLE_OUTPUT
 			return std_cerr.str().empty();
 #endif
+		}
+			private:
+		bool traceCalls{};
+		void setTraceOn(){
+			setTraceCalls(true);
+		}
+		void setTraceOff(){
+			setTraceCalls(false);
+		}
+		public:
+		bool isTraceCalls(){
+			return traceCalls;	
+		}
+		void setTraceCalls(bool value){
+			traceCalls=value;
 		}
 	}; // end of class
 } // end  namespace

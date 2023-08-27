@@ -3,12 +3,15 @@ find_package(GTest REQUIRED)
 add_executable(test_constructor constructor.cc forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h )
 add_executable(test_forthtestsuit1 testsuit1.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 add_executable(test_parameters testsuite2.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
+add_executable(test_word_to test_word_to.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
+add_executable(test_exceptions test_exceptions.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 
 set(UNITTEST_TARGETS
 test_parameters
 test_forthtestsuit1
 test_constructor 
-
+test_word_to
+test_exceptions
 )
 add_custom_command(
         TARGET test_forthtestsuit1 POST_BUILD

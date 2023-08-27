@@ -159,16 +159,20 @@ void readFile() {
 // READ-LINE ( c-addr u1 fileid -- u2 ior )
 void readLine() {
 	REQUIRE_DSTACK_DEPTH(3, "READ-LINE");
-	auto h = (dStack.getTop()); pop();
+	auto h = (dStack.getTop()); 
 	auto f = GetFileHandle(h, "READ-LINE", errorReadLine);
-	auto length = SIZE_T(dStack.getTop());
-	auto caddr = (dStack.getTop(1));
-	std::vector<char> readBuffer(length);
-	f->getline(&readBuffer[0], static_cast<std::streamsize>(length));
-	auto realLength = static_cast<Cell>(f->gcount());
-	moveIntoDataSpace(caddr, &readBuffer[0], realLength);
-	dStack.setTop(f->bad() ? Cell(errorReadLine) : 0);
-	dStack.setTop(1, realLength);
+	auto length = SIZE_T(dStack.getTop(1));
+	auto caddr = (dStack.getTop(2));
+	if (length > 0) {
+		std::vector<char> readBuffer(length+2);
+		f->getline(&readBuffer[0], static_cast<std::streamsize>(length+1)); // add termination 0 to char counter
+		length = static_cast<Cell>(f->gcount());
+		moveIntoDataSpace(caddr, &readBuffer[0], length);
+	}
+	
+	dStack.setTop(0, f->bad() ? Cell(errorReadLine) : 0);
+	dStack.setTop(1, True);
+	dStack.setTop(2, length);
 }
 
 // READ-CHAR ( fileid -- char ior )

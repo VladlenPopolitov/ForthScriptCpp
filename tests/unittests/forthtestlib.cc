@@ -32,7 +32,8 @@ void RunAndCompare(const std::string &command, const std::string &result,bool tr
         ADD_FAILURE() << "Uncaught exception unknown type " ;
     }
     if (res.compare(result)){
-        ADD_FAILURE() << "RunAndCompare faulure: should be: " << result << ", got:"<<res;
+        ADD_FAILURE() << "RunAndCompare faulure: should be: " << result << ", got:"<<res
+        <<" Command "<<command;
     }
 
 }
