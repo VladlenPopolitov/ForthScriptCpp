@@ -519,7 +519,6 @@ to the address and subtracting from the length.
 
 ": /string   dup >r - swap r> + swap ; "
 
-
 /****
 
 `ABORT"` checks whether a result is non-zero, and if so, it throws an exception
@@ -687,12 +686,23 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
  "    DROP ; IMMEDIATE  "
  " : [IF] ( flag -- ) 0= IF POSTPONE [ELSE] THEN ; IMMEDIATE  "
  " : [UNDEFINED] BL WORD FIND NIP 0= ; IMMEDIATE  "
+/**
+ * Core-ext 
+ * 
+*/
+": isspace? ( c -- f ) BL 1+ U< ; "
+": isnotspace? ( c -- f ) isspace? 0= ; "
+": xt-skip " //( addr1 n1 xt -- addr2 n2 ) \ skip all characters satisfying xt ( c -- f ) 
+"   >R BEGIN DUP WHILE OVER C@ R@ EXECUTE WHILE 1 /STRING REPEAT THEN R> DROP ; "
+": parse-name " // ( "name" -- c-addr u ) 
+"SOURCE >IN @ /STRING ['] isspace? xt-skip OVER >R ['] isnotspace? xt-skip " // ( end-word restlen r: start-word ) 
+"2DUP 1 MIN + SOURCE DROP - >IN ! DROP R> TUCK - ; "
 
  /** 
   *  Facility implementation
   * 
  */
-// ": FALIGNED ALIGNED ; "
+
 ": SFALIGNED ALIGNED ; "
 ": DFALIGNED ALIGNED ; "
 ": BEGIN-STRUCTURE CREATE HERE 0 0 , DOES> @ ; "
@@ -703,6 +713,71 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 ": FFIELD:   ( n1 \"name\" -- n2 ; addr1 -- addr2 )  FALIGNED 1 FLOATS +FIELD ; "
 ": SFFIELD:  ( n1 \"name\" -- n2 ; addr1 -- addr2 )  SFALIGNED 1 SFLOATS +FIELD ; "
 ": DFFIELD:  ( n1 \"name\" -- n2 ; addr1 -- addr2 )  DFALIGNED 1 DFLOATS +FIELD ; "
+/**
+ *  Locals
+ * 
+*/
+/*
+"12345 CONSTANT undefined-value "
+": match-or-end? ( c-addr1 u1 c-addr2 u2 -- f ) 2 PICK 0= >R COMPARE 0= R> OR ; "
+": scan-args " // 0 c-addr1 u1 -- c-addr1 u1 ... c-addrn un n c-addrn+1 un+1
+"  BEGIN "
+"2DUP S\" |\" match-or-end? 0= WHILE "
+"  2DUP S\" --\" match-or-end? 0= WHILE "
+"  2DUP S\" :}\" match-or-end? 0= WHILE "
+"  ROT 1+ PARSE-NAME "
+"AGAIN THEN THEN THEN ; "
+": scan-locals " // n c-addr1 u1 -- c-addr1 u1 ... c-addrn un n c-addrn+1 un+1 
+"  2DUP S" |" COMPARE 0= 0= IF EXIT THEN "
+"   2DROP PARSE-NAME "
+"   BEGIN "
+"   2DUP S\" --\" match-or-end? 0= WHILE "
+"     2DUP S\" :}\" match-or-end? 0= WHILE " 
+"     ROT 1+ PARSE-NAME "
+"     POSTPONE undefined-value "
+"   AGAIN THEN THEN ; "
+": scan-end ( c-addr1 u1 -- c-addr2 u2 ) "
+"  BEGIN "" 
+"     2DUP S\" :}\" match-or-end? 0= WHILE "
+"     2DROP PARSE-NAME "
+"   REPEAT ; "
+": define-locals ( c-addr1 u1 ... c-addrn un n -- ) 0 ?DO (LOCAL) LOOP 0 0 (LOCAL) ; "
+": {: ( -- ) 0 PARSE-NAME scan-args scan-locals scan-end 2DROP define-locals ; IMMEDIATE "
+*/
+/** 
+ *  Strings
+*/
+// http://lars.nocrew.org/forth2012/xchar/X-SIZE.html 
+": XCHAR- ( xc-addr -- xc-addr' ) BEGIN 1 CHARS - DUP C@ $C0 AND $80 <> UNTIL ; "
+": X-SIZE ( xc-addr u1 -- u2 ) 0= IF DROP 0 EXIT THEN " // \ length of UTF-8 char starting at u8-addr (accesses only u8-addr) 
+" C@ "
+"  DUP $80 U< IF DROP 1 EXIT THEN "
+"  DUP $c0 U< IF -77 THROW THEN "
+"  DUP $e0 U< IF DROP 2 EXIT THEN "
+"  DUP $f0 U< IF DROP 3 EXIT THEN "
+"  DUP $f8 U< IF DROP 4 EXIT THEN "
+"  DUP $fc U< IF DROP 5 EXIT THEN "
+" DUP $fe U< IF DROP 6 EXIT THEN "
+"  -77 THROW ; "
+": -TRAILING-GARBAGE ( xc-addr u1 -- xc-addr u2 )  2DUP + DUP XCHAR- ( addr u1 end1 end2 ) 2DUP DUP OVER OVER - X-SIZE + " 
+" = IF 2DROP ELSE NIP NIP OVER - THEN ; "
+": BLANK ( c-addr u -- ) BL FILL ; "
+/***
+ * Search
+*/
+/***
+ * Strings EXT
+ * Substitute REPLACE UNESCAPE
+*/
+": UNESCAPE " // \ c-addr1 len1 c-addr2 -- c-addr2 len2 
+ //\ Replace each '%' character in the input string c-addr1 len1 with two '%' characters. 
+// \ The output is represented by c-addr2 len2. 
+// \ If you pass a string through UNESCAPE and then SUBSTITUTE, you get the original string. 
+" DUP 2SWAP OVER + SWAP ?DO I C@ [CHAR] % = IF [CHAR] % OVER C! 1+ THEN I C@ OVER C! 1+ LOOP OVER - ; "
+/***
+ * TOOLS
+*/
+
 /****
 
 `ABOUT` is not a standard word.  It just prints licensing and credit information.
@@ -1177,7 +1252,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 			return dataSpaceAt(pointer);
 		}
 		void setDataChar(CAddr pointer, Char value){
-			dataSpaceAt(pointer) = value;
+			dataSpaceSet(pointer, value);
 		}
 		Cell getDataCell(CAddr pointer){
 			Cell tmp{ 0 }, tmpRes{ 0 };
@@ -1191,7 +1266,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		void setDataCell(AAddr pointer, Cell value){
 			Cell tmp{ 0 };
 			for (size_t i = 0; i < sizeof(Cell); ++i){
-				dataSpaceAt(pointer+i) = value & 0x00ff;
+				dataSpaceSet(pointer+i, value & 0x00ff);
 				value >>= 8;
 			}
 		}
@@ -1259,6 +1334,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 			sourceBufferVirtual.resize(0);
 			std::copy(value.begin(), value.end(), std::back_inserter(sourceBufferVirtual));
 			setSourceBufferSize(sourceBufferVirtual.size());
+			VirtualMemory.at(vmSegmentSourceBuffer).end = VirtualMemory.at(vmSegmentSourceBuffer).start + VirtualMemory.at(vmSegmentSourceBuffer).segment.size();
 		}
 		bool setSourceBuffer(){
 			if (inputBufferStringsCurrent < inputBufferStrings.size()){
@@ -1394,6 +1470,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				errorParsedStringOverflow=-18,
 				errorUnsupportedOperation=-21,
 				errorAdressAlignment=-23,
+				errorControlStackOverflow=-52,
 				errorAllocate=-59,
 				errorFree=-60,
 				errorResize=-61,
@@ -1588,6 +1665,8 @@ Code Reserved for	Code Reserved for
 #define REQUIRE_DSTACK_AVAILABLE(n, name)    requireDStackAvailable(n, name)
 #define REQUIRE_RSTACK_DEPTH(n, name)        requireRStackDepth(n, name)
 #define REQUIRE_RSTACK_AVAILABLE(n, name)    requireRStackAvailable(n, name)
+#define REQUIRE_CSTACK_DEPTH(n, name)        requireCStackDepth(n, name)
+#define REQUIRE_CSTACK_AVAILABLE(n, name)    requireCStackAvailable(n, name)
 #define REQUIRE_ALIGNED(addr, name)          RUNTIME_NO_OP()
 //#define REQUIRE_ALIGNED(addr, name)          checkAligned(addr, name)
 #define REQUIRE_VALID_HERE(name)             checkValidHere(name)
@@ -1607,6 +1686,16 @@ Code Reserved for	Code Reserved for
 		void requireDStackAvailable(std::size_t n, const char* name) {
 			RUNTIME_ERROR_IF(!dStack.availableStack(n),
 				std::string(name) + ": stack overflow",errorStackOverflow);
+		}
+
+		void requireCStackDepth(std::size_t n, const char* name) {
+			RUNTIME_ERROR_IF(controlStackIf_Begin.stackDepth() < static_cast<std::ptrdiff_t>(n),
+				std::string(name) + ": control stack underflow",errorControlStackOverflow);
+		}
+
+		void requireCStackAvailable(std::size_t n, const char* name) {
+			RUNTIME_ERROR_IF(!controlStackIf_Begin.availableStack(n),
+				std::string(name) + ": control stack overflow",errorControlStackOverflow);
 		}
 
 		void requireRStackDepth(std::size_t n, const char* name) {
@@ -1822,6 +1911,22 @@ Code Reserved for	Code Reserved for
 			dStack.setTop(CELL(caddr + 1));
 			push(count);
 		}
+		// -TRAILING ( c-addr1 u1 -- c-addr2 u2 )
+		void dashtrailing() {
+			REQUIRE_DSTACK_DEPTH(2, "COUNT");
+			auto caddr = CADDR(dStack.getTop(1));
+			SCell count = dStack.getTop(0);
+			while(count>0){
+			auto trailingChar = (getDataChar(caddr+count-1));
+			if(trailingChar==' '){
+				count--;
+			} else {
+				break;
+			}
+			}
+			//Nothing done
+			dStack.setTop(static_cast<Cell>(count));
+		}
 
 		/****
 
@@ -1902,7 +2007,14 @@ Code Reserved for	Code Reserved for
 			auto dst = CADDR(dStack.getTop()); pop();
 			auto src = CADDR(dStack.getTop()); pop();
 			for (std::size_t i = 0; i < length; ++i) {
-				dataSpaceAt(dst + i) = dataSpaceAt(src + i);
+				try {
+					dataSpaceSet(dst + i, dataSpaceAt(src + i));
+				}
+				catch (std::exception &ex) {
+					auto err = ex.what();
+					auto counter = i;
+					auto dst1 = dst;
+				}
 			}
 		}
 
@@ -1914,7 +2026,7 @@ Code Reserved for	Code Reserved for
 			auto src = CADDR(dStack.getTop()); pop();
 			for (std::size_t i = 0; i < length; ++i) {
 				auto offset = length - i - 1;
-				dataSpaceAt(dst + offset) = dataSpaceAt(src + offset);
+				dataSpaceSet(dst + offset, dataSpaceAt(src + offset));
 			}
 		}
 
@@ -1925,12 +2037,13 @@ Code Reserved for	Code Reserved for
 			auto length = SIZE_T(dStack.getTop()); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
 			for (std::size_t i = 0; i < length; ++i) {
-				dataSpaceAt(caddr + i) = ch;
+				dataSpaceSet(caddr + i, ch);
 			}
 		}
 
 		// COMPARE ( c-addr1 u1 c-addr2 u2 -- n )
 		void compare(){
+			REQUIRE_DSTACK_DEPTH(4, "COMPARE");
 			auto length2 = SIZE_T(dStack.getTop()); pop();
 			auto caddr2 = CADDR(dStack.getTop()); pop();
 			auto length1 = SIZE_T(dStack.getTop()); pop();
@@ -1941,6 +2054,33 @@ Code Reserved for	Code Reserved for
 			moveFromDataSpace(Word2, caddr2, length2);
 			auto result = Word1.compare(Word2);
 			dStack.setTop((result < 0) ? -1 : ((result > 0) ? 1 : 0)); 
+		}
+		/// SEARCH ( c-addr1 u1 c-addr2 u2 -- c-addr3 u3 flag )
+		//Search the string specified by c-addr1 u1 for the string specified by c-addr2 u2. 
+		//If flag is true, a match was found at c-addr3 with u3 characters remaining. 
+		//If flag is false there was no match and c-addr3 is c-addr1 and u3 is u1.
+		void search(){
+			REQUIRE_DSTACK_DEPTH(4, "SEARCH");
+			auto length2 = SIZE_T(dStack.getTop()); pop();
+			auto caddr2 = CADDR(dStack.getTop()); 
+			auto length1 = SIZE_T(dStack.getTop(1)); 
+			auto caddr1 = CADDR(dStack.getTop(2)); 
+			std::string Word1{};
+			moveFromDataSpace(Word1, caddr1, length1);
+			std::string Word2{};
+			moveFromDataSpace(Word2, caddr2, length2);
+			auto result = Word1.find(Word2,0);
+			if(result!=std::string::npos){
+				dStack.setTop(True);
+				dStack.setTop(1,length1-result);
+				dStack.setTop(2,caddr1+result);
+
+			} else {
+				dStack.setTop(False);
+				// dStack.setTop(1,length1); // not changed
+				// dStack.setTop(2,caddr1);	 // not changed
+			}
+			
 		}
 
 		/****
@@ -2206,7 +2346,7 @@ Code Reserved for	Code Reserved for
 			}
 				auto copySize = std::min(line.length(), bufferSize);
 				for (std::size_t i = 0; i < copySize; ++i) {
-					dataSpaceAt(buffer + i) = line.at(i);
+					dataSpaceSet(buffer + i, line.at(i));
 				}
 				dStack.setTop(static_cast<Cell>(copySize));
 		}
@@ -2482,7 +2622,7 @@ Code Reserved for	Code Reserved for
 		}
 		void setDataCell(AAddr pointer, FCell *value){
 			for (size_t i = 0; i < sizeof(FCell); ++i){
-				dataSpaceAt(pointer + i) = static_cast<unsigned char*>(static_cast<void*>(value))[i];
+				dataSpaceSet(pointer + i,  static_cast<unsigned char*>(static_cast<void*>(value))[i]);
 			}
 		}
 		FCell getDataFCell(CAddr pointer){
@@ -3401,7 +3541,7 @@ Code Reserved for	Code Reserved for
 			assignStringFromCaddress(name, CADDR(caddr), length);
 			definePrimitive(name.c_str(), &Forth::doCreate, false);
 		}
-
+		
 		// : ( C: "<spaces>name" -- colon-sys )
 		void colon() {
 			create();
@@ -3601,6 +3741,23 @@ Code Reserved for	Code Reserved for
 			auto caddr = CADDR(dStack.getTop());
 			auto length = static_cast<Cell>(getDataChar(caddr));
 			auto name = caddr + 1;
+			auto word = findDefinition(name, length);
+			if (word == 0) {
+				push(0);
+			}
+			else {
+				dStack.setTop(CELL(word));
+				push(definitionsAt(word).isImmediate() ? 1 : Cell(-1));
+			}
+		}
+		// SEARCH-WORDLIST ( c-addr -- c-addr 0  |  xt 1  |  xt -1 )
+		void searchdashwordlist() {
+			REQUIRE_DSTACK_DEPTH(3, "SEARCH-WORDLIST");
+			auto wid = CELL(dStack.getTop()); pop();
+			auto length = CELL(dStack.getTop()); pop();
+			auto caddr = CADDR(dStack.getTop()); pop();
+			//auto length = static_cast<Cell>(getDataChar(caddr));
+			auto name = caddr;
 			auto word = findDefinition(name, length);
 			if (word == 0) {
 				push(0);
@@ -3985,6 +4142,85 @@ Code Reserved for	Code Reserved for
 				controlStackIf_Begin.pop();
 			}
 		}
+
+		// CS-PICK ( C: destu ... orig0 | dest0 -- destu ... orig0 | dest0 destu ) ( S: u -- )
+		void csdashpick() {
+			REQUIRE_DSTACK_DEPTH(1, "CS-PICK");
+			auto index = dStack.getTop(); pop();
+			REQUIRE_CSTACK_DEPTH(index+1, "CS-PICK");
+			REQUIRE_CSTACK_AVAILABLE(1, "CS-PICK");
+			controlStackIf_Begin.push(controlStackIf_Begin.getTop(index));
+			//auto cell = controlStackLoops.getTop(); controlStackLoops.pop();
+		}
+		// CS-ROLL ( C: origu | destu origu-1 | destu-1 ... orig0 | dest0 -- origu-1 | destu-1 ... orig0 | dest0 origu | destu ) ( S: u -- )
+		void csdashroll() {
+			REQUIRE_DSTACK_DEPTH(1, "CS-ROLL");
+			auto index = dStack.getTop(); pop();
+			if(index>0){
+			REQUIRE_CSTACK_DEPTH(index+1, "CS-ROLL");
+			 auto newTop=controlStackIf_Begin.getTop(index);
+			 for(auto i=index;i>0;--i){
+			  controlStackIf_Begin.setTop(i,controlStackIf_Begin.getTop(i-1));
+			 }
+			 controlStackIf_Begin.setTop(newTop);
+			}
+			//auto cell = controlStackLoops.getTop(); controlStackLoops.pop();
+		}
+		// N>R ( i * n +n -- ) ( R: -- j * x +n )
+		void nmorer() {
+			REQUIRE_DSTACK_DEPTH(1, "N>R");
+			auto index = dStack.getTop(); pop();
+			REQUIRE_DSTACK_DEPTH(index, "N>R");
+			REQUIRE_RSTACK_AVAILABLE(index+1, ">R");
+			for(size_t i=0;i<index;++i){
+			 rpush(dStack.getTop()); pop();
+			}
+			rpush(index);
+		}
+
+		// NR> ( -- x ) ( R: x -- )
+		void nrmore() {
+			REQUIRE_RSTACK_DEPTH(1, "NR>");
+			auto index = rStack.getTop(); rpop();
+			REQUIRE_RSTACK_DEPTH(index, "NR>");
+			REQUIRE_DSTACK_AVAILABLE(index+1, "R>");
+			for(size_t i=0;i<index;++i){
+			 push(rStack.getTop()); rpop();
+			}
+			push(index);
+		}
+		void synonym() {
+			bl(); word();
+			count();
+			auto length = SIZE_T(dStack.getTop()); pop();
+			auto caddr = CADDR(dStack.getTop()); pop();
+			if (length > 0) {
+				std::string newWord{};
+				moveFromDataSpace(newWord, caddr, length);
+				bl(); word(); dup();
+				count();
+				length = SIZE_T(dStack.getTop()); pop();
+				caddr = CADDR(dStack.getTop()); pop();
+				if (length > 0) {
+					std::string currentWord{};
+					moveFromDataSpace(currentWord, caddr, length);
+					find();
+					auto found = static_cast<int>(dStack.getTop()); pop();
+					if (found) {
+						auto xt = XT(dStack.getTop()); pop();
+						auto definition = *getDefinition(xt);
+						definition.name = newWord;
+						definitions.emplace_back(std::move(definition));
+						getDefinition(definitions.size() - 1)->numberInVector = definitions.size() - 1;
+					}
+					else {
+						pop(); // remove from stack. not found , ambigous state
+					}
+				}
+
+			}
+		}
+		
 		// noop ( -- ) no operation
 		void noop() {
 			;
@@ -5366,12 +5602,24 @@ Code Reserved for	Code Reserved for
 				{ "DMIN",  &Forth::dmin, false }, // DOUBLE-NUMBER
 				{ "2ROT",  &Forth::d2rot, false }, // DOUBLE-NUMBER
 				{ ">NUMBER", &Forth::toNumber, false }, // CORE
+				{ "-TRAILING", &Forth::dashtrailing, false }, // STRINGS
+				{ "SEARCH", &Forth::search, false }, // STRINGS
+				// { "SCAN", &Forth::scan, false }, // STRINGS-NON STANDARD WORD for substitute
 				{ "CATCHBEFORE", &Forth::exceptionsCatchBefore, false }, // not standerd word
 				{ "CATCHAFTER", &Forth::exceptionsCatchAfter, false }, // not standerd word
 				{ "THROW", &Forth::exceptionsThrow, false }, // not standerd word
 				{ "ENVIRONMENT?", &Forth::environmentquestion, false }, // not standard word
 				{ "TRACEON", &Forth::setTraceOn, false }, // not standard word
 				{ "TRACEOFF", &Forth::setTraceOff, false }, // not standard word
+				{ "SEARCH-WORDLIST", &Forth::searchdashwordlist, false }, // SEARCH
+				{ "CS-PICK", &Forth::csdashpick, false }, // TOOLS
+				{ "CS-ROLL", &Forth::csdashroll, false }, // TOOLS
+				{ "NR>", &Forth::nrmore, false }, // TOOLS
+				{ "N>R", &Forth::nmorer, false }, // TOOLS
+				{ "SYNONYM", &Forth::synonym, false }, // TOOLS
+				
+
+				
 				
 
 #ifdef FORTHSCRIPTCPP_ENABLE_MEMORY
@@ -5487,7 +5735,7 @@ Code Reserved for	Code Reserved for
 		
 		void moveIntoDataSpace(Cell dst, const char *src, size_t count){
 			while (count--){
-				dataSpaceAt(dst++) = *src++;
+				dataSpaceSet(dst++, *src++);
 			}
 		}
 		void moveFromDataSpace(unsigned char *dst, Cell src, size_t count){
@@ -5574,15 +5822,25 @@ Code Reserved for	Code Reserved for
 		struct VirtualMemorySegment { Cell start,end; std::vector<Char> segment; };
 		std::vector<VirtualMemorySegment> VirtualMemory{};
 		Cell VirtualMemoryFreeSegment{};
-		Char &dataSpaceAt(Cell index){
+		Char dataSpaceAt(Cell index){
 			for (auto it = VirtualMemory.begin(); it != VirtualMemory.end(); ++it){
 				if ((*it).start <= index && (*it).end > index){
 					return (*it).segment.at(index - (*it).start);
 				}
 			}
-			std::cout << index;
+			return Char(0); // all memory is filled by 0x00
 			throwMessage("Access outside dataspace",errorInvalidAddress);
 			throw;
+		}
+		void dataSpaceSet(Cell index,Char value) {
+			for (auto it = VirtualMemory.begin(); it != VirtualMemory.end(); ++it) {
+				if ((*it).start <= index && (*it).end > index) {
+					(*it).segment.at(index - (*it).start) = value;
+				}
+			}
+			// ignore writes outside of allocated memory (it is ROM)
+			//throwMessage("Access outside dataspace", errorInvalidAddress);
+			//throw;
 		}
 
 	public:
@@ -5656,7 +5914,7 @@ Code Reserved for	Code Reserved for
 			size_t offset = 0;
 			if (size > buffer.size()) size = buffer.size();
 			while (size--){
-				dataSpaceAt(address++)= buffer.at(offset++);
+				dataSpaceSet(address++, buffer.at(offset++));
 			}
 		}
 

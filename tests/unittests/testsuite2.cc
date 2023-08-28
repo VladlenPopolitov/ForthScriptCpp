@@ -363,27 +363,45 @@ TEST_P(MyTestSuite, MyTest)
         {
             int statusIF=0;
             int lineIF=-1;
-            std::regex IF{std::string(".*\\[[Ii][Ff]\\].*")};
-            std::regex THEN{".*\\[[Tt][Hh][Ee][Nn]\\].*"};
+            static std::regex IF{std::string(".*\\[[Ii][Ff]\\].*")};
+            static std::regex ELSE{std::string(".*\\[[Ee][Ll][Ss][Ee]\\].*")};
+            static std::regex THEN{".*\\[[Tt][Hh][Ee][Nn]\\].*"};
+            static std::regex COLON{"^(|.* )\\: (.*)"};
+            static std::regex SEMICOLON{std::string(" ;( .*|)$")};
+            static std::regex SEMICOLONEND{std::string("^(|.* );( .*|)$")};
             std::smatch m1{};
             fileLines.clear();
             while (std::getline(is, content))
             {
                 switch(statusIF){
                     case 0:
-                    if(std::regex_search(content,m1,IF) ){
+                    if(std::regex_search(content,m1,IF) || std::regex_search(content,m1,ELSE)){
                         lineIF=fileLines.size();
                         statusIF=1;
-                        
                     } 
+                    if(std::regex_search(content,m1,COLON) ){
+                        std::string subcontent=m1[1];
+                        if(!std::regex_search(subcontent,m1,SEMICOLON) ) {
+                        lineIF=fileLines.size();
+                        statusIF=2;
+                     }
+                    }
                     fileLines.push_back(content);
                     break;
                     case 1:
                     if(std::regex_match(content,m1,THEN)){
                         statusIF=0;
-                    }
-                fileLines[lineIF].append(" ").append(content);    
+                    }    fileLines[lineIF].append("\n").append(content);    
                 fileLines.push_back(" ");
+                break;
+                        case 2:
+                    if(std::regex_match(content,m1,SEMICOLONEND)){
+                        statusIF=0;
+                    }
+                    fileLines[lineIF].append("\n").append(content);    
+                fileLines.push_back(" ");
+                break;
+                
                 }
             }
 
@@ -417,7 +435,7 @@ TEST_P(MyTestSuite, MyTest)
         error = aaa;
         errorInForth++;
         // ADD_FAILURE() << "Uncaught exception Forth: " << testFileNamesList[i] << std::endl << ex.what();
-        std::cout << "1.Uncaught exception Forth: " << testFileNamesList[loadedFile-1] << std::endl
+        std::cout << "1.Uncaught exception Forth: " << testFileNamesList[loadedFile-1] << ":" << (line + 1) << std::endl
                   << ex.what();
     }
     catch (std::exception &ex)
@@ -426,7 +444,7 @@ TEST_P(MyTestSuite, MyTest)
         error = aaa;
         errorInForth++;
         // ADD_FAILURE() << "Uncaught exception : " << testFileNamesList[i] << std::endl << ex.what();
-        std::cout << "1.Uncaught exception : " << testFileNamesList[loadedFile-1] << std::endl
+        std::cout << "1.Uncaught exception : " << testFileNamesList[loadedFile-1] << ":"<<(line+1)<<std::endl
                   << ex.what();
     }
     catch (...)
@@ -434,7 +452,7 @@ TEST_P(MyTestSuite, MyTest)
         error = " 1.Unknown exception";
         errorInForth++;
         // ADD_FAILURE() << "Uncaught exception unknown type " << testFileNamesList[i] << std::endl;
-        std::cout << "1.Uncaught exception unknown type " << testFileNamesList[loadedFile-1] << std::endl;
+        std::cout << "1.Uncaught exception unknown type " << testFileNamesList[loadedFile-1] << ":" << (line + 1) << std::endl;
     }
 if (errorInForth != saveErrorForth || errorInTest != saveError)
             {
@@ -450,7 +468,7 @@ if (errorInForth != saveErrorForth || errorInTest != saveError)
 
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit009DoubleTest, MyTestSuite, testing::Range(90000, 90438), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit010ExceptionTest, MyTestSuite, testing::Range(100000, 100100), testing::PrintToStringParamName());
-INSTANTIATE_TEST_SUITE_P(ForthTestSuit011facilitytest, MyTestSuite, testing::Range(110000, 110143), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit011facilitytest, MyTestSuite, testing::Range(110000, 110143), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit012FileTest,  MyTestSuite, testing::Range(120000, 121100), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit013LocalsTest, MyTestSuite, testing::Range(130000, 131100), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit014MemoryTest, MyTestSuite, testing::Range(140000, 140128), testing::PrintToStringParamName());
@@ -469,8 +487,8 @@ INSTANTIATE_TEST_SUITE_P(ForthTestSuit011facilitytest, MyTestSuite, testing::Ran
 
 // segfault
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit008BlockTest, MyTestSuite, testing::Range(80000, 81100), testing::PrintToStringParamName());
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit015toolstest, MyTestSuite, testing::Range(150000, 151100), testing::PrintToStringParamName());
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit017stringtest, MyTestSuite, testing::Range(170000, 171100), testing::PrintToStringParamName());
+INSTANTIATE_TEST_SUITE_P(ForthTestSuit015toolstest, MyTestSuite, testing::Range(150000, 150386), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit017stringtest, MyTestSuite, testing::Range(170000, 170324), testing::PrintToStringParamName());
 
 int main(int argc, char **argv)
 {
