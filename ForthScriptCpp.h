@@ -425,10 +425,10 @@ Because we'll be using `(lit)` in other word definitions, we'll create a constan
 
 		I wish I could explain `POSTPONE`, but I can't, so you will just have to google it.
 
+		POSTPONE discussion: https://github.com/ForthHub/discussion/discussions/105
 		****/
 
 		": postpone bl word find  1 = if , else  '(lit) , ,  ['] , ,  then ; immediate "
-
 
 /****
 
@@ -1224,7 +1224,11 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				setDataCell(getIsCompilingAddress(), value);
 			}
 
-			Cell getIsCompiling() { return getDataCell(getIsCompilingAddress()); }
+			Cell getIsCompiling() { 
+				auto value=getDataCell(getIsCompilingAddress());
+			    return value;
+			}
+
 			CAddr getIsCompilingAddress()  { return VarOffsetState; }
 
 		size_t dataPointer = 0;
@@ -1238,14 +1242,16 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 			setDataPointer(getDataPointer() + value);
 		}
 		const CAddr VarOffsetState = CellSize*1;
-		const CAddr VarOffsetSourceSize = CellSize * 2;
-		const CAddr VarOffsetSourceOffset = CellSize * 3;
-		const CAddr VarOffsetNumericBase = CellSize * 4;
-		const CAddr VarOffsetWordBuffer = CellSize * 5;
+		const CAddr VarOffsetSourceAddress = CellSize * 2;  // SOURCE variable
+		const CAddr VarOffsetSourceSize = CellSize * 3;		// SOURCE buffer size
+		const CAddr VarOffsetSourceOffset = CellSize * 4;   // >IN variable
+		const CAddr VarOffsetBlkAddress = CellSize * 5;		// BLK variable
+		const CAddr VarOffsetNumericBase = CellSize * 6;	// BASE variable
+		const CAddr VarOffsetWordBuffer = CellSize * 7;
 		const CAddr WordBufferSize = CellSize * 256;
 		const CAddr PadBufferSize = 256;
-		const CAddr VarOffsetPadBuffer = WordBufferSize + CellSize * 6;
-		const CAddr VarOffsetSourceBuffer = WordBufferSize + CellSize * 6 + PadBufferSize;
+		const CAddr VarOffsetPadBuffer = WordBufferSize + CellSize * 8;
+		const CAddr VarOffsetSourceBuffer = WordBufferSize + CellSize * 8 + PadBufferSize;
 
 
 		Char getDataChar(CAddr pointer){
@@ -1326,36 +1332,69 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 
 		****/
 
+
+		void setSourceAddress(Cell value) {
+			setDataCell(VarOffsetSourceAddress, value);
+		}
+		Cell getSourceAddress() {
+			return getDataCell(VarOffsetSourceAddress);
+		}
+
 		void setSourceBufferSize(Cell value){
 			setDataCell(VarOffsetSourceSize, value);
 		}
+		Cell getSourceBufferSize() {
+			return getDataCell(VarOffsetSourceSize);
+		}
 		void setSourceBuffer(const std::string &value){
-			auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
+			auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBufferRefill).segment;
 			sourceBufferVirtual.resize(0);
 			std::copy(value.begin(), value.end(), std::back_inserter(sourceBufferVirtual));
-			setSourceBufferSize(sourceBufferVirtual.size());
-			VirtualMemory.at(vmSegmentSourceBuffer).end = VirtualMemory.at(vmSegmentSourceBuffer).start + VirtualMemory.at(vmSegmentSourceBuffer).segment.size();
+			VirtualMemory.at(vmSegmentSourceBufferRefill).end = VirtualMemory.at(vmSegmentSourceBufferRefill).start + VirtualMemory.at(vmSegmentSourceBufferRefill).segment.size();
+			setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, sourceBufferVirtual.size(), 0);
+			//setSourceBufferSize(sourceBufferVirtual.size());
 		}
 		bool setSourceBuffer(){
 			if (inputBufferStringsCurrent < inputBufferStrings.size()){
 				// load next string from input buffer
 				const std::string &value = inputBufferStrings.at(inputBufferStringsCurrent);
-					auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
+				auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBufferRefill).segment;
 				sourceBufferVirtual.resize(0);
 				std::copy(value.begin(), value.end(), std::back_inserter(sourceBufferVirtual));
-				setSourceBufferSize(sourceBufferVirtual.size());
-				setSourceBufferOffset(0);
+				VirtualMemory.at(vmSegmentSourceBufferRefill).end = VirtualMemory.at(vmSegmentSourceBufferRefill).start + VirtualMemory.at(vmSegmentSourceBufferRefill).segment.size();
+				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, sourceBufferVirtual.size(), 0);
+				//setSourceBufferSize(sourceBufferVirtual.size());
+				//setSourceBufferOffset(0);
 				return true;
 			}
 			else {
 				// fill input buffer by zero length vector
-				setSourceBufferSize(0);
-				setSourceBufferOffset(0);
+				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, 0, 0);
+				//setSourceBufferSize(0);
+				//setSourceBufferOffset(0);
 				return false;
 			}
 		}
-		
-		Cell sourceOffsetVirtual = 0;
+		/// <summary>
+		/// Set information bout source buffer
+		/// </summary>
+		/// <param name="Source">SOURCE buffer address</param>
+		/// <param name="sourceSize">SOURCE size</param>
+		/// <param name="sourceMoreIn"> >IN variable value </param>
+		void setSourceVariables(Cell Source, Cell sourceSize, Cell sourceMoreIn) {
+			setSourceAddress(Source);
+			setSourceBufferSize(sourceSize);
+			setSourceBufferOffset(sourceMoreIn);
+		}
+		void getSourceVariables(Cell &Source, Cell &sourceSize, Cell &sourceMoreIn) {
+			Source=getSourceAddress();
+			sourceSize=getSourceBufferSize();
+			sourceMoreIn=getSourceBufferOffset();
+		}
+		/// <summary>
+		///  set Source Buffer offset
+		/// </summary>
+		/// <param name="value"> Value if >IN variable</param>
 		void setSourceBufferOffset(Cell value){
 			setDataCell(VarOffsetSourceOffset, value);
 		}
@@ -1364,6 +1403,9 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		}
 		void incSourceBufferOffset(){
 			setSourceBufferOffset(getSourceBufferOffset() + 1);
+		}
+		int getSourceBufferRemain() {
+			return getSourceBufferSize() - getSourceBufferOffset();
 		}
 		void setNumericBase(Cell value){
 			setDataCell(VarOffsetNumericBase, value);
@@ -1592,10 +1634,10 @@ Code Reserved for	Code Reserved for
 		}
 		void throwMessage(const std::string &msg, enum errorCodes ec){
 			initClass();
-				auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
-				std::string buffer{ std::string(sourceBufferVirtual.begin(), sourceBufferVirtual.end()) };
-				throw AbortException(msg + "\n" + buffer + "\n Offset " + std::to_string(getSourceBufferOffset()));
-			}
+			std::string buffer{};
+			moveFromDataSpace(buffer, getSourceAddress(), getSourceBufferSize());
+			throw AbortException(msg + "\n" + buffer + "\n Offset " + std::to_string(getSourceBufferOffset()));
+		}
 		// ABORT ( i*x -- ) ( R: j*x -- )
 		void abort() {
 			throwMessage("Abort",errorAbort);
@@ -2279,15 +2321,28 @@ Code Reserved for	Code Reserved for
 		// SOURCE ( -- c-addr u )
 		void source() {
 			REQUIRE_DSTACK_AVAILABLE(2, "SOURCE");
-			push(CELL(VarOffsetSourceBuffer));
-			auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
-			push(sourceBufferVirtual.size());
+			push(getDataCell(VarOffsetSourceAddress)); // bug it is not content of variable, it is address of variable
+			//auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
+			//push(sourceBufferVirtual.size());
+			push(getDataCell(VarOffsetSourceSize));
+		}
+		// SOURCE-ID ( -- n )
+		Cell sourceid{};
+		void sourcedashid() {
+			REQUIRE_DSTACK_AVAILABLE(1, "SOURCE-ID");
+			push(sourceid); // bug it is not content of variable, it is address of variable
+		}
+		void setSourceId(Cell value) {
+			sourceid = value;
+		}
+		Cell getSourceId() {
+			return sourceid;
 		}
 
 		// >IN ( -- a-addr )
 		void toIn() {
 			REQUIRE_DSTACK_AVAILABLE(1, ">IN");
-			push(CELL(VarOffsetSourceOffset));
+			push(VarOffsetSourceOffset);
 		}
 		// PAD ( -- c-addr )
 		void pad() {
@@ -2387,37 +2442,41 @@ Code Reserved for	Code Reserved for
 			****/
 
 			std::string wordBuffer{};
-			wordBuffer.clear();
 			wordBuffer.push_back(0);  // First char of buffer is length.
-			auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
-			auto inputSize = sourceBufferVirtual.size();
-			int ch{}; // for isspace
 			try {
 				// Skip leading delimiters
-				while (getSourceBufferOffset() < inputSize &&
-					((sourceBufferVirtual[getSourceBufferOffset()] == delim)
-					|| (delim == ' ' && (ch=isspace(static_cast<unsigned char>(sourceBufferVirtual.at(getSourceBufferOffset())))))
-					))
-					incSourceBufferOffset();
-				if (1){
-					// Copy characters until we see the delimiter again.
-					while (getSourceBufferOffset() < inputSize 
-						&& sourceBufferVirtual[getSourceBufferOffset()] != delim
-						&& !(delim == ' ' && (ch=isspace(static_cast<unsigned char>(sourceBufferVirtual.at(getSourceBufferOffset())))))
-						) {
-						wordBuffer.push_back(sourceBufferVirtual[getSourceBufferOffset()]);
+				if (getSourceBufferRemain() > 0) {
+					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+					while (getSourceBufferRemain() > 0 && ((currentChar == delim)
+						|| (delim == ' ' && isspace(static_cast<unsigned char>(currentChar)))
+						)) {
 						incSourceBufferOffset();
+						currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+					}
+				}
+				if (getSourceBufferRemain() > 0) {
+					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+					// Copy characters until we see the delimiter again.
+					while (getSourceBufferRemain() >0  
+						&& currentChar != delim
+						&& !(delim == ' ' && (isspace(static_cast<unsigned char>(currentChar))))
+						) {
+						wordBuffer.push_back(currentChar);
+						incSourceBufferOffset();
+						currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
 					}
 
-					if (getSourceBufferOffset() < inputSize) {
+					// source point to delimiter, skip it.
+					if (getSourceBufferRemain() >0 ) {
 						incSourceBufferOffset(); 
 					}
 				}
+#if 0
 				else {
 					bool exits{ false };
 					while (!exits){
 						while (getSourceBufferOffset() == inputSize){
-							// load next string from input buffer
+							// load next string from input buffer  @bug call mothod to do this work
 							++inputBufferStringsCurrent;
 							if (inputBufferStringsCurrent < inputBufferStrings.size()){
 								setSourceBuffer(inputBufferStrings.at(inputBufferStringsCurrent));
@@ -2449,6 +2508,7 @@ Code Reserved for	Code Reserved for
 						}
 					}
 				}
+#endif
 				if (wordBuffer.size() > 255){
 					throwMessage(std::string("WORD: very long word ")
 						, errorParsedStringOverflow);
@@ -2486,52 +2546,33 @@ Code Reserved for	Code Reserved for
 
 			****/
 
-			std::string parseBuffer;
-
+			std::string parseBuffer{};
 			parseBuffer.clear();
-			auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
-			auto inputSize = sourceBufferVirtual.size();
-
 			// Copy characters until we see the delimiter.
-			/*
-			while (getSourceBufferOffset() < inputSize && sourceBufferVirtual[getSourceBufferOffset()] != delim) {
-				parseBuffer.push_back(sourceBufferVirtual[getSourceBufferOffset()]);
-				incSourceBufferOffset();
-			}
 
-			if (getSourceBufferOffset() == inputSize)
-				throwMessage(std::string("PARSE: Did not find expected delimiter \'" + std::string(1, delim) + "\'")
-				,errorParsedStringOverflow);
-
-			// Skip over the delimiter
-			incSourceBufferOffset();
-			*/
 			bool exits{ false };
 			while (!exits){
-				while (getSourceBufferOffset() == inputSize){ 
+				while (getSourceBufferRemain()==0){ 
 					// load next string from input buffer
-						++inputBufferStringsCurrent;
-						if (inputBufferStringsCurrent < inputBufferStrings.size()){
-							setSourceBuffer(inputBufferStrings.at(inputBufferStringsCurrent));
-							setSourceBufferOffset(0);
-							inputSize = VirtualMemory.at(vmSegmentSourceBuffer).segment.size();
-							if (delim == ' ') break;
-						}
-						else {
-							if (delim == ' ') break;
+					refill();
+					auto flag = dStack.getTop(); pop();
+					if(!flag){
+							//if (delim == ' ') break;
 							throwMessage(std::string("PARSE: Did not find expected delimiter \'" + 
 								std::string(1, delim) + "\'")
 								, errorParsedStringOverflow);
 						}
 				}
-				// next char
-				auto ch = VirtualMemory.at(vmSegmentSourceBuffer).segment.at(getSourceBufferOffset());
-				incSourceBufferOffset();
-				if ((delim == ' ' && isspace(static_cast<unsigned char>(ch))) || (delim == ch)){
-					exits = true;
-				}
-				else {
-					parseBuffer.push_back(ch);
+				if (getSourceBufferRemain() > 0) {
+					// next char
+					auto ch = getDataChar(getSourceAddress() + getSourceBufferOffset());
+					incSourceBufferOffset();
+					if ((delim == ' ' && isspace(static_cast<unsigned char>(ch))) || (delim == ch)) {
+						exits = true;
+					}
+					else {
+						parseBuffer.push_back(ch);
+					}
 				}
 			}
 			auto dataInDataSpace = PutStringToEndOfDataSpace(parseBuffer);
@@ -3680,7 +3721,7 @@ Code Reserved for	Code Reserved for
 		// Determine whether two names are equivalent, using case-insensitive matching.
 		bool doNamesMatch(CAddr name1, const std::string &name2, Cell nameLength) {
 			for (std::size_t i = 0; i < nameLength; ++i) {
-				if (std::toupper(getDataChar(name1 + i)) != std::toupper(name2[i])) {
+				if (std::toupper(static_cast<unsigned char>(getDataChar(name1 + i))) != std::toupper(static_cast<unsigned char>(name2[i]))) {
 					return false;
 				}
 			}
@@ -3688,7 +3729,7 @@ Code Reserved for	Code Reserved for
 		}
 		bool doNamesMatch(const std::string name1, const std::string &name2, Cell nameLength) {
 			for (std::size_t i = 0; i < nameLength; ++i) {
-				if (std::toupper(name1[i]) != std::toupper(name2[i])) {
+				if (std::toupper(static_cast<unsigned char>(name1[i])) != std::toupper(static_cast<unsigned char>(name2[i]))) {
 					return false;
 				}
 			}
@@ -4247,7 +4288,7 @@ Code Reserved for	Code Reserved for
 		void bracketElse(){
 			int level = 1;
 			while (true){
-				while (getSourceBufferOffset() < VirtualMemory.at(vmSegmentSourceBuffer).segment.size()) {
+				while (getSourceBufferRemain() > 0 ) {
 					bl();
 					word();
 					count();
@@ -4730,7 +4771,7 @@ Code Reserved for	Code Reserved for
 			Xt xt{};
 			while (true){
 				if (InterpretState == InterpretSource){
-					if (getSourceBufferOffset() < VirtualMemory.at(vmSegmentSourceBuffer).segment.size()) {
+					if (getSourceBufferRemain() >0 ) {
 						bl();
 						word();
 						find();
@@ -4832,18 +4873,23 @@ Code Reserved for	Code Reserved for
 		struct structSavedInput {
 			InterpretStates interpretState_{};
 			size_t inputBufferStringsCurrent_{};
-			size_t SourceBufferOffset_{};
+			Cell SourceBufferOffset_{};
+			Cell SourceBufferAddress_{};
+			Cell SourceBufferSize_{}; 
 			Cell next_{};
+			Cell SourceDashId_{};
 			enum InputBufferSourceSavedByEnum { fromFile, fromEvaluate } InputBufferSourceSavedBy_{ fromFile };
 			std::vector<std::string> inputBufferStrings_{};
 		};
 		std::vector<structSavedInput> savedInput{};
 		void SaveInput(structSavedInput::InputBufferSourceSavedByEnum source){
 			struct structSavedInput save{};
-			save.inputBufferStrings_ = inputBufferStrings;
 			save.inputBufferStringsCurrent_ = inputBufferStringsCurrent;
-			save.SourceBufferOffset_ = getSourceBufferOffset();
+			std::swap(save.inputBufferStrings_ ,inputBufferStrings);  // consider std::swap here
+			inputBufferStringsCurrent = 0;
+			getSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
 			save.InputBufferSourceSavedBy_ = source;
+			save.SourceDashId_ = getSourceId();
 			save.interpretState_ = InterpretState;
 			save.next_ = next_command;
 			next_command = 0;
@@ -4854,18 +4900,17 @@ Code Reserved for	Code Reserved for
 			inputBufferStrings.clear();
 			split_str(str, inputBufferStrings, tokens);
 			inputBufferStringsCurrent = 0;
-			setSourceBufferOffset(0);
 			setSourceBuffer(inputBufferStrings.at(inputBufferStringsCurrent));
 		}
 		size_t RestoreInput(){
 			auto size = savedInput.size();
 			if (size > 0){
-				struct structSavedInput save{ savedInput.at(size-1)};
+				struct structSavedInput &save{ savedInput.at(size-1)};
 				if (save.inputBufferStrings_.size()>0){
-					inputBufferStrings = save.inputBufferStrings_;
+					std::swap(save.inputBufferStrings_, inputBufferStrings);
 					inputBufferStringsCurrent = save.inputBufferStringsCurrent_;
-					setSourceBufferOffset(save.SourceBufferOffset_);
-					setSourceBuffer(inputBufferStrings.at(inputBufferStringsCurrent));
+					setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
+					setSourceId(save.SourceDashId_);
 					InterpretState = save.interpretState_;
 					next_command = save.next_;
 				}
@@ -4874,18 +4919,21 @@ Code Reserved for	Code Reserved for
 			return savedInput.size();
 		}
 		// EVALUATE ( i*x c-addr u -- j*x )
+		// This function redefined in initialization string (check the reason).
 		void evaluate() {
 			REQUIRE_DSTACK_DEPTH(2, "EVALUATE");
 			SaveInput(structSavedInput::fromEvaluate);
 			auto length = static_cast<std::size_t>(dStack.getTop()); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
-			auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
-			sourceBufferVirtual.resize(length); 
-			moveFromDataSpace(&sourceBufferVirtual[0], caddr, length);
-			setSourceBufferOffset(0);
+			setSourceId(-1);
+			setSourceVariables(caddr, length, 0);
+			// @bug delete this commented lines, obsolete
+			//auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
+			//sourceBufferVirtual.resize(length); 
+			//moveFromDataSpace(&sourceBufferVirtual[0], caddr, length);
+			//setSourceBufferOffset(0);
 			InterpretState = InterpretSource;
 			interpret();
-
 			RestoreInput();
 		}
 		// EVALUATE ( i*x c-addr u -- j*x )
@@ -4894,14 +4942,16 @@ Code Reserved for	Code Reserved for
 			SaveInput(structSavedInput::fromEvaluate);
 			auto length = static_cast<std::size_t>(dStack.getTop()); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
-			std::string buffer{};
-			moveFromDataSpace(buffer, caddr, length);
-			SetInput(buffer);
+			// @bug delete this lines after debug
+			//std::string buffer{};
+			//moveFromDataSpace(buffer, caddr, length);
+			//SetInput(buffer);
+			setSourceVariables(caddr, length, 0);
 			InterpretState = InterpretSource;
 		}
 		// EVALUATESTOP (  --  ) not standard word
 		void evaluateStop() {
-			;
+			; // RestoreInput() is called in interpret(), when current source is ended
 		}
 
 		// S>D  
@@ -5539,6 +5589,7 @@ Code Reserved for	Code Reserved for
 				{ "2/", &Forth::rshiftBy1, false }, // CORE
 				{ "see", &Forth::see, false }, // TOOLS
 				{ "source", &Forth::source, false }, // CORE
+				{ "source-id", &Forth::sourcedashid, false }, // CORE
 				{ "state", &Forth::state, false }, // CORE
 				{ "time&date", &Forth::timeAndDate, false }, // FACILITY EXT
 				{ "ms@", &Forth::ms_at, false }, // not standard word - milliseconds since Forth start execution
@@ -5785,7 +5836,7 @@ Code Reserved for	Code Reserved for
 
 		enum {
 			vmSegmentVariables=0,
-			vmSegmentSourceBuffer=1,
+			vmSegmentSourceBufferRefill=1,
 			vmSegmentDataSpace=2
 		} vmSegments;
 		void forthscriptcpp_reset() {
@@ -5802,16 +5853,20 @@ Code Reserved for	Code Reserved for
 			start = end;
 			end += sourceBufferSize;
 			VirtualMemorySegment sourceBuffer{ start, end, std::vector<Char>(sourceBufferSize) };
-			if (VirtualMemory.size() == vmSegmentSourceBuffer) VirtualMemory.push_back(sourceBuffer);
+			if (VirtualMemory.size() == vmSegmentSourceBufferRefill) VirtualMemory.push_back(sourceBuffer);
+			// set SOURCE, SOURCE size, >IN
+			setSourceVariables(start, 0, 0); // size if 0, source is empty
 			start = end;
 			end += FORTHSCRIPTCPP_DATASPACE_SIZE;
 			VirtualMemorySegment dataSpace{ start, end , std::vector<Char>(FORTHSCRIPTCPP_DATASPACE_SIZE) };
 			if (VirtualMemory.size() == vmSegmentDataSpace) VirtualMemory.push_back(dataSpace);
 			setDataPointer(start);
 			VirtualMemoryFreeSegment = end;
-			setNumericBase(10);
+			setSourceId(0); // SOURCE-ID=0: user input 
+			setNumericBase(10); // BASE = 10
 			setIsCompiling(False);
-			setSourceBufferOffset(0);
+			setDataCell(VarOffsetBlkAddress, Cell(0)); // set BLK=0
+			// return stack init;
 			returnStack.resize(100);
 			
 			initializeDefinitions();
@@ -5847,7 +5902,6 @@ Code Reserved for	Code Reserved for
 		Forth(){
 			forthscriptcpp_reset();
 		};
-		
 		/// embeding interface
 
 		// push value to stack

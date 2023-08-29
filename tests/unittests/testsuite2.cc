@@ -349,6 +349,8 @@ const char **MyTestSuite::outputFileNamesList{};
 TEST_P(MyTestSuite, MyTest)
 {
     int param = GetParam();
+    
+    
     int fileNum = param / 10000;
     int line = param % 10000;
     auto saveError = errorInTest;
@@ -358,7 +360,9 @@ TEST_P(MyTestSuite, MyTest)
     if (fileNum != loadedFile)
     {
         std::ifstream is;
+
         is.open(testFileNamesList[fileNum - 1], std::ios_base::in);
+        std::cerr << param <<" "<<fileNum<<" "<<testFileNamesList[fileNum - 1]<<std::endl;
         if (is.is_open() && !is.bad())
         {
             int statusIF=0;
@@ -366,9 +370,9 @@ TEST_P(MyTestSuite, MyTest)
             static std::regex IF{std::string(".*\\[[Ii][Ff]\\].*")};
             static std::regex ELSE{std::string(".*\\[[Ee][Ll][Ss][Ee]\\].*")};
             static std::regex THEN{".*\\[[Tt][Hh][Ee][Nn]\\].*"};
-            static std::regex COLON{"^(|.* )\\: (.*)"};
-            static std::regex SEMICOLON{std::string(" ;( .*|)$")};
-            static std::regex SEMICOLONEND{std::string("^(|.* );( .*|)$")};
+            static std::regex COLON{"^(|.* )\\aaaaaaa: (.*)"};
+            static std::regex SEMICOLON{std::string(" aaaaaaa;(.*|)$")};
+            static std::regex SEMICOLONEND{std::string("^(|.* )aaaaaaa;( .*|)$")};
             std::smatch m1{};
             fileLines.clear();
             while (std::getline(is, content))
@@ -418,6 +422,7 @@ TEST_P(MyTestSuite, MyTest)
             if (content.length() > 0)
             {
                 contentGlobal=content;
+                std::cerr <<line<<" "<<content << std::endl;
                 shared_resource_->ExecuteString(content);
                 if (errorInTest != saveError)
                 {
@@ -463,10 +468,11 @@ if (errorInForth != saveErrorForth || errorInTest != saveError)
 }
 
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit005Core,      MyTestSuite, testing::Range(50000, 51009), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit005Core, MyTestSuite, testing::Range(50000, 50797), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit006CorePlus,  MyTestSuite, testing::Range(60000, 61100), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit007CoreExt,   MyTestSuite, testing::Range(70000, 70772), testing::PrintToStringParamName());
 
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit009DoubleTest, MyTestSuite, testing::Range(90000, 90438), testing::PrintToStringParamName());
+INSTANTIATE_TEST_SUITE_P(ForthTestSuit009DoubleTest, MyTestSuite, testing::Range(90000, 90438), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit010ExceptionTest, MyTestSuite, testing::Range(100000, 100100), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit011facilitytest, MyTestSuite, testing::Range(110000, 110143), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit012FileTest,  MyTestSuite, testing::Range(120000, 121100), testing::PrintToStringParamName());
@@ -486,8 +492,8 @@ if (errorInForth != saveErrorForth || errorInTest != saveError)
 
 
 // segfault
-//INSTANTIATE_TEST_SUITE_P(ForthTestSuit008BlockTest, MyTestSuite, testing::Range(80000, 81100), testing::PrintToStringParamName());
-INSTANTIATE_TEST_SUITE_P(ForthTestSuit015toolstest, MyTestSuite, testing::Range(150000, 150386), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit008BlockTest, MyTestSuite, testing::Range(80000, 80676), testing::PrintToStringParamName());
+//INSTANTIATE_TEST_SUITE_P(ForthTestSuit015toolstest, MyTestSuite, testing::Range(150000, 150386), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit017stringtest, MyTestSuite, testing::Range(170000, 170324), testing::PrintToStringParamName());
 
 int main(int argc, char **argv)
