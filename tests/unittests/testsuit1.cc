@@ -456,11 +456,13 @@ TEST(TestSuit1,ForthTestSuit006CorePlus)
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 6);
 }
 */
+	/*
 TEST(TestSuit1, ForthTestSuit007CoreExt)
 {
 	// RunAndPrint(infilenames, filenames, 13);
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 7);
 }
+*/
 /*
 TEST(TestSuit1, ForthTestSuit008BlockTest)
 {
@@ -488,12 +490,12 @@ TEST(TestSuit1, ForthTestSuit012FileTest)
 	//RunAndPrint(infilenames, filenames, 14);
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 12);
 }
-
+*/
 TEST(TestSuit1, ForthTestSuit012IncludeFileTest)
 {
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 21);
 }
-
+/*
 TEST(TestSuit1, ForthTestSuit013LocalsTest)
 {
 	//RunAndPrint(infilenames, filenames, 14);

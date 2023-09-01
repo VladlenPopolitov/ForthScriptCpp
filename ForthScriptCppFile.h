@@ -199,6 +199,7 @@ void resizeFile() {
 
 	auto fam = GetFileAccessMode(h, "RESIZE-FILE", errorResizeFile);
 	std::string filename=GetFileName(h, "RESIZE-FILE", errorResizeFile);
+	f->clear();
 	f->close();
 	std::filesystem::resize_file(filename,ud.data_.Dcells);
 	try {
@@ -226,6 +227,7 @@ void readFile() {
 	auto length = SIZE_T(dStack.getTop());
 	auto caddr = (dStack.getTop(1));
 	std::vector<char> readBuffer(length);
+	f->clear();
 	f->read(&readBuffer[0], static_cast<std::streamsize>(length));
 	auto status = f->rdstate();
 	auto realLength = static_cast<Cell>(std::strlen(&readBuffer[0]));
@@ -250,6 +252,7 @@ void readLine() {
 		if(f->rdstate() == std::ios::failbit) {
 			f->clear(); // EOL is not read. Need to clear failbit flag and continue reading
 		}
+		f->clear();
 		f->getline(&readBuffer[0], static_cast<std::streamsize>(length+1)); // add termination 0 to char counter
 		auto realLength = static_cast<Cell>(std::strlen(&readBuffer[0]));
 		if (realLength == (length ) && f->rdstate() == std::ios::failbit) {
@@ -285,6 +288,7 @@ void readChar() {
 	REQUIRE_DSTACK_AVAILABLE(1, "READ-CHAR");
 	auto h = (dStack.getTop());
 	auto f = GetFileHandle(h, "READ-CHAR", errorReadFile);
+	f->clear();
 	auto ch = static_cast<unsigned char>(f->get());
 	auto status = f->rdstate();
 	dStack.setTop(static_cast<Cell>(ch));
@@ -300,6 +304,7 @@ void writeFile() {
 	auto caddr = dStack.getTop();
 	std::string fileData{};
 	moveFromDataSpace(fileData, caddr, length);
+	f->clear();
 	f->write(fileData.c_str(), static_cast<std::streamsize>(length));
 	auto status = f->rdstate();
 	dStack.setTop(f->bad() ? Cell(errorWriteFile) : 0);
@@ -314,6 +319,7 @@ void writeLine() {
 	auto caddr = (dStack.getTop());
 	std::string fileData{};
 	moveFromDataSpace(fileData, caddr, length);
+	f->clear();
 	f->write(fileData.c_str(), static_cast<std::streamsize>(length));
 	(*f) << std::endl;
 	auto status = f->rdstate();
@@ -332,6 +338,7 @@ void writeChar() {
 	auto h = (dStack.getTop()); pop();
 	auto f = GetFileHandle(h, "WRITE-CHAR", errorWriteFile);
 	auto ch = static_cast<char>(dStack.getTop());
+	f->clear();
 	f->put(ch);
 	auto status = f->rdstate();
 	dStack.setTop(f->bad() ? Cell(errorWriteFile) : 0);
@@ -344,6 +351,7 @@ void filePosition() {
 	auto f = GetFileHandle(h, "FILE-POSITION", errorFileSize);
 	auto status = f->rdstate();
 	if (status != 0) f->clear();
+	f->clear();
 	DCell position(f->tellg());
 	status = f->rdstate();
 	dStack.setTop(0, position.data_.Cells.lo);
@@ -357,9 +365,15 @@ void fileSize() {
 	auto h = (dStack.getTop());
 	auto filename = GetFileName(h, "FILE-SIZE", errorFilePosition);
 	auto f = GetFileHandle(h, "FILE-SIZE", errorFilePosition);
+	f->clear();
+	f->flush();
 	auto filesize = std::filesystem::file_size(filename);
 	DCell position(filesize);
 	DCell currentPosition(f->tellg());
+	if (currentPosition.data_.SDcells > position.data_.SDcells) {
+		// if OS was not updated filesize of open file, we take biggest value
+		position = currentPosition;
+	}
 	dStack.setTop(0, position.data_.Cells.lo);
 	dStack.push(position.data_.Cells.hi);
 	dStack.push(f->bad() ? Cell(errorFilePosition) : 0);
@@ -371,6 +385,7 @@ void fileReposition() {
 	auto h = (dStack.getTop()); dStack.pop();
 	DCell ud(dStack.getTop(1), dStack.getTop()); dStack.pop();
 	auto f = GetFileHandle(h, "REPOSITION-FILE", errorFilePosition);
+	f->clear();
 	f->seekg(ud.data_.Dcells , std::ios_base::beg);
 	auto status = f->rdstate();
 	dStack.setTop(f->bad() ? Cell(errorFilePosition) : 0);
@@ -396,6 +411,7 @@ void flushFile() {
 	REQUIRE_DSTACK_DEPTH(1, "FLUSH-FILE");
 	auto h = (dStack.getTop());
 	auto f = GetFileHandle(h, "FLUSH-FILE");
+	f->clear();
 	f->flush();
 	auto status = f->rdstate();
 	dStack.setTop(f->bad() ? Cell(-1) : 0);
@@ -406,6 +422,7 @@ void closeFile() {
 	REQUIRE_DSTACK_DEPTH(1, "CLOSE-FILE");
 	auto h = (dStack.getTop());
 	auto f = GetFileHandle(h, "CLOSE-FILE", errorCloseFile);
+	f->clear();
 	f->close();
 	dStack.setTop(0);
 	OpenFilesSqeeze(); // squeeze OpenFile vector

@@ -498,15 +498,15 @@ during the compilation of words.
 "    >r "
 "    ['] (branch) , here >r 0 , "  // compile a branch with dummy offset
 "    r> r> 2dup >r >r "
-"    swap cell+ swap "             // copy into the first byte after the offset
-"    dup allot  cmove align "      // allocate dataspace and copy string into it
+"    swap cell+ 1+ swap "             // copy into the first byte after the offset
+"    dup 1+ allot  cmove align "      // allocate dataspace and copy string into it
 "    r> dup postpone thenthenthen  " // resolve the branch 
-"    cell+ postpone literal "      // compile literal for address
+"    cell+ 1+ postpone literal "      // compile literal for address
 "    r> postpone literal "         // compile literal for length
 " ; immediate  "
 
 " : s\" [char] \" parse state @ if postpone sliteral then ; immediate "
-// R"(: C" [char] " parse state @ if postpone sliteral postpone swap postpone 1- postpone dup postpone rot postpone swap postpone C! else swap 1- dup rot swap C! then ; immediate)"
+ ": C\" [char] \" parse state @ if postpone sliteral postpone swap postpone 1- postpone dup postpone rot postpone swap postpone C!  else swap 1- dup rot swap C! then ; immediate "
 " : .\" postpone s\" postpone type ; immediate "
 
 " : .(  [char] ) parse type ; immediate "
@@ -675,20 +675,20 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
  ******/
  " : [THEN] ( -- ) ; IMMEDIATE  "
  " : [ELSE] 1 BEGIN " // level 
- "       BEGIN BL WORD COUNT DUP WHILE " //              level adr len 
- "       2DUP S\" [IF]\" COMPARE 0= IF "	//              level adr len 
- "             2DROP 1+ " //                             level' 
- "          ELSE " //                                   level adr len 
- "            2DUP S\" [ELSE]\" COMPARE 0= IF " //	    level adr len 
- "                2DROP 1- DUP IF 1+ THEN "  //          level' 
- " ELSE " //	                                level adr len 
- " S\" [THEN]\" COMPARE 0= IF " //        level 
- "                   1- " //                             level' 
- "               THEN " //
- "             THEN " //
- "           THEN ?DUP 0= IF EXIT THEN " //              level' 
- "       REPEAT 2DROP " //                              	level 
- "   REFILL 0= UNTIL " //                                level 
+ "       BEGIN BL WORD COUNT DUP WHILE "		// level adr len 
+ "       2DUP S\" [IF]\" COMPARE 0= IF "		// level adr len 
+ "             2DROP 1+ "						// level' 
+ "          ELSE "								// level adr len 
+ "            2DUP S\" [ELSE]\" COMPARE 0= IF " // level adr len 
+ "                2DROP 1- DUP IF 1+ THEN "		// level' 
+ " ELSE "										// level adr len 
+ " S\" [THEN]\" COMPARE 0= IF "					// level 
+ "                   1- "						// level' 
+ "               THEN "							//
+ "             THEN "							//
+ "           THEN ?DUP 0= IF EXIT THEN "		// level' 
+ "       REPEAT 2DROP "							// level 
+ "   REFILL 0= UNTIL "							// level 
  "    DROP ; IMMEDIATE  "
  " : [IF] ( flag -- ) 0= IF POSTPONE [ELSE] THEN ; IMMEDIATE  "
  " : [UNDEFINED] BL WORD FIND NIP 0= ; IMMEDIATE  "
@@ -703,7 +703,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 ": parse-name " // ( "name" -- c-addr u ) 
 "SOURCE >IN @ /STRING ['] isspace? xt-skip OVER >R ['] isnotspace? xt-skip " // ( end-word restlen r: start-word ) 
 "2DUP 1 MIN + SOURCE DROP - >IN ! DROP R> TUCK - ; "
-
+": HOLDS BEGIN DUP WHILE 1- 2DUP + C@ HOLD REPEAT 2DROP ; "
  /** 
   *  Facility implementation
   * 
@@ -795,6 +795,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 ": name-join ( addr u list -- ) >R 2DUP R@ @ name-present? IF R> DROP 2DROP ELSE R> name-add THEN ; "
 " VARIABLE included-names 0 included-names ! "
 ": included ( i*x addr u -- j*x ) 2DUP included-names name-join INCLUDED ; "
+": include parse-name included ; "
 ": REQUIRED ( i*x addr u -- i*x ) 2DUP included-names @ name-present? 0= IF included ELSE 2DROP THEN ; "
 ": REQUIRE PARSE-NAME REQUIRED ; "
 /****
@@ -2280,39 +2281,40 @@ Code Reserved for	Code Reserved for
 		// . ( n -- )
 		void dot() {
 			REQUIRE_DSTACK_DEPTH(1, ".");
+			auto value = static_cast<long>(static_cast<int>(dStack.getTop())); pop();
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
 			switch (writeToTarget) {
 			case ToString:
-				std_cout << SETBASE() << static_cast<SCell>(dStack.getTop());
+				std_cout << SETBASE() << value <<" ";
 				break;
 			case ToStdCout:
-				std::cout << SETBASE() << static_cast<SCell>(dStack.getTop());
+				std::cout << SETBASE() << value << " ";
 				std::cout.flush();
 				break;
 			default:
 				break;
 			}
 #endif
-			pop();
 		}
 
 		// U. ( x -- )
 		void uDot() {
 			REQUIRE_DSTACK_DEPTH(1, "U.");
+			auto value = static_cast<Cell>(dStack.getTop()); pop();
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
+			
 			switch (writeToTarget) {
 			case ToString:
-				std_cout << SETBASE() << dStack.getTop();
+				std_cout << SETBASE() << value << " ";
 				break;
 			case ToStdCout:
-				std::cout << SETBASE() << dStack.getTop();
+				std::cout << SETBASE() << value << " ";
 				std::cout.flush();
 				break;
 			default:
 				break;
 			}
 #endif
-			pop();
 		}
 
 		// .R ( n1 n2 -- )
@@ -2577,14 +2579,21 @@ Code Reserved for	Code Reserved for
 			while (!exits){
 				while (getSourceBufferRemain()==0){ 
 					// load next string from input buffer
-					refill();
-					auto flag = dStack.getTop(); pop();
-					if(!flag){
+					if (delim == ')') {
+						refill();
+						auto flag = dStack.getTop(); pop();
+						if (!flag) {
 							//if (delim == ' ') break;
-							throwMessage(std::string("PARSE: Did not find expected delimiter \'" + 
-								std::string(1, delim) + "\'")
-								, errorParsedStringOverflow);
+							exits = true;
+							//throwMessage(std::string("PARSE: Did not find expected delimiter \'" +
+							//	std::string(1, delim) + "\'")
+							//	, errorParsedStringOverflow);
 						}
+					}
+					else {
+						exits = true;
+						break;
+					}
 				}
 				if (getSourceBufferRemain() > 0) {
 					// next char
@@ -4111,16 +4120,16 @@ Code Reserved for	Code Reserved for
 			// third index is the sign of newIndex  (0 => +, 1 => -)
 			// value: 1 - compare as usual, 0 - compare considering integer overflow
 			static int conditions[2][2][2] = { 
-				{ { 1, 0 }, { 1, 1 }},
-				{ { 1, 1 }, { 0, 1 }}
+				{ { 1, 0 }, { 1, 1 }}, // positive increment
+				{ { 1, 1 }, { 0, 1 }}  // negative increment
 			};
 			REQUIRE_RSTACK_DEPTH(2, "plusloop_check");
 			REQUIRE_DSTACK_DEPTH(1, "plusloop_check");
 			REQUIRE_DSTACK_AVAILABLE(2, "plusloop_check");
-    		SCell limit = rStack.getTop(); // limit of loop
-			SCell index = rStack.getTop(1); // current index of loop
-			SCell increment = dStack.getTop(); // increment of loop from stack
-			SCell limitMinus1 = limit - 1;   // limit and limit-1 - the border to cross as exit test for loop
+    		SCell limit = static_cast<SCell>(rStack.getTop()); // limit of loop
+			SCell index = static_cast<SCell>(rStack.getTop(1)); // current index of loop
+			SCell increment = static_cast<SCell>(dStack.getTop()); // increment of loop from stack
+			SCell limitMinus1 = limit==0x80000000?limit:limit - 1;   // limit and limit-1 - the border to cross as exit test for loop
 			SCell newIndex = index + increment; // if newIndex crossed the border, than the loop is finished
 			int signIndex = index > 0 ? 0 : 1;
 			int signNewIndex = newIndex > 0 ? 0 : 1;
@@ -4137,8 +4146,8 @@ Code Reserved for	Code Reserved for
 					result = -1;
 				}
 			}
-			dStack.setTop(limit);
-			dStack.push(newIndex);
+			dStack.setTop(static_cast<SCell>(limit));
+			dStack.push(static_cast<SCell>(newIndex));
 			dStack.push(result);
 			rStack.pop();
 			rStack.pop();
@@ -4870,14 +4879,18 @@ Code Reserved for	Code Reserved for
 								std::string currentWord{};
 								moveFromDataSpace(currentWord, caddr, length);
 								if (!interpretNumbers(currentWord)){
-									throwMessage(std::string("unrecognized word: ") + currentWord, errorUndefinedWord);
+									push(-13);
+									exceptionsThrow();
+									xt = getDataCell(next_command);
+									next_command += sizeof(next_command);
+									// throwMessage(std::string("unrecognized word: ") + currentWord, errorUndefinedWord);
 								}
 							}
 							else {
 								// read buffer empty
 								continue;
-								assert(!"interpret() impossible condition");
-								return; // this return is not possible()
+								//assert(!"interpret() impossible condition");
+								//return; // this return is not possible()
 							}
 						}
 					}
@@ -4956,7 +4969,7 @@ Code Reserved for	Code Reserved for
 			Cell SourceBufferAddress_{};
 			Cell SourceBufferSize_{}; 
 			Cell next_{};
-			Cell SourceDashId_{};
+			SCell SourceDashId_{};
 			enum InputBufferSourceSavedByEnum { fromFile, fromEvaluate } InputBufferSourceSavedBy_{ fromFile };
 			std::vector<std::string> inputBufferStrings_{};
 			Cell saveId{};
@@ -4980,7 +4993,7 @@ Code Reserved for	Code Reserved for
 			void savedashinput() {
 				REQUIRE_DSTACK_AVAILABLE(2, "SAVE-INPUT");
 				struct structSavedInput save {};
-				saveInput(save, true);
+				saveInput(save, false);
 				++saveInputVectorLastSaved;
 				save.saveId = saveInputVectorLastSaved;
 				savedInputVector.push_back(save);
@@ -5044,7 +5057,7 @@ Code Reserved for	Code Reserved for
 			setSourceBuffer();
 		}
 		void restoreInput(struct structSavedInput& save, bool emptyCurrentBuffer) {
-			if (save.inputBufferStrings_.size() > 0) {
+			//if (save.inputBufferStrings_.size() > 0) {
 				if (emptyCurrentBuffer) {
 					std::swap(save.inputBufferStrings_, inputBufferStrings);
 				}
@@ -5052,11 +5065,12 @@ Code Reserved for	Code Reserved for
 					inputBufferStrings=save.inputBufferStrings_;
 				}
 				inputBufferStringsCurrent = save.inputBufferStringsCurrent_;
+				setSourceBuffer();
 				setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
 				setSourceId(save.SourceDashId_);
 				InterpretState = save.interpretState_;
 				next_command = save.next_;
-			}
+			//}
 		}
 		size_t RestoreInput(){
 			auto size = savedInput.size();
@@ -5477,9 +5491,14 @@ Code Reserved for	Code Reserved for
 		void exceptionsThrow(){
 			SCell exceptionNumber = static_cast<SCell>(dStack.getTop()); 
 			if (exceptionNumber != 0){
-				if (exceptionHandler >= 4 && catchStack.stackDepth() >= 4){
+				if (exceptionHandler >= 5 && catchStack.stackDepth() >= 5){
 					while (catchStack.stackDepth() > exceptionHandler) catchStack.pop();
 					exceptionHandler = catchStack.getTop(); catchStack.pop();
+					auto sourceSaveDepth = catchStack.getTop(); catchStack.pop();
+					if (sourceSaveDepth < savedInput.size()) {
+						savedInput.resize(sourceSaveDepth + 1);
+						RestoreInput();
+					}
 					auto returnDepth = catchStack.getTop(); catchStack.pop();
 					while (returnStack.stackDepth() > returnDepth) returnStack.pop();
 					auto rDepth = catchStack.getTop(); catchStack.pop();
@@ -5490,7 +5509,7 @@ Code Reserved for	Code Reserved for
 					while (dStack.stackDepth() < dDepth) dStack.push(0);
 
 					next_command = returnStack.getTop(); returnStack.pop();
-					dStack.setTop(exceptionNumber);
+					dStack.push(exceptionNumber);
 				}
 				else {
 					if (exceptionNumber == -1){
@@ -5504,15 +5523,16 @@ Code Reserved for	Code Reserved for
 			}
 		}
 		void exceptionsCatchBefore(){
-			catchStack.push(static_cast<Cell>(dStack.stackDepth()));
+			catchStack.push(static_cast<Cell>(dStack.stackDepth()-1));
 			catchStack.push(static_cast<Cell>(rStack.stackDepth()));
 			catchStack.push(static_cast<Cell>(returnStack.stackDepth()));
-
+			catchStack.push(savedInput.size());
 			catchStack.push(exceptionHandler);
 			exceptionHandler = static_cast<Cell>(catchStack.stackDepth());
 		}
 		void exceptionsCatchAfter(){
 			exceptionHandler = catchStack.getTop(); catchStack.pop();
+			catchStack.pop();
 			catchStack.pop();
 			catchStack.pop();
 			catchStack.pop();
@@ -5835,7 +5855,7 @@ Code Reserved for	Code Reserved for
 				{ "N>R", &Forth::nmorer, false }, // TOOLS
 				{ "SYNONYM", &Forth::synonym, false }, // TOOLS
 				{ "SAVE-INPUT", &Forth::savedashinput, false }, // CORE EXT
-				{ "RESTORE-INPUT", &Forth::savedashinput, false }, // CORE EXT
+				{ "RESTORE-INPUT", &Forth::restoredashinput, false }, // CORE EXT
 				{ "COMPILE,", &Forth::compilecomma, false }, // CORE EXT
 				{ "MARKERSTART", &Forth::markerstart, false }, // word to implement marker
 				{ "MARKERREMOVE", &Forth::markerremove, false }, // word to implement marker
