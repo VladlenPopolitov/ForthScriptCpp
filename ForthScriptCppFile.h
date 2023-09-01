@@ -33,7 +33,10 @@ file is greater than the maximum value that can be stored in a cell.
 //#define FILEID(x) reinterpret_cast<std::fstream*>(x)
 struct ForthFile {
 	Cell FILE;
+	std::ios_base::openmode fileAccessMode;
+	std::string fileName;
 	std::shared_ptr<std::fstream> fileObject;
+
 };
 std::vector<ForthFile> OpenFiles{};
 Cell fileHandle{};
@@ -48,8 +51,52 @@ std::shared_ptr<std::fstream> GetFileHandle(Cell handler, const std::string &fun
 	throw;
 }
 
+void  MoveFileHandle(Cell handler,std::shared_ptr<std::fstream>& fileHandle,  const std::string& function, errorCodes ec = errorAbort) {
+	for (auto it = OpenFiles.begin(); it != OpenFiles.end(); ++it) {
+		if ((*it).FILE == handler) {
+			std::swap((*it).fileObject, fileHandle);
+			return;
+		}
+	}
+	throwMessage(function + ": wrong file handler access", ec);
+	throw;
+}
+
+/*
+DCell GetFileSize(Cell handler, const std::string& function, errorCodes ec = errorAbort) {
+	for (auto it = OpenFiles.begin(); it != OpenFiles.end(); ++it) {
+		if ((*it).FILE == handler && (*it).fileObject->is_open()) {
+			return (*it).fileSize;
+		}
+	}
+	throwMessage(function + ": wrong file handler access", ec);
+	throw;
+}
+*/
+std::ios_base::openmode GetFileAccessMode(Cell handler, const std::string& function, errorCodes ec = errorAbort) {
+	for (auto it = OpenFiles.begin(); it != OpenFiles.end(); ++it) {
+		if ((*it).FILE == handler && (*it).fileObject->is_open()) {
+			return (*it).fileAccessMode;
+		}
+	}
+	throwMessage(function + ": wrong file handler access", ec);
+	throw;
+}
+
+
+std::string GetFileName(Cell handler, const std::string& function, errorCodes ec = errorAbort) {
+	for (auto it = OpenFiles.begin(); it != OpenFiles.end(); ++it) {
+		if ((*it).FILE == handler && (*it).fileObject->is_open()) {
+			return (*it).fileName;
+		}
+	}
+	throwMessage(function + ": wrong file handler access", ec);
+	throw;
+}
+
+
 void OpenFilesSqeeze(){
-	for (int it = OpenFiles.size() - 1; it >= 0; --it){
+	for (int it = static_cast<int>(OpenFiles.size()) - 1; it >= 0; --it){
 		if (!(OpenFiles[it].fileObject->is_open())){
 			if (it < (static_cast<int>(OpenFiles.size()) - 1)){
 				std::swap(OpenFiles[it], OpenFiles[OpenFiles.size() - 1]);
@@ -62,19 +109,19 @@ void OpenFilesSqeeze(){
 // R/O ( -- fam )
 void readOnly() {
 	REQUIRE_DSTACK_AVAILABLE(1, "R/O");
-	push(static_cast<Cell>(std::ios_base::in));
+	push(static_cast<Cell>(std::ios_base::in | std::ios_base::binary));
 }
 
 // R/W ( -- fam )
 void readWrite() {
 	REQUIRE_DSTACK_AVAILABLE(1, "R/W");
-	push(static_cast<Cell>(std::ios_base::in | std::ios_base::out));
+	push(static_cast<Cell>(std::ios_base::in | std::ios_base::out | std::ios_base::binary));
 }
 
 // W/O ( -- fam )
 void writeOnly() {
 	REQUIRE_DSTACK_AVAILABLE(1, "W/O");
-	push(static_cast<Cell>(std::ios_base::out));
+	push(static_cast<Cell>(std::ios_base::out | std::ios_base::binary));
 }
 
 // BIN ( fam1 -- fam2 )
@@ -96,7 +143,8 @@ void createFile() {
 	try{
 		std::shared_ptr<std::fstream> f{ new std::fstream(filename, fam | std::ios_base::trunc) };
 		if (f->is_open()) {
-			ForthFile createdFile{ ++fileHandle, f };
+			//auto filesize = std::filesystem::file_size(filename);
+			ForthFile createdFile{ ++fileHandle, fam,  filename, f };
 			OpenFiles.push_back(createdFile);
 			dStack.setTop(1, fileHandle);
 			dStack.setTop(0);
@@ -125,7 +173,8 @@ void openFile() {
 	try{
 		std::shared_ptr<std::fstream> f{ new std::fstream(filename, fam) };
 		if (f->is_open()) {
-			ForthFile createdFile{ ++fileHandle, f };
+			//auto filesize = std::filesystem::file_size(filename);
+			ForthFile createdFile{  ++fileHandle, fam,  filename, f };
 			OpenFiles.push_back(createdFile);
 			dStack.setTop(1, fileHandle);
 			dStack.setTop(0);
@@ -141,6 +190,34 @@ void openFile() {
 	}
 }
 
+// RESIZE-FILE ( ud fileid -- ior )
+void resizeFile() {
+	REQUIRE_DSTACK_DEPTH(3, "RESIZE-FILE");
+	auto h = (dStack.getTop()); pop();
+	auto f = GetFileHandle(h, "RESIZE-FILE", errorResizeFile);
+	DCell ud(dStack.getTop(1), dStack.getTop()); dStack.pop();
+
+	auto fam = GetFileAccessMode(h, "RESIZE-FILE", errorResizeFile);
+	std::string filename=GetFileName(h, "RESIZE-FILE", errorResizeFile);
+	f->close();
+	std::filesystem::resize_file(filename,ud.data_.Dcells);
+	try {
+		std::shared_ptr<std::fstream> fnew{ new std::fstream(filename, fam  ) };
+		if (fnew->is_open()) {
+			//auto filesize = std::filesystem::file_size(filename);
+			MoveFileHandle(h,  fnew,  "RESIZE-FILE", errorResizeFile);
+			dStack.setTop(0);
+		}
+		else {
+			dStack.setTop(Cell(errorResizeFile));
+		}
+	}
+	catch (std::exception&) {
+		dStack.setTop(Cell(errorResizeFile));
+	}
+}
+
+
 // READ-FILE ( c-addr u1 fileid -- u2 ior )
 void readFile() {
 	REQUIRE_DSTACK_DEPTH(3, "READ-FILE");
@@ -150,29 +227,50 @@ void readFile() {
 	auto caddr = (dStack.getTop(1));
 	std::vector<char> readBuffer(length);
 	f->read(&readBuffer[0], static_cast<std::streamsize>(length));
-	auto realLength = static_cast<Cell>(f->gcount());
-	moveIntoDataSpace(caddr, &readBuffer[0], realLength);
+	auto status = f->rdstate();
+	auto realLength = static_cast<Cell>(std::strlen(&readBuffer[0]));
+	auto realLengthF = f->gcount();
+	moveIntoDataSpace(caddr, &readBuffer[0], realLengthF);
 	dStack.setTop(f->bad() ? Cell(errorReadFile) : 0);
-	dStack.setTop(1, realLength);
+	dStack.setTop(1, realLengthF);
 }
 
-// READ-LINE ( c-addr u1 fileid -- u2 ior )
+/// READ-LINE ( c-addr u1 fileid -- u2 flag ior )
 void readLine() {
 	REQUIRE_DSTACK_DEPTH(3, "READ-LINE");
 	auto h = (dStack.getTop()); 
 	auto f = GetFileHandle(h, "READ-LINE", errorReadLine);
 	auto length = SIZE_T(dStack.getTop(1));
 	auto caddr = (dStack.getTop(2));
+	Cell ior = 0;
+	Cell flag = True;
+	Cell u2 = 0;
 	if (length > 0) {
 		std::vector<char> readBuffer(length+2);
+		if(f->rdstate() == std::ios::failbit) {
+			f->clear(); // EOL is not read. Need to clear failbit flag and continue reading
+		}
 		f->getline(&readBuffer[0], static_cast<std::streamsize>(length+1)); // add termination 0 to char counter
-		length = static_cast<Cell>(f->gcount());
+		auto realLength = static_cast<Cell>(std::strlen(&readBuffer[0]));
+		if (realLength == (length ) && f->rdstate() == std::ios::failbit) {
+			f->clear(); // EOL is not read. Need to clear failbit flag and continue reading
+		}
+		length = realLength;
+		auto infoLength = f->gcount();
 		moveIntoDataSpace(caddr, &readBuffer[0], length);
+		u2 = static_cast<Cell>(length);
+		if (f->rdstate() & std::ios::eofbit && u2==0) {
+			flag = False; // EOF
+		}
+		else {
+			flag = True;
+		}
+		ior = f->bad() ? Cell(errorReadLine) : 0;
 	}
 	
-	dStack.setTop(0, f->bad() ? Cell(errorReadLine) : 0);
-	dStack.setTop(1, True);
-	dStack.setTop(2, length);
+	dStack.setTop(0, ior);
+	dStack.setTop(1, flag);
+	dStack.setTop(2, u2);
 }
 
 // READ-CHAR ( fileid -- char ior )
@@ -188,6 +286,7 @@ void readChar() {
 	auto h = (dStack.getTop());
 	auto f = GetFileHandle(h, "READ-CHAR", errorReadFile);
 	auto ch = static_cast<unsigned char>(f->get());
+	auto status = f->rdstate();
 	dStack.setTop(static_cast<Cell>(ch));
 	if (f->bad()) push(static_cast<Cell>(errorReadFile)); else push(0);
 }
@@ -202,6 +301,7 @@ void writeFile() {
 	std::string fileData{};
 	moveFromDataSpace(fileData, caddr, length);
 	f->write(fileData.c_str(), static_cast<std::streamsize>(length));
+	auto status = f->rdstate();
 	dStack.setTop(f->bad() ? Cell(errorWriteFile) : 0);
 }
 
@@ -216,7 +316,10 @@ void writeLine() {
 	moveFromDataSpace(fileData, caddr, length);
 	f->write(fileData.c_str(), static_cast<std::streamsize>(length));
 	(*f) << std::endl;
-	dStack.setTop(f->bad() ? Cell(errorWriteLine) : 0);
+	auto status = f->rdstate();
+	auto written = f->gcount();
+	Cell ior = f->bad() ? Cell(errorWriteLine) : 0;
+	dStack.setTop(ior);
 }
 
 // WRITE-CHAR ( char fileid -- ior )
@@ -230,6 +333,7 @@ void writeChar() {
 	auto f = GetFileHandle(h, "WRITE-CHAR", errorWriteFile);
 	auto ch = static_cast<char>(dStack.getTop());
 	f->put(ch);
+	auto status = f->rdstate();
 	dStack.setTop(f->bad() ? Cell(errorWriteFile) : 0);
 }
 
@@ -237,12 +341,55 @@ void writeChar() {
 void filePosition() {
 	REQUIRE_DSTACK_DEPTH(1, "FILE-POSITION");
 	auto h = (dStack.getTop()); 
-	auto f = GetFileHandle(h, "FILE-POSITION", errorFilePosition);
+	auto f = GetFileHandle(h, "FILE-POSITION", errorFileSize);
+	auto status = f->rdstate();
+	if (status != 0) f->clear();
 	DCell position(f->tellg());
+	status = f->rdstate();
 	dStack.setTop(0, position.data_.Cells.lo);
 	dStack.push(position.data_.Cells.hi);
 	dStack.push(f->bad() ? Cell(errorFilePosition) : 0);
 }
+
+// FILE-SIZE ( fileid -- ud ior )
+void fileSize() {
+	REQUIRE_DSTACK_DEPTH(1, "FILE-SIZE");
+	auto h = (dStack.getTop());
+	auto filename = GetFileName(h, "FILE-SIZE", errorFilePosition);
+	auto f = GetFileHandle(h, "FILE-SIZE", errorFilePosition);
+	auto filesize = std::filesystem::file_size(filename);
+	DCell position(filesize);
+	DCell currentPosition(f->tellg());
+	dStack.setTop(0, position.data_.Cells.lo);
+	dStack.push(position.data_.Cells.hi);
+	dStack.push(f->bad() ? Cell(errorFilePosition) : 0);
+}
+
+// REPOSITION-FILE ( ud fileid -- ior )
+void fileReposition() {
+	REQUIRE_DSTACK_DEPTH(3, "REPOSITION-FILE");
+	auto h = (dStack.getTop()); dStack.pop();
+	DCell ud(dStack.getTop(1), dStack.getTop()); dStack.pop();
+	auto f = GetFileHandle(h, "REPOSITION-FILE", errorFilePosition);
+	f->seekg(ud.data_.Dcells , std::ios_base::beg);
+	auto status = f->rdstate();
+	dStack.setTop(f->bad() ? Cell(errorFilePosition) : 0);
+}
+
+// FILE-STATUS (c-addr u -- x ior)
+void fileStatus() {
+	REQUIRE_DSTACK_DEPTH(2, "OPEN-FILE");
+
+	auto caddr = dStack.getTop(1);
+	auto length = SIZE_T(dStack.getTop());
+	
+	std::string filename{};
+	moveFromDataSpace(filename, caddr, length);
+	auto exists = std::filesystem::exists(filename);
+	dStack.setTop(1, 0);
+	dStack.setTop(exists? 0: errorFileStatus );
+}
+
 
 // FLUSH-FILE ( fileid -- ior )
 void flushFile() {
@@ -250,6 +397,7 @@ void flushFile() {
 	auto h = (dStack.getTop());
 	auto f = GetFileHandle(h, "FLUSH-FILE");
 	f->flush();
+	auto status = f->rdstate();
 	dStack.setTop(f->bad() ? Cell(-1) : 0);
 }
 
@@ -295,9 +443,9 @@ void renameFile() {
 void includeFile() {
 	REQUIRE_DSTACK_DEPTH(1, "INCLUDE-FILE");
 
-	auto h = (dStack.getTop()); pop();
+	auto h = (dStack.getTop()); // do not delete handler from stack to close file after read
 	auto f = GetFileHandle(h, "INCLUDE-FILE",errorReadFile);
-
+	/*
 	std::string line;
 	while (std::getline(*f, line)) {
 		auto addr = PutStringToEndOfDataSpace(line);
@@ -305,6 +453,19 @@ void includeFile() {
 		push(static_cast<Cell>(line.length()));
 		evaluate(); //@bug - should move evaluate outside of this procedure
 	}
+	*/
+	std::string fileContent{};
+	std::stringstream inStrStream{};
+	inStrStream << (*f).rdbuf();   // read the file
+	fileContent = inStrStream.str(); //
+	SaveInput(structSavedInput::fromFile);
+	setSourceId(h);
+	setDataCell(VarOffsetBlkAddress, Cell(0)); // set BLK=0
+	SetInput(fileContent);
+	InterpretState = InterpretSource;
+	// must close file according to specification
+	closeFile();
+	pop(); // discard error code
 }
 
 

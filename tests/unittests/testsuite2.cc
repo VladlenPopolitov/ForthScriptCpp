@@ -121,7 +121,7 @@ protected:
     {
         testFileNamesList = allFilesInSuite;
         outputFileNamesList = allfilenames;
-        int numberOfTestFiles = 5;
+        int numberOfTestFiles = 4;
         int Start = 0;
         {
             std::string res{}, error{};

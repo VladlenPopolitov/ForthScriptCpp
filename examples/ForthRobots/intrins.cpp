@@ -17,14 +17,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-/* radian to degrees conversion factor */
-#define RAD_DEG 57.29578
-
-/* define scale factor for trig functions */
-#define SCALE 100000.0
-
-/* resolution limit */
-#define RES_LIMIT 10L
 
 /* c_scan - radar scanning function - note degrees instead of radians */
 /*          expects two agruments on stack, degree and resoultion */

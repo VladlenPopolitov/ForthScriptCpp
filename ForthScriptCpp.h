@@ -155,6 +155,8 @@ implementation to get the basic gist of how Forth is usually implemented.
 #ifdef FORTHSCRIPTCPP_ENABLE_FILE
 // iostream for file operations
 #include <fstream>
+// for FILE_SIZE word <filesystem> is used
+#include <filesystem>
 // smart pointers to store pointers to iostream
 #include <memory>
 #endif
@@ -504,7 +506,7 @@ during the compilation of words.
 " ; immediate  "
 
 " : s\" [char] \" parse state @ if postpone sliteral then ; immediate "
-
+// R"(: C" [char] " parse state @ if postpone sliteral postpone swap postpone 1- postpone dup postpone rot postpone swap postpone C! else swap 1- dup rot swap C! then ; immediate)"
 " : .\" postpone s\" postpone type ; immediate "
 
 " : .(  [char] ) parse type ; immediate "
@@ -575,6 +577,7 @@ continue the interpreter loop.
 "postpone if postpone cell+ postpone F! postpone then postpone then postpone then "
 "else dup @ dup 1 = if drop cell+ ! else dup 2 = if drop cell+ 2! else 3 = if cell+ F! then then then then ; immediate "
 
+": marker create markerstart , does> @ markerremove ; "
 #ifdef FORTHSCRIPTCPP_ENABLE_FILE
 /****
 
@@ -596,8 +599,11 @@ hello
 
 ": included "
 "    r/o open-file abort\" included: unable to open file\" "
-"    dup include-file "
-"    close-file abort\" included: unable to close file\" ; "
+//"    dup include-file "
+//"    close-file abort\" included: unable to close file\" ; "
+"    include-file ; " // include-file closes file according to Forth 2012
+
+
 
 ": include   bl word count included ; "
 
@@ -629,7 +635,7 @@ comment.  They are blank-delimited words just like every other Forth word.
 
 ": \\   source nip >in ! ; immediate "
 ": #!   postpone \\ ; immediate "
-": (    [char] ) parse 2drop ; immediate "
+ ": (    [char] ) parse 2drop ; immediate "
 /****
 S\" http://www.forth200x.org/escaped-strings.html
 
@@ -778,6 +784,19 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
  * TOOLS
 */
 
+/***
+ FILES
+*/
+
+": save-mem ( addr1 u -- addr2 u) SWAP >R DUP ALLOCATE THROW SWAP 2DUP R> ROT ROT MOVE ; "
+": name-add ( addr u listp -- ) >R save-mem ( addr1 u ) 3 CELLS ALLOCATE THROW R@ @ OVER ! DUP R> ! CELL+ 2! ; "
+": name-present? ( addr u list -- f )  ROT ROT 2>R BEGIN DUP WHILE DUP CELL+ 2@ 2R@ COMPARE 0= IF DROP 2R> 2DROP TRUE EXIT "
+" THEN @ REPEAT 2R> 2DROP ; "
+": name-join ( addr u list -- ) >R 2DUP R@ @ name-present? IF R> DROP 2DROP ELSE R> name-add THEN ; "
+" VARIABLE included-names 0 included-names ! "
+": included ( i*x addr u -- j*x ) 2DUP included-names name-join INCLUDED ; "
+": REQUIRED ( i*x addr u -- i*x ) 2DUP included-names @ name-present? 0= IF included ELSE 2DROP THEN ; "
+": REQUIRE PARSE-NAME REQUIRED ; "
 /****
 
 `ABOUT` is not a standard word.  It just prints licensing and credit information.
@@ -1346,6 +1365,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		Cell getSourceBufferSize() {
 			return getDataCell(VarOffsetSourceSize);
 		}
+		/* bug delete - it unclear
 		void setSourceBuffer(const std::string &value){
 			auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBufferRefill).segment;
 			sourceBufferVirtual.resize(0);
@@ -1353,7 +1373,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 			VirtualMemory.at(vmSegmentSourceBufferRefill).end = VirtualMemory.at(vmSegmentSourceBufferRefill).start + VirtualMemory.at(vmSegmentSourceBufferRefill).segment.size();
 			setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, sourceBufferVirtual.size(), 0);
 			//setSourceBufferSize(sourceBufferVirtual.size());
-		}
+		} */
 		bool setSourceBuffer(){
 			if (inputBufferStringsCurrent < inputBufferStrings.size()){
 				// load next string from input buffer
@@ -1520,11 +1540,14 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				errorCreateFile=-63,
 				errorDeleteFile=-64,
 				errorFilePosition=-65,
+				errorFileSize = -66,
+				errorFileStatus = -67,
 				errorFlushFile=-68,
 				errorOpenFile=-69,
 				errorReadFile=-70,
 				errorReadLine=-71,
 				errorRenameFile=-72,
+				errorResizeFile=-74,
 				errorWriteFile=-75,
 				errorWriteLine=-76
 			} ;
@@ -1721,7 +1744,7 @@ Code Reserved for	Code Reserved for
 		}
 
 		void requireDStackDepth(std::size_t n, const char* name) {
-			RUNTIME_ERROR_IF(dStack.stackDepth() < static_cast<std::ptrdiff_t>(n),
+			RUNTIME_ERROR_IF(dStack.stackDepth() < (n),
 				std::string(name) + ": stack underflow",errorStackUnderflow);
 		}
 
@@ -1731,7 +1754,7 @@ Code Reserved for	Code Reserved for
 		}
 
 		void requireCStackDepth(std::size_t n, const char* name) {
-			RUNTIME_ERROR_IF(controlStackIf_Begin.stackDepth() < static_cast<std::ptrdiff_t>(n),
+			RUNTIME_ERROR_IF(controlStackIf_Begin.stackDepth() < (n),
 				std::string(name) + ": control stack underflow",errorControlStackOverflow);
 		}
 
@@ -1741,7 +1764,7 @@ Code Reserved for	Code Reserved for
 		}
 
 		void requireRStackDepth(std::size_t n, const char* name) {
-			RUNTIME_ERROR_IF(rStack.stackDepth() < std::ptrdiff_t(n),
+			RUNTIME_ERROR_IF(rStack.stackDepth() < (n),
 				std::string(name) + ": return stack underflow",errorRStackUnderflow);
 		}
 
@@ -2562,6 +2585,53 @@ Code Reserved for	Code Reserved for
 								std::string(1, delim) + "\'")
 								, errorParsedStringOverflow);
 						}
+				}
+				if (getSourceBufferRemain() > 0) {
+					// next char
+					auto ch = getDataChar(getSourceAddress() + getSourceBufferOffset());
+					incSourceBufferOffset();
+					if ((delim == ' ' && isspace(static_cast<unsigned char>(ch))) || (delim == ch)) {
+						exits = true;
+					}
+					else {
+						parseBuffer.push_back(ch);
+					}
+				}
+			}
+			auto dataInDataSpace = PutStringToEndOfDataSpace(parseBuffer);
+
+			dStack.setTop(CELL(dataInDataSpace));
+			push(static_cast<Cell>(parseBuffer.size()));
+		}
+		/****
+
+		Multiline comment
+
+		****/
+
+		// ( ( "ccc<paren>" -- )
+		void multilinecomment() {
+			
+
+			auto delim = ')';
+			
+
+			std::string parseBuffer{};
+			parseBuffer.clear();
+			// Copy characters until we see the delimiter.
+
+			bool exits{ false };
+			while (!exits) {
+				while (getSourceBufferRemain() == 0) {
+					// load next string from input buffer
+					refill();
+					auto flag = dStack.getTop(); pop();
+					if (!flag) {
+						//if (delim == ' ') break;
+						throwMessage(std::string("PARSE: Did not find expected delimiter \'" +
+							std::string(1, delim) + "\'")
+							, errorParsedStringOverflow);
+					}
 				}
 				if (getSourceBufferRemain() > 0) {
 					// next char
@@ -3820,13 +3890,19 @@ Code Reserved for	Code Reserved for
 			definitionsAt(defn).executeDefinition(*this);
 		}
 
+		// COMPILE, ( xt -- )
+		void compilecomma() {
+			REQUIRE_DSTACK_DEPTH(1, "COMPILE,");
+			auto xt = XT(dStack.getTop()); pop();
+			data(CELL(xt));
+		}
+
 		// >BODY ( xt -- a-addr )
 		void toBody() {
 			REQUIRE_DSTACK_DEPTH(1, ">BODY");
 			auto xt = XT(dStack.getTop());
 			dStack.setTop(CELL(definitionsAt(xt).parameter));
 		}
-
 		// XT>NAME ( xt -- c-addr u )
 		//
 		// Not a standard word.
@@ -4451,7 +4527,7 @@ Code Reserved for	Code Reserved for
 			}
 
 		}
-		unsigned long parseUnsignedNumber(const std::string valueStr, int skip, size_t &i, int numericBase) {
+		unsigned long parseUnsignedNumber(const std::string valueStr, size_t skip, size_t &i, int numericBase) {
 
 			auto length = valueStr.length();
 			auto caddr = valueStr.c_str();
@@ -4798,12 +4874,15 @@ Code Reserved for	Code Reserved for
 								}
 							}
 							else {
-								return;
+								// read buffer empty
+								continue;
+								assert(!"interpret() impossible condition");
+								return; // this return is not possible()
 							}
 						}
 					}
 					else {
-						refill();
+						refill(); // @bug if read from file, refill must be from file.
 						auto refillFlag = dStack.getTop(); pop();
 						if (!refillFlag){
 							auto qty = savedInput.size();
@@ -4822,7 +4901,7 @@ Code Reserved for	Code Reserved for
 								}
 							}
 							else {
-								break;
+								break; // all input buffers are empty. break and return from interpret()
 							}
 						}
 					}
@@ -4880,10 +4959,70 @@ Code Reserved for	Code Reserved for
 			Cell SourceDashId_{};
 			enum InputBufferSourceSavedByEnum { fromFile, fromEvaluate } InputBufferSourceSavedBy_{ fromFile };
 			std::vector<std::string> inputBufferStrings_{};
+			Cell saveId{};
 		};
+		/// <summary>
+		///  vector for saved input state for evaluate, included. It is used as stack
+		/// </summary>
 		std::vector<structSavedInput> savedInput{};
+		/// <summary>
+		/// vector to save input states in SAVE-INPUT
+		/// </summary>
+		std::vector<structSavedInput> savedInputVector{};
+		/// <summary>
+		///  last saved number
+		/// </summary>
+		Cell saveInputVectorLastSaved{};
+		/**
+ SAVE-INPUT
+*/
+		
+			void savedashinput() {
+				REQUIRE_DSTACK_AVAILABLE(2, "SAVE-INPUT");
+				struct structSavedInput save {};
+				saveInput(save, true);
+				++saveInputVectorLastSaved;
+				save.saveId = saveInputVectorLastSaved;
+				savedInputVector.push_back(save);
+				push(saveInputVectorLastSaved);
+				push(1);
+		}
+
+		/**
+		 RESTORE-INPUT
+		*/
+		void restoredashinput() {
+			REQUIRE_DSTACK_DEPTH(2, "RESTORE-INPUT");
+			Cell n = dStack.getTop(); pop();
+			Cell saveId= dStack.getTop(); pop();
+			for (auto& save : savedInputVector) {
+				if (save.saveId == saveId) {
+					restoreInput(save, false);
+					// @bug delete this save from vector
+					return;
+				}
+			}
+		}
+		void saveInput(struct structSavedInput &save, bool emptyCurrentBuffer) {
+			
+			save.inputBufferStringsCurrent_ = inputBufferStringsCurrent;
+			
+			if (emptyCurrentBuffer) {
+				std::swap(save.inputBufferStrings_, inputBufferStrings);  // consider std::swap here
+				inputBufferStringsCurrent = 0;
+			}
+			else {
+				save.inputBufferStrings_=inputBufferStrings;
+			}
+			getSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
+			//save.InputBufferSourceSavedBy_ = source;
+			save.SourceDashId_ = getSourceId();
+			save.interpretState_ = InterpretState;
+			save.next_ = next_command;
+		}
 		void SaveInput(structSavedInput::InputBufferSourceSavedByEnum source){
 			struct structSavedInput save{};
+			/*
 			save.inputBufferStringsCurrent_ = inputBufferStringsCurrent;
 			std::swap(save.inputBufferStrings_ ,inputBufferStrings);  // consider std::swap here
 			inputBufferStringsCurrent = 0;
@@ -4892,6 +5031,8 @@ Code Reserved for	Code Reserved for
 			save.SourceDashId_ = getSourceId();
 			save.interpretState_ = InterpretState;
 			save.next_ = next_command;
+			*/
+			saveInput(save, true);
 			next_command = 0;
 			savedInput.push_back(save);
 		}
@@ -4900,12 +5041,29 @@ Code Reserved for	Code Reserved for
 			inputBufferStrings.clear();
 			split_str(str, inputBufferStrings, tokens);
 			inputBufferStringsCurrent = 0;
-			setSourceBuffer(inputBufferStrings.at(inputBufferStringsCurrent));
+			setSourceBuffer();
+		}
+		void restoreInput(struct structSavedInput& save, bool emptyCurrentBuffer) {
+			if (save.inputBufferStrings_.size() > 0) {
+				if (emptyCurrentBuffer) {
+					std::swap(save.inputBufferStrings_, inputBufferStrings);
+				}
+				else {
+					inputBufferStrings=save.inputBufferStrings_;
+				}
+				inputBufferStringsCurrent = save.inputBufferStringsCurrent_;
+				setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
+				setSourceId(save.SourceDashId_);
+				InterpretState = save.interpretState_;
+				next_command = save.next_;
+			}
 		}
 		size_t RestoreInput(){
 			auto size = savedInput.size();
 			if (size > 0){
 				struct structSavedInput &save{ savedInput.at(size-1)};
+				restoreInput(save,true);
+				/*
 				if (save.inputBufferStrings_.size()>0){
 					std::swap(save.inputBufferStrings_, inputBufferStrings);
 					inputBufferStringsCurrent = save.inputBufferStringsCurrent_;
@@ -4914,6 +5072,7 @@ Code Reserved for	Code Reserved for
 					InterpretState = save.interpretState_;
 					next_command = save.next_;
 				}
+				*/
 				savedInput.pop_back();
 			}
 			return savedInput.size();
@@ -4927,14 +5086,7 @@ Code Reserved for	Code Reserved for
 			auto caddr = CADDR(dStack.getTop()); pop();
 			setSourceId(-1);
 			setSourceVariables(caddr, length, 0);
-			// @bug delete this commented lines, obsolete
-			//auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
-			//sourceBufferVirtual.resize(length); 
-			//moveFromDataSpace(&sourceBufferVirtual[0], caddr, length);
-			//setSourceBufferOffset(0);
 			InterpretState = InterpretSource;
-			interpret();
-			RestoreInput();
 		}
 		// EVALUATE ( i*x c-addr u -- j*x )
 		void evaluateStart() {
@@ -4942,10 +5094,7 @@ Code Reserved for	Code Reserved for
 			SaveInput(structSavedInput::fromEvaluate);
 			auto length = static_cast<std::size_t>(dStack.getTop()); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
-			// @bug delete this lines after debug
-			//std::string buffer{};
-			//moveFromDataSpace(buffer, caddr, length);
-			//SetInput(buffer);
+			setSourceId(-1);
 			setSourceVariables(caddr, length, 0);
 			InterpretState = InterpretSource;
 		}
@@ -5355,12 +5504,12 @@ Code Reserved for	Code Reserved for
 			}
 		}
 		void exceptionsCatchBefore(){
-			catchStack.push(dStack.stackDepth());
-			catchStack.push(rStack.stackDepth());
-			catchStack.push(returnStack.stackDepth());
+			catchStack.push(static_cast<Cell>(dStack.stackDepth()));
+			catchStack.push(static_cast<Cell>(rStack.stackDepth()));
+			catchStack.push(static_cast<Cell>(returnStack.stackDepth()));
 
 			catchStack.push(exceptionHandler);
-			exceptionHandler = catchStack.stackDepth();
+			exceptionHandler = static_cast<Cell>(catchStack.stackDepth());
 		}
 		void exceptionsCatchAfter(){
 			exceptionHandler = catchStack.getTop(); catchStack.pop();
@@ -5400,6 +5549,22 @@ Code Reserved for	Code Reserved for
 			}
 		}
 
+		void markerstart() {
+			REQUIRE_DSTACK_AVAILABLE(1, "markerstart");
+			Cell defn = definitions.size();
+			push(defn-1);
+		}
+		void markerremove() {
+			REQUIRE_DSTACK_DEPTH(1, "markerremove");
+			Cell defn = dStack.getTop(); pop();
+			for (size_t i = defn; i<definitions.size(); ++i) {
+				auto& def = definitions[i];
+				def.name.append("_deleted");
+				if (!def.isHidden()) {
+					def.toggleHidden();
+				}
+			}
+		}
 		bool alreadyRunning = false;
 		// QUIT ( -- )
 		void quit() {
@@ -5447,6 +5612,7 @@ Code Reserved for	Code Reserved for
 			}
 			cr();
 		}
+
 
 
 #ifdef FORTHSCRIPTCPP_ENABLE_FILE
@@ -5668,6 +5834,12 @@ Code Reserved for	Code Reserved for
 				{ "NR>", &Forth::nrmore, false }, // TOOLS
 				{ "N>R", &Forth::nmorer, false }, // TOOLS
 				{ "SYNONYM", &Forth::synonym, false }, // TOOLS
+				{ "SAVE-INPUT", &Forth::savedashinput, false }, // CORE EXT
+				{ "RESTORE-INPUT", &Forth::savedashinput, false }, // CORE EXT
+				{ "COMPILE,", &Forth::compilecomma, false }, // CORE EXT
+				{ "MARKERSTART", &Forth::markerstart, false }, // word to implement marker
+				{ "MARKERREMOVE", &Forth::markerremove, false }, // word to implement marker
+
 				
 
 				
@@ -5697,6 +5869,12 @@ Code Reserved for	Code Reserved for
 				{ "write-file", &Forth::writeFile, false },
 				{ "write-line", &Forth::writeLine, false },
 				{ "file-position", &Forth::filePosition, false },
+				{ "file-size", &Forth::fileSize, false },
+				{ "reposition-file", &Forth::fileReposition, false },
+				{ "file-status", &Forth::fileStatus, false },
+				{ "resize-file", &Forth::resizeFile, false },
+
+
 
 #endif
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
@@ -5808,7 +5986,7 @@ Code Reserved for	Code Reserved for
 				throwMessage("Not enough data space memory or input buffer memory", errorInvalidAddress);
 			}
 			auto offset = VirtualMemory[vmSegmentDataSpace].end - size - 2;
-			moveIntoDataSpace(offset, data.data(), size);
+			moveIntoDataSpace(static_cast<Cell>(offset), data.data(), size);
 			return offset;
 		}
 		/* @bug delete this member 
@@ -5851,13 +6029,13 @@ Code Reserved for	Code Reserved for
 			VirtualMemorySegment variables{ start, end, std::vector<Char>(end) };
 			if (VirtualMemory.size() == vmSegmentVariables) VirtualMemory.push_back(variables);
 			start = end;
-			end += sourceBufferSize;
+			end += static_cast<Cell>(sourceBufferSize);
 			VirtualMemorySegment sourceBuffer{ start, end, std::vector<Char>(sourceBufferSize) };
 			if (VirtualMemory.size() == vmSegmentSourceBufferRefill) VirtualMemory.push_back(sourceBuffer);
 			// set SOURCE, SOURCE size, >IN
 			setSourceVariables(start, 0, 0); // size if 0, source is empty
 			start = end;
-			end += FORTHSCRIPTCPP_DATASPACE_SIZE;
+			end += static_cast<Cell>(FORTHSCRIPTCPP_DATASPACE_SIZE);
 			VirtualMemorySegment dataSpace{ start, end , std::vector<Char>(FORTHSCRIPTCPP_DATASPACE_SIZE) };
 			if (VirtualMemory.size() == vmSegmentDataSpace) VirtualMemory.push_back(dataSpace);
 			setDataPointer(start);
@@ -5874,7 +6052,7 @@ Code Reserved for	Code Reserved for
 		/******
 		Read from virtual memory
 		******/
-		struct VirtualMemorySegment { Cell start,end; std::vector<Char> segment; };
+		struct VirtualMemorySegment { Cell start{}, end{}; std::vector<Char> segment{}; };
 		std::vector<VirtualMemorySegment> VirtualMemory{};
 		Cell VirtualMemoryFreeSegment{};
 		Char dataSpaceAt(Cell index){
@@ -5966,7 +6144,7 @@ Code Reserved for	Code Reserved for
 		}
 		void forth_writememory(CAddr address, Cell size, std::vector<char> &buffer){
 			size_t offset = 0;
-			if (size > buffer.size()) size = buffer.size();
+			if (size > buffer.size()) size = static_cast<Cell>(buffer.size());
 			while (size--){
 				dataSpaceSet(address++, buffer.at(offset++));
 			}
@@ -5978,12 +6156,12 @@ Code Reserved for	Code Reserved for
 
 		void ExecuteString(const std::string &commands){
 			SetInput(commands);
-			for (inputBufferStringsCurrent = 0; inputBufferStringsCurrent<inputBufferStrings.size(); 
-				++inputBufferStringsCurrent){
-				setSourceBuffer(inputBufferStrings.at(inputBufferStringsCurrent));
-				setSourceBufferOffset(0);
+			/// @bug delete for (inputBufferStringsCurrent = 0; inputBufferStringsCurrent<inputBufferStrings.size(); 
+			///	++inputBufferStringsCurrent){
+			/// 	setSourceBuffer();
+				// @bug delete line setSourceBufferOffset(0);
 				interpret();
-			}
+			///}
 		}
 		std::string ExecutionOutput() const {
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT

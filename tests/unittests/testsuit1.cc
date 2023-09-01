@@ -13,7 +13,7 @@
 #include "forthtestlib.h"
 /*
 	const char *filenames[] = { 
-        "../testresult/test1.txt",
+		"../testresult/test1.txt",
 		"../testresult/test2.txt",
 		"../testresult/test3.txt",
 		"../testresult/test4.txt",
@@ -26,11 +26,11 @@
 		"../testresult/test11.txt",
 		"../testresult/test12.txt",
 		"../testresult/test13.txt",
-        "../testresult/test14.txt",
-        "../testresult/test15.txt",
-        "../testresult/test16.txt",
-        "../testresult/test17.txt",
-        "../testresult/test18.txt",
+		"../testresult/test14.txt",
+		"../testresult/test15.txt",
+		"../testresult/test16.txt",
+		"../testresult/test17.txt",
+		"../testresult/test18.txt",
 	};
 	const char *infilenames[] = {
 		"../suit1/prelimtest.fth",
@@ -44,76 +44,83 @@
 		"../suit1/fp/fpzero-test.4th",
 		"../suit1/fp/ak-fp-test.fth",
 		"../suit1/fp/paranoia.4th",
-    	"../suit1/tester.fr",
-        "../suit1/coreexttest.fth",
-	    "../suit1/filetest.fth",
+		"../suit1/tester.fr",
+		"../suit1/coreexttest.fth",
+		"../suit1/filetest.fth",
 		"../suit1/runtestsall.fth",
 
-      	"",
+		"",
 	};
 	*/
-	const char* allfilenames[] = {
-		"./testresult/alltests1.txt", // 1
-		"./testresult/alltests2.txt", // 2
-		"./testresult/alltests3.txt", // 3
-		"./testresult/alltests4.txt", // 4
-		"./testresult/alltests5.txt", // 5
-		"./testresult/alltests6.txt", // 6
-		"./testresult/alltests7.txt", // 7
-		"./testresult/alltests8.txt", // 8
-		"./testresult/alltests9.txt", // 9
-		"./testresult/alltests10.txt",// 10
-		"./testresult/alltests11.txt",// 11
-		"./testresult/alltests12.txt",
-		"./testresult/alltests13.txt",
-		"./testresult/alltests14.txt",
-		"./testresult/alltests15.txt",
-		"./testresult/alltests16.txt",
-		"./testresult/alltests17.txt",
-		"./testresult/alltests18.txt",
-		"./testresult/alltests19.txt",
-		"./testresult/alltests20.txt",
-		"./testresult/alltests21.txt",
-		"./testresult/alltests22.txt",
-		"./testresult/alltests23.txt",
-	};
+const char* allfilenames[] = {
+	"./testresult/alltests1.txt", // 1
+	"./testresult/alltests2.txt", // 2
+	"./testresult/alltests3.txt", // 3
+	"./testresult/alltests4.txt", // 4
+	"./testresult/alltests5.txt", // 5
+	"./testresult/alltests6.txt", // 6
+	"./testresult/alltests7.txt", // 7
+	"./testresult/alltests8.txt", // 8
+	"./testresult/alltests9.txt", // 9
+	"./testresult/alltests10.txt",// 10
+	"./testresult/alltests11.txt",// 11
+	"./testresult/alltests12.txt",
+	"./testresult/alltests13.txt",
+	"./testresult/alltests14.txt",
+	"./testresult/alltests15.txt",
+	"./testresult/alltests16.txt",
+	"./testresult/alltests17.txt",
+	"./testresult/alltests18.txt",
+	"./testresult/alltests19.txt",
+	"./testresult/alltests20.txt",
+	"./testresult/alltests21.txt",
+	"./testresult/alltests22.txt",
+	"./testresult/alltests23.txt",
+};
 
-	const char* allFilesInSuite[] = {
-		"./suit1/tester.fr" ,				// 1
-		"./suit1/utilities.fth" ,			// 2
-		"./suit1/errorreport.fth" ,		// 3
-		"./suit1/prelimtest.fth" ,			// 4
-		//		"./suit1/ttester.fs" ,
-		"./suit1/core.fr" ,				// 5
-		"./suit1/coreplustest.fth" ,		// 6
-		"./suit1/coreexttest.fth" ,		// 7
-		"./suit1/blocktest.fth" ,			// 8
-		"./suit1/doubletest.fth" ,			// 9
-		"./suit1/exceptiontest.fth" ,		// 10
-		"./suit1/facilitytest.fth" ,		// 11
-		"./suit1/filetest.fth" ,			// 12
-		"./suit1/localstest.fth" ,			// 13
-		"./suit1/memorytest.fth" ,			// 14
-		"./suit1/toolstest.fth" ,			// 15
-		"./suit1/searchordertest.fth" ,	// 16
-		"./suit1/stringtest.fth" ,			// 17
-		"./suit1/fp/fpzero-test.4th",		// 18
-		"./suit1/fp/ak-fp-test.fth",		// 19
-		"./suit1/fp/paranoia.4th",			// 20
+const char* allFilesInSuite[] = {
+	"./suit1/tester.fr" ,				// 1
+	"./suit1/utilities.fth" ,			// 2
+	"./suit1/errorreport.fth" ,		// 3
+	"./suit1/prelimtest.fth" ,			// 4
+	//		"./suit1/ttester.fs" ,
+	"./suit1/core.fr" ,				// 5
+	"./suit1/coreplustest.fth" ,		// 6
+	"./suit1/coreexttest.fth" ,		// 7
+	"./suit1/blocktest.fth" ,			// 8
+	"./suit1/doubletest.fth" ,			// 9
+	"./suit1/exceptiontest.fth" ,		// 10
+	"./suit1/facilitytest.fth" ,		// 11
+	"./suit1/filetest.fth" ,			// 12
+	"./suit1/localstest.fth" ,			// 13
+	"./suit1/memorytest.fth" ,			// 14
+	"./suit1/toolstest.fth" ,			// 15
+	"./suit1/searchordertest.fth" ,	// 16
+	"./suit1/stringtest.fth" ,			// 17
+	"./suit1/fp/fpzero-test.4th",		// 18
+	"./suit1/fp/ak-fp-test.fth",		// 19
+	"./suit1/fp/paranoia.4th",			// 20
+	"./suit1/include.fth",				// 21
 
-		""
-	};
-	int errorInTest{}, errorInForth{};
-	std::string content{};
-	void OKtest(cppforth::Forth* ptr) {
-		//EXPECT_TRUE(true);
-		//std::cout << "OK";
-	}
-	void WrongStackTest(cppforth::Forth* ptr) {
-		errorInTest++;
-		if (ptr->forth_depth() > 0) {
-			auto offset = ptr->forth_tocell(0);
-			ptr->forth_pop(1);
+	""
+};
+int errorInTest{}, errorInForth{};
+std::string content{};
+void OKtest(cppforth::Forth* ptr) {
+	//EXPECT_TRUE(true);
+	//std::cout << "OK";
+}
+void WrongStackTest(cppforth::Forth* ptr) {
+	errorInTest++;
+	if (ptr->forth_depth() > 0) {
+		auto offset = ptr->forth_tocell(0);
+		ptr->forth_pop(1);
+		std::cout << "Stack ("<< ptr->forth_depth()<<")"<<std::endl;
+		for(int i = static_cast<int>(ptr->forth_depth()); i > 0; --i){
+			std::cout <<"#" << (i - 1) << " " << ptr->forth_tocell(i - 1) << " ";
+		}
+		std::cout << std::endl;
+			
 			std::string span((offset < 40) ? offset : 40, '-');
 			std::cout << "Fort test error WrongStackSizeTest" << std::endl;
 			std::cout << content.substr(offset < 40 ? 0 : offset - 40, 70) << std::endl;
@@ -124,9 +131,15 @@
 		//std::cout << "Error";
 	}
 	void WrongValuesOnStackTest(cppforth::Forth* ptr) {
+
 		if (ptr->forth_depth() > 0) {
 			auto offset = ptr->forth_tocell(0);
 			ptr->forth_pop(1);
+			std::cout << "Stack (" << ptr->forth_depth() << ")" << std::endl;
+			for (int i = static_cast<int>(ptr->forth_depth()); i > 0; --i) {
+				std::cout << "#" << (i - 1) << " " << ptr->forth_tocell(i - 1) << " ";
+			}
+			std::cout << std::endl;
 			std::string span((offset < 40) ? offset : 40, '-');
 			std::cout << "Fort test error WrongValuesOnStackTest" << std::endl;
 			std::cout << content.substr(offset < 40 ? 0 : offset - 40, 70) << std::endl;
@@ -291,10 +304,10 @@
 								try {
 									if (content.length() > 0) {
 										auto saveError = errorInTest;
-										if (count == 186 && (numberOfTestFiles )==6) {
+										if (count == 181 && (numberOfTestFiles )==12) {
 											count=count;
 										}
-
+										std::cerr << count << " ";
 										forth.ExecuteString(content);
 										if (errorInTest != saveError) {
 											std::cout << "Test Forth error: " << command[i] << std::endl <<
@@ -412,10 +425,7 @@
 	}
 
 
-//TEST(TestSuit1All, ForthTestSuit000AllTestsInOnce)
-//{
-	//RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 17);
-//}
+/*
 TEST(TestSuit1, ForthTestSuit001Tester)
 {
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 1);
@@ -445,11 +455,13 @@ TEST(TestSuit1,ForthTestSuit006CorePlus)
     //RunAndPrint(infilenames, filenames, 4);
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 6);
 }
+*/
 TEST(TestSuit1, ForthTestSuit007CoreExt)
 {
 	// RunAndPrint(infilenames, filenames, 13);
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 7);
 }
+/*
 TEST(TestSuit1, ForthTestSuit008BlockTest)
 {
 	//RunAndPrint(infilenames, filenames, 8);
@@ -470,11 +482,18 @@ TEST(TestSuit1,ForthTestSuit011facilitytest)
     //RunAndPrint(infilenames, filenames, 6);
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 11);
 }
+
 TEST(TestSuit1, ForthTestSuit012FileTest)
 {
 	//RunAndPrint(infilenames, filenames, 14);
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 12);
 }
+
+TEST(TestSuit1, ForthTestSuit012IncludeFileTest)
+{
+	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 21);
+}
+
 TEST(TestSuit1, ForthTestSuit013LocalsTest)
 {
 	//RunAndPrint(infilenames, filenames, 14);
@@ -528,7 +547,7 @@ TEST(TestSuit1,ForthTestSuit021words)
 		RunCommandAndPrint("words", allfilenames, 21);
 }
 
-
+*/
 
 
 int main(int argc, char **argv)

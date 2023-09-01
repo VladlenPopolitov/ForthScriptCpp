@@ -30,7 +30,7 @@
 			dStack.push(0);
 			try{
 				if (size <= vmMaxSegmentSize){
-					VirtualMemoryFreeSegment += size;
+					VirtualMemoryFreeSegment += static_cast<Cell>(size);
 					VirtualMemorySegment variables{ start, VirtualMemoryFreeSegment, std::vector<Char>(size) };
 					VirtualMemory.push_back(variables);
 					dStack.setTop(1,CELL(start));
