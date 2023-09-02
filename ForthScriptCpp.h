@@ -1010,7 +1010,12 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				pointer.executingWord = numberInVector;
 				//std::cout << numberInVector << " " << name << " " << code << std::endl;
 				if (code) {
-					if(pointer.isTraceCalls()) std::cout << name << " ";
+					if (pointer.isTraceCalls()) {
+						int i = pointer.forth_depth();
+						std::cerr << name << " " << pointer.forth_depth();
+							while (i > 0) std::cerr << " " << pointer.forth_tocell(i--  - 1);
+							std::cerr<< std::endl;
+					}
 					CALL_MEMBER_FN(pointer, code)();
 				}
 				else {
@@ -1084,7 +1089,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
 				std::vector<FCell> stackf{ fStack.debugStack() };
 #endif
-				std::cout << "Execute:" << name << std::endl;
+				std::cerr << "Execute:" << name << std::endl;
 			}
 		}
 
@@ -2003,6 +2008,8 @@ Code Reserved for	Code Reserved for
 
 		template<typename T>
 		AAddr alignAddress(T addr) {
+			return addr; // vector storage does not need alignment
+			// old version of alignment
 			auto offset = CELL(addr) % CellSize;
 			return (offset == 0) ? AADDR(addr) : AADDR(CADDR(addr) + (CellSize - offset));
 		}
@@ -2020,6 +2027,7 @@ Code Reserved for	Code Reserved for
 		// ALIGNED ( addr -- a-addr )
 		void aligned() {
 			REQUIRE_DSTACK_DEPTH(1, "ALIGNED");
+			return; // data always aligned
 			dStack.setTop(CELL(alignAddress(dStack.getTop())));
 		}
 
@@ -2360,7 +2368,7 @@ Code Reserved for	Code Reserved for
 		void setSourceId(Cell value) {
 			sourceid = value;
 		}
-		Cell getSourceId() {
+		SCell getSourceId() {
 			return sourceid;
 		}
 
@@ -2389,17 +2397,24 @@ Code Reserved for	Code Reserved for
 		// REFILL ( -- flag )
 		void refill() { 
 			REQUIRE_DSTACK_AVAILABLE(1, "REFILL");
-			inputBufferStringsCurrent++;
-			if (inputBufferStringsCurrent < inputBufferStrings.size()){
-				if (setSourceBuffer()){
-					push(True);
+			auto sourceid = getSourceId();
+			if (sourceid >= 0) { // if input from file or from input buffer
+				inputBufferStringsCurrent++;
+				if (inputBufferStringsCurrent < inputBufferStrings.size()) {
+
+					if (setSourceBuffer()) {
+						push(True);
+					}
+					else {
+						push(False);
+					}
 				}
 				else {
 					push(False);
 				}
 			}
 			else {
-				push(False);
+				push(False); // input from EVALUATE
 			}
 		}
 
@@ -4999,22 +5014,30 @@ Code Reserved for	Code Reserved for
 				savedInputVector.push_back(save);
 				push(saveInputVectorLastSaved);
 				push(1);
+				// @bug check how it works
+				//next_command = 0;
 		}
 
 		/**
 		 RESTORE-INPUT
 		*/
 		void restoredashinput() {
-			REQUIRE_DSTACK_DEPTH(2, "RESTORE-INPUT");
+#ifdef _DEBUG
+			auto depth = dStack.stackDepth();
+#endif
+			REQUIRE_DSTACK_DEPTH(1, "RESTORE-INPUT");
 			Cell n = dStack.getTop(); pop();
-			Cell saveId= dStack.getTop(); pop();
+			REQUIRE_DSTACK_DEPTH(1, "RESTORE-INPUT");
+			Cell saveId= dStack.getTop(); ;
 			for (auto& save : savedInputVector) {
 				if (save.saveId == saveId) {
-					restoreInput(save, false);
+					restoreInput(save, false,false);
+					dStack.setTop(False); // can be restored
 					// @bug delete this save from vector
 					return;
 				}
 			}
+			dStack.setTop(True); // cannot be restored
 		}
 		void saveInput(struct structSavedInput &save, bool emptyCurrentBuffer) {
 			
@@ -5056,7 +5079,7 @@ Code Reserved for	Code Reserved for
 			inputBufferStringsCurrent = 0;
 			setSourceBuffer();
 		}
-		void restoreInput(struct structSavedInput& save, bool emptyCurrentBuffer) {
+		void restoreInput(struct structSavedInput& save, bool emptyCurrentBuffer, bool restoreNextCommand) {
 			//if (save.inputBufferStrings_.size() > 0) {
 				if (emptyCurrentBuffer) {
 					std::swap(save.inputBufferStrings_, inputBufferStrings);
@@ -5069,14 +5092,18 @@ Code Reserved for	Code Reserved for
 				setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
 				setSourceId(save.SourceDashId_);
 				InterpretState = save.interpretState_;
-				next_command = save.next_;
+				// restoree next command for evaluate
+				// do not need restore for RESTORE-INPUT
+				if (restoreNextCommand) {
+					next_command = save.next_;
+				}
 			//}
 		}
 		size_t RestoreInput(){
 			auto size = savedInput.size();
 			if (size > 0){
 				struct structSavedInput &save{ savedInput.at(size-1)};
-				restoreInput(save,true);
+				restoreInput(save,true,true);
 				/*
 				if (save.inputBufferStrings_.size()>0){
 					std::swap(save.inputBufferStrings_, inputBufferStrings);
@@ -5841,7 +5868,6 @@ Code Reserved for	Code Reserved for
 				{ ">NUMBER", &Forth::toNumber, false }, // CORE
 				{ "-TRAILING", &Forth::dashtrailing, false }, // STRINGS
 				{ "SEARCH", &Forth::search, false }, // STRINGS
-				// { "SCAN", &Forth::scan, false }, // STRINGS-NON STANDARD WORD for substitute
 				{ "CATCHBEFORE", &Forth::exceptionsCatchBefore, false }, // not standerd word
 				{ "CATCHAFTER", &Forth::exceptionsCatchAfter, false }, // not standerd word
 				{ "THROW", &Forth::exceptionsThrow, false }, // not standerd word
@@ -6220,9 +6246,15 @@ Code Reserved for	Code Reserved for
 		bool traceCalls{};
 		void setTraceOn(){
 			setTraceCalls(true);
+#ifdef _DEBUG						
+			setTrace(true);
+#endif			
 		}
 		void setTraceOff(){
 			setTraceCalls(false);
+#ifdef _DEBUG			
+			setTrace(true);
+#endif			
 		}
 		public:
 		bool isTraceCalls(){
