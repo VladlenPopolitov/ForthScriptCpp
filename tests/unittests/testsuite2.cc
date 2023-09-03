@@ -38,27 +38,27 @@ const char *allfilenames[] = {
 };
 
 const char *allFilesInSuite[] = {
-    "./suit1/tester.fr",       // 1
-    "./suit1/utilities.fth",   // 2
-    "./suit1/errorreport.fth", // 3
-    "./suit1/prelimtest.fth",  // 4
-    //		"./suit1/ttester.fs" ,
-    "./suit1/core.fr",             // 5
-    "./suit1/coreplustest.fth",    // 6
-    "./suit1/coreexttest.fth",     // 7
-    "./suit1/blocktest.fth",       // 8
-    "./suit1/doubletest.fth",      // 9
-    "./suit1/exceptiontest.fth",   // 10
-    "./suit1/facilitytest.fth",    // 11
-    "./suit1/filetest.fth",        // 12
-    "./suit1/localstest.fth",      // 13
-    "./suit1/memorytest.fth",      // 14
-    "./suit1/toolstest.fth",       // 15
-    "./suit1/searchordertest.fth", // 16
-    "./suit1/stringtest.fth",      // 17
-    "./suit1/fp/fpzero-test.4th",  // 18
-    "./suit1/fp/ak-fp-test.fth",   // 19
-    "./suit1/fp/paranoia.4th",     // 20
+    "tester.fr",       // 1
+    "utilities.fth",   // 2
+    "errorreport.fth", // 3
+    "prelimtest.fth",  // 4
+    //		"ttester.fs" ,
+    "core.fr",             // 5
+    "coreplustest.fth",    // 6
+    "coreexttest.fth",     // 7
+    "blocktest.fth",       // 8
+    "doubletest.fth",      // 9
+    "exceptiontest.fth",   // 10
+    "facilitytest.fth",    // 11
+    "filetest.fth",        // 12
+    "localstest.fth",      // 13
+    "memorytest.fth",      // 14
+    "toolstest.fth",       // 15
+    "searchordertest.fth", // 16
+    "stringtest.fth",      // 17
+    "fp/fpzero-test.4th",  // 18
+    "fp/ak-fp-test.fth",   // 19
+    "fp/paranoia.4th",     // 20
 
     ""};
 int errorInTest{}, errorInForth{};
@@ -121,7 +121,7 @@ protected:
     {
         testFileNamesList = allFilesInSuite;
         outputFileNamesList = allfilenames;
-        int numberOfTestFiles = 4;
+        int numberOfTestFiles = 5;
         int Start = 0;
         {
             std::string res{}, error{};
@@ -370,7 +370,7 @@ TEST_P(MyTestSuite, MyTest)
             static std::regex IF{std::string(".*\\[[Ii][Ff]\\].*")};
             static std::regex ELSE{std::string(".*\\[[Ee][Ll][Ss][Ee]\\].*")};
             static std::regex THEN{".*\\[[Tt][Hh][Ee][Nn]\\].*"};
-            static std::regex COLON{"^(|.* )\\aaaaaaa: (.*)"};
+            static std::regex COLON{"^(|.* )\\\\aaaaaaa: (.*)"};
             static std::regex SEMICOLON{std::string(" aaaaaaa;(.*|)$")};
             static std::regex SEMICOLONEND{std::string("^(|.* )aaaaaaa;( .*|)$")};
             std::smatch m1{};
@@ -489,9 +489,6 @@ INSTANTIATE_TEST_SUITE_P(ForthTestSuit009DoubleTest, MyTestSuite, testing::Range
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit019Float2TestPart1, MyTestSuite, testing::Range(190000, 191100), testing::PrintToStringParamName());
 // include required
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit020Float3Test, MyTestSuite, testing::Range(200000, 201100), testing::PrintToStringParamName());
-
-
-// segfault
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit008BlockTest, MyTestSuite, testing::Range(80000, 80676), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit015toolstest, MyTestSuite, testing::Range(150000, 150386), testing::PrintToStringParamName());
 //INSTANTIATE_TEST_SUITE_P(ForthTestSuit017stringtest, MyTestSuite, testing::Range(170000, 170324), testing::PrintToStringParamName());

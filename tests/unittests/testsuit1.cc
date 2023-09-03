@@ -11,47 +11,7 @@
 //#define FORTHSCRIPTCPP_DISABLE_OUTPUT 1
 #include "../../ForthScriptCpp.h"
 #include "forthtestlib.h"
-/*
-	const char *filenames[] = { 
-		"../testresult/test1.txt",
-		"../testresult/test2.txt",
-		"../testresult/test3.txt",
-		"../testresult/test4.txt",
-		"../testresult/test5.txt",
-		"../testresult/test6.txt",
-		"../testresult/test7.txt",
-		"../testresult/test8.txt",
-		"../testresult/test9.txt",
-		"../testresult/test10.txt",
-		"../testresult/test11.txt",
-		"../testresult/test12.txt",
-		"../testresult/test13.txt",
-		"../testresult/test14.txt",
-		"../testresult/test15.txt",
-		"../testresult/test16.txt",
-		"../testresult/test17.txt",
-		"../testresult/test18.txt",
-	};
-	const char *infilenames[] = {
-		"../suit1/prelimtest.fth",
-		"../suit1/ttester.fs",
-		"../suit1/core.fr",
-		"../suit1/coreplustest.fth",
-		"../suit1/utilities.fth",
-		"../suit1/errorreport.fth",
-		"../suit1/memorytest.fth",
-		"../suit1/exceptiontest.fth",
-		"../suit1/fp/fpzero-test.4th",
-		"../suit1/fp/ak-fp-test.fth",
-		"../suit1/fp/paranoia.4th",
-		"../suit1/tester.fr",
-		"../suit1/coreexttest.fth",
-		"../suit1/filetest.fth",
-		"../suit1/runtestsall.fth",
 
-		"",
-	};
-	*/
 const char* allfilenames[] = {
 	"./testresult/alltests1.txt", // 1
 	"./testresult/alltests2.txt", // 2
@@ -79,29 +39,27 @@ const char* allfilenames[] = {
 };
 
 const char* allFilesInSuite[] = {
-	"./suit1/tester.fr" ,				// 1
-	"./suit1/utilities.fth" ,			// 2
-	"./suit1/errorreport.fth" ,		// 3
-	"./suit1/prelimtest.fth" ,			// 4
-	//		"./suit1/ttester.fs" ,
-	"./suit1/core.fr" ,				// 5
-	"./suit1/coreplustest.fth" ,		// 6
-	"./suit1/coreexttest.fth" ,		// 7
-	"./suit1/blocktest.fth" ,			// 8
-	"./suit1/doubletest.fth" ,			// 9
-	"./suit1/exceptiontest.fth" ,		// 10
-	"./suit1/facilitytest.fth" ,		// 11
-	"./suit1/filetest.fth" ,			// 12
-	"./suit1/localstest.fth" ,			// 13
-	"./suit1/memorytest.fth" ,			// 14
-	"./suit1/toolstest.fth" ,			// 15
-	"./suit1/searchordertest.fth" ,	// 16
-	"./suit1/stringtest.fth" ,			// 17
-	"./suit1/fp/fpzero-test.4th",		// 18
-	"./suit1/fp/ak-fp-test.fth",		// 19
-	"./suit1/fp/paranoia.4th",			// 20
-	"./suit1/include.fth",				// 21
-
+	"tester.fr" ,				// 1
+	"utilities.fth" ,			// 2
+	"errorreport.fth" ,		// 3
+	"prelimtest.fth" ,			// 4
+	"core.fr" ,				// 5
+	"coreplustest.fth" ,		// 6
+	"coreexttest.fth" ,		// 7
+	"blocktest.fth" ,			// 8
+	"doubletest.fth" ,			// 9
+	"exceptiontest.fth" ,		// 10
+	"facilitytest.fth" ,		// 11
+	"filetest.fth" ,			// 12
+	"localstest.fth" ,			// 13
+	"memorytest.fth" ,			// 14
+	"toolstest.fth" ,			// 15
+	"searchordertest.fth" ,	// 16
+	"stringtest.fth" ,			// 17
+	"fp/fpzero-test.4th",		// 18
+	"fp/ak-fp-test.fth",		// 19
+	"fp/paranoia.4th",			// 20
+	"include.fth",				// 21
 	""
 };
 int errorInTest{}, errorInForth{};
@@ -449,7 +407,8 @@ TEST(TestSuit1,ForthTestSuit005Core)
 {
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 5);
 }
-
+*/
+	/*
 TEST(TestSuit1,ForthTestSuit006CorePlus)
 {
     //RunAndPrint(infilenames, filenames, 4);
@@ -496,6 +455,7 @@ TEST(TestSuit1, ForthTestSuit012IncludeFileTest)
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 21);
 }
 /*
+
 TEST(TestSuit1, ForthTestSuit013LocalsTest)
 {
 	//RunAndPrint(infilenames, filenames, 14);

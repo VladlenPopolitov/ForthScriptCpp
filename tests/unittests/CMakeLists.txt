@@ -19,7 +19,13 @@ add_custom_command(
         TARGET test_forthtestsuit1 POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 ${CMAKE_CURRENT_SOURCE_DIR}/../../external/test-suite/src
-                $<TARGET_FILE_DIR:test_forthtestsuit1>/suit1
+                $<TARGET_FILE_DIR:test_forthtestsuit1>/
+)
+add_custom_command(
+        TARGET test_forthtestsuit1 POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_CURRENT_SOURCE_DIR}/include.fth
+                $<TARGET_FILE_DIR:test_forthtestsuit1>/include.fth
 )
 add_custom_command(
         TARGET test_forthtestsuit1 POST_BUILD
