@@ -60,6 +60,8 @@ const char* allFilesInSuite[] = {
 	"fp/ak-fp-test.fth",		// 19
 	"fp/paranoia.4th",			// 20
 	"include.fth",				// 21
+	"include_fp.fth",			// 22
+	
 	""
 };
 int errorInTest{}, errorInForth{};
@@ -449,12 +451,6 @@ TEST(TestSuit1, ForthTestSuit012FileTest)
 	//RunAndPrint(infilenames, filenames, 14);
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 12);
 }
-*/
-TEST(TestSuit1, ForthTestSuit012IncludeFileTest)
-{
-	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 21);
-}
-/*
 
 TEST(TestSuit1, ForthTestSuit013LocalsTest)
 {
@@ -503,6 +499,19 @@ TEST(TestSuit1,ForthTestSuit020Float3Test)
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 20);
 }
 
+
+TEST(TestSuit1, ForthTestSuit021IncludeFileTest)
+{
+	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 21);
+}
+
+
+*/
+TEST(TestSuit1, ForthTestSuit022IncludeFPFileTest)
+{
+	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 22);
+}
+/*
 
 TEST(TestSuit1,ForthTestSuit021words)
 {

@@ -987,7 +987,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		struct Definition {
 
 			Code   code;
-			Cell  does;
+			Cell   does;
 			AAddr  parameter;
 			Cell   flags;
 			std::string name;
@@ -1012,9 +1012,10 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				if (code) {
 					if (pointer.isTraceCalls()) {
 						int i = pointer.forth_depth();
-						std::cerr << name << " " << pointer.forth_depth();
-							while (i > 0) std::cerr << " " << pointer.forth_tocell(i--  - 1);
-							std::cerr<< std::endl;
+						std::cout << name << " ";
+						// std::cerr << name << " " << pointer.forth_depth();
+						// while (i > 0) std::cerr << " " << pointer.forth_tocell(i--  - 1);
+						// std::cerr<< std::endl;
 					}
 					CALL_MEMBER_FN(pointer, code)();
 				}
@@ -1089,7 +1090,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
 				std::vector<FCell> stackf{ fStack.debugStack() };
 #endif
-				std::cerr << "Execute:" << name << std::endl;
+				// std::cerr << "Execute:" << name << std::endl;
 			}
 		}
 
@@ -1301,7 +1302,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				value >>= 8;
 			}
 		}
-		 
+		
 		Definition &definitionsAt(Cell index){
 			if (index >= definitions.size() || index<0){
 				throwMessage("Access to definitions out of range",errorUndefinedWord);
@@ -2289,7 +2290,7 @@ Code Reserved for	Code Reserved for
 		// . ( n -- )
 		void dot() {
 			REQUIRE_DSTACK_DEPTH(1, ".");
-			auto value = static_cast<long>(static_cast<int>(dStack.getTop())); pop();
+			auto value = static_cast<SCell>(static_cast<int>(dStack.getTop())); pop();
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
 			switch (writeToTarget) {
 			case ToString:
@@ -2501,7 +2502,7 @@ Code Reserved for	Code Reserved for
 						&& currentChar != delim
 						&& !(delim == ' ' && (isspace(static_cast<unsigned char>(currentChar))))
 						) {
-						wordBuffer.push_back(currentChar);
+						wordBuffer.push_back(std::toupper(static_cast<unsigned char>(currentChar)));
 						incSourceBufferOffset();
 						currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
 					}
@@ -2755,17 +2756,47 @@ Code Reserved for	Code Reserved for
 			RUNTIME_ERROR_IF(!fStack.availableStack(n),
 				std::string(name) + ": stack overflow", errorStackOverflow);
 		}
-		void setDataCell(AAddr pointer, FCell *value){
+		void setDataCell(AAddr pointer, const FCell &value){
 			for (size_t i = 0; i < sizeof(FCell); ++i){
-				dataSpaceSet(pointer + i,  static_cast<unsigned char*>(static_cast<void*>(value))[i]);
+				dataSpaceSet(pointer + i,  static_cast<const unsigned char*>(static_cast<const void*>(&value))[i]);
 			}
 		}
-		FCell getDataFCell(CAddr pointer){
-			FCell value{ 0 };
-			for (size_t i = 0; i < sizeof(FCell); ++i){
-				static_cast<unsigned char*>(static_cast<void*>(&value))[i] = dataSpaceAt(pointer + i);
+		void setDataCell32(AAddr pointer, const FCell &value) {
+			float value1 = value;
+			for (size_t i = 0; i < sizeof(value1); ++i) {
+				dataSpaceSet(pointer + i, static_cast<const unsigned char*>(static_cast<const void*>(&value1))[i]);
 			}
-			return value;
+		}
+		void setDataCell64(AAddr pointer, const FCell  &value) {
+			double value1 = value;
+			for (size_t i = 0; i < sizeof(value1); ++i) {
+				dataSpaceSet(pointer + i, static_cast<const unsigned char*>(static_cast<const void*>(&value1))[i]);
+			}
+		}
+
+		FCell getDataFCell(CAddr pointer) {
+			FCell value1{ 0 };
+			for (size_t i = 0; i < sizeof(value1); ++i) {
+				static_cast<unsigned char*>(static_cast<void*>(&value1))[i] = dataSpaceAt(pointer + i);
+			}
+			return value1;
+		}
+
+FCell getDataFCell32(CAddr pointer){
+			float value1{ 0 };
+			for (size_t i = 0; i < sizeof(value1); ++i){
+				static_cast<unsigned char*>(static_cast<void*>(&value1))[i] = dataSpaceAt(pointer + i);
+			}
+			return value1;
+		}
+
+
+		FCell getDataFCell64(CAddr pointer) {
+			double value1{ 0 };
+			for (size_t i = 0; i < sizeof(value1); ++i) {
+				static_cast<unsigned char*>(static_cast<void*>(&value1))[i] = dataSpaceAt(pointer + i);
+			}
+			return value1;
 		}
 
 
@@ -2798,7 +2829,8 @@ Code Reserved for	Code Reserved for
 			REQUIRE_FSTACK_DEPTH(2, "F/");
 			auto n2 = static_cast<FCell>(fStack.getTop()); fStack.pop();
 			auto n1 = static_cast<FCell>(fStack.getTop());
-			RUNTIME_ERROR_IF(n2 == 0., "/: zero divisor", errorDivisionByZero);
+			// division by 0 must return actual Nan +Inf or -Inf
+			// RUNTIME_ERROR_IF(n2 == 0., "/: zero divisor", errorDivisionByZero);
 			fStack.setTop(static_cast<FCell>(n1 / n2));
 		}
 		// F0= ( -- flag ) ( F: r -- ) or ( r -- flag )
@@ -2830,7 +2862,7 @@ Code Reserved for	Code Reserved for
 			auto aaddr = AADDR(dStack.getTop()); pop();
 			REQUIRE_ALIGNED(aaddr, "F!");
 			auto x = fStack.getTop(); fStack.pop();
-			setDataCell(aaddr, &x);
+			setDataCell(aaddr, x);
 		}
 
 		// F@ ( f-addr -- ) ( F: -- r ) or ( f-addr -- r )
@@ -3015,7 +3047,7 @@ Code Reserved for	Code Reserved for
 			REQUIRE_VALID_HERE("F,");
 			REQUIRE_DATASPACE_AVAILABLE(FCellSize, "F,");
 			REQUIRE_ALIGNED(getDataPointer(), "F,");
-			setDataCell((AADDR(getDataPointer())), &x);
+			setDataCell((AADDR(getDataPointer())), x);
 			incDataPointer(FCellSize);
 		}
 
@@ -3309,6 +3341,43 @@ Code Reserved for	Code Reserved for
 			fStack.pop();
 		}
 
+		/// SF! ( sf-addr -- ) ( F: r -- )
+		void sf_store() {
+			REQUIRE_DSTACK_DEPTH(1, "SF!");
+			REQUIRE_FSTACK_DEPTH(1, "SF!");
+			auto aaddr = AADDR(dStack.getTop()); pop();
+			REQUIRE_ALIGNED(aaddr, "SF!");
+			auto x = fStack.getTop(); fStack.pop();
+			setDataCell32(aaddr, x);
+		}
+
+		/// SF@ ( sf-addr -- ) ( F: -- r )
+		void sf_fetch() {
+			REQUIRE_DSTACK_DEPTH(1, "SF@");
+			REQUIRE_FSTACK_AVAILABLE(1, "SF@");
+			auto aaddr = AADDR(dStack.getTop()); pop();
+			REQUIRE_ALIGNED(aaddr, "SF@");
+			fStack.push(getDataFCell32(aaddr));
+		}
+
+		/// DF! ( df-addr -- ) ( F: r -- )
+		void df_store() {
+			REQUIRE_DSTACK_DEPTH(1, "DF!");
+			REQUIRE_FSTACK_DEPTH(1, "DF!");
+			auto aaddr = AADDR(dStack.getTop()); pop();
+			REQUIRE_ALIGNED(aaddr, "DF!");
+			auto x = fStack.getTop(); fStack.pop();
+			setDataCell64(aaddr, x);
+		}
+
+		/// DF@ ( df-addr -- ) ( F: -- r )
+		void df_fetch() {
+			REQUIRE_DSTACK_DEPTH(1, "DF@");
+			REQUIRE_FSTACK_AVAILABLE(1, "DF@");
+			auto aaddr = AADDR(dStack.getTop()); pop();
+			REQUIRE_ALIGNED(aaddr, "DF@");
+			fStack.push(getDataFCell64(aaddr));
+		}
 
 #endif
 		// ENVIRONMENT? ( c-addr u -- false | i * x true )
@@ -4092,7 +4161,7 @@ Code Reserved for	Code Reserved for
 			data(cell - getDataPointer());
 			// calculate return point after LEAVE and save it to second BRANCH in DO
 			auto offset = getDataPointer() - (cell + CellSize * 3);
-			setDataCell(cell + CellSize * 3, offset);
+			setDataCell(cell + CellSize * 3, Cell(offset));
 			// clear stack after cycle
 			data(DropDropXt);
 		}
@@ -4114,7 +4183,7 @@ Code Reserved for	Code Reserved for
 			data(cell - getDataPointer());
 			// calculate return point after LEAVE and save it to second BRANCH in DO
 			auto offset = getDataPointer() - (cell + CellSize * 3);
-			setDataCell(cell + CellSize * 3, offset);
+			setDataCell(cell + CellSize * 3, Cell(offset));
 			data(DropDropXt);
 		}
 		// LEAVE ( -- )
@@ -4224,7 +4293,7 @@ Code Reserved for	Code Reserved for
 			auto controlStackSize = controlStackIf_Begin.stackDepth();
 			if (controlStackSize > 0){
 				auto ifHere = controlStackIf_Begin.getTop();
-				setDataCell(ifHere, getDataPointer() - ifHere);
+				setDataCell(ifHere, Cell(getDataPointer() - ifHere));
 				controlStackIf_Begin.pop();
 			}
 		}
@@ -4236,7 +4305,7 @@ Code Reserved for	Code Reserved for
 			data(CellSize);
 			if (controlStackSize > 0){
 				auto ifHere = controlStackIf_Begin.getTop();
-				setDataCell(ifHere, getDataPointer() - ifHere);
+				setDataCell(ifHere, Cell(getDataPointer() - ifHere));
 				controlStackIf_Begin.setTop(elseHere);
 			}
 			else {
@@ -4279,7 +4348,7 @@ Code Reserved for	Code Reserved for
 			auto controlStackSize = controlStackIf_Begin.stackDepth();
 			if (controlStackSize > 0){
 				CAddr ifHere = controlStackIf_Begin.getTop();
-				setDataCell(ifHere, getDataPointer() - ifHere);
+				setDataCell(ifHere, Cell(getDataPointer() - ifHere));
 				controlStackIf_Begin.pop();
 			}
 		}
@@ -4596,29 +4665,9 @@ Code Reserved for	Code Reserved for
 			static std::regex regexInt2{ "^%([\\-]?[01]+)$" };
 			static std::regex regexIntChar{ "^\'(.{1,1})\'$" };
 
-			// regex float ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
-			// regex double ^[-+]?\d+\.$
-			// regex int ^[-+]?\d+$
 			int base = getNumericBase();
 			// consider it is int
-			if(0){
-			auto size=value.size();
-			if(base==10 && size>0 && value[size-1]>='0' && value[size-1]<='9'){
-				size_t last{};
-				long long int number = std::stoll(value,&last,base);
-				if (last == size && number<=INT32_MAX && number>=INT32_MIN ) {
-					Cell cnumber(number);
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(cnumber);
-					}
-					else {
-						push(cnumber);
-					}
-					return true;
-				}
-			}
-			}
+
 			std::smatch m1{};
 			bool found{};
 			if (base == 10){
@@ -4655,21 +4704,6 @@ Code Reserved for	Code Reserved for
 					}
 					return true;
 				}
-#ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
-				std::regex regexFloat{ "^[-+]{0,1}[0-9]*\\.{0,1}[0-9]*[eE]([-+]?[0-9]+)?$" };
-				found = regex_search(value, m1, regexFloat);
-				if (found){
-					FCell number = std::stod(value);
-					if (getIsCompiling()) {
-						data(CELL(doFLiteralXt));
-						dataFloat(number);
-					}
-					else {
-						fStack.push(number);
-					}
-					return true;
-				}
-#endif
 			}
 			found = regex_search(value, m1, regexDoubleNot10);
 			if (found) {
@@ -4863,6 +4897,22 @@ Code Reserved for	Code Reserved for
 					}
 					number2 = number2;
 				}
+#ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
+				std::regex regexFloat{ "^[ ]*[-+]?(([0-9]*[\\.]{0,1}[0-9]+)|([0-9]+[\\.]{0,1}[0-9]*))([eEdD][-+]?[0-9]*)?[ ]*$" };
+				found = regex_search(value, m1, regexFloat);
+				if (found){
+					FCell number = std::stod(value);
+					if (getIsCompiling()) {
+						data(CELL(doFLiteralXt));
+						dataFloat(number);
+					}
+					else {
+						fStack.push(number);
+					}
+					return true;
+				}
+#endif
+
 			return false;
 		}
 		enum InterpretStates { InterpretSource=0, InterpretWords=1 };
@@ -5932,7 +5982,7 @@ Code Reserved for	Code Reserved for
 				{ "F-", &Forth::f_minus, false },
 				{ "F/", &Forth::f_slash, false },
 				{ "F*", &Forth::f_star, false },
-				{ "F<0", &Forth::f_less0, false },
+				{ "F0<", &Forth::f_less0, false },
 				{ "F0=", &Forth::f_equals0, false },
 				{ "FDROP", &Forth::f_drop, false },
 				{ "F<", &Forth::f_less, false },
@@ -5949,8 +5999,8 @@ Code Reserved for	Code Reserved for
 				{ "FROT", &Forth::f_rot, false },
 				{ "FPICK", &Forth::f_pick, false },
 				{ "FSWAP", &Forth::f_swap, false },
-				{ "F!", &Forth::f_store, false },
-				{ "F@", &Forth::f_fetch, false },
+				{ "F!", &Forth::f_store, false }, // FLOAT
+				{ "F@", &Forth::f_fetch, false }, // FLOAT
 				{ "F~", &Forth::f_ftilda, false },
 				{ ">FLOAT", &Forth::toFloat, false },
 				{ "REPRESENT", &Forth::represent, false },
@@ -5985,6 +6035,11 @@ Code Reserved for	Code Reserved for
 				{ "F.", &Forth::f_fdot, false },
 				{ "FS.", &Forth::f_fsdot, false },
 				{ "FE.", &Forth::f_fedot, false },
+				{ "SF!", &Forth::sf_store, false }, // FLOAT-EXT
+				{ "SF@", &Forth::sf_fetch, false }, // FLOAT-EXT
+				{ "DF!", &Forth::df_store, false }, // FLOAT-EXT
+				{ "DF@", &Forth::df_fetch, false }, // FLOAT-EXT
+
 #endif
 			};
 

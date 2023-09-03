@@ -33,7 +33,7 @@ TEST(BasicFunctions, constructorTest)
 
 TEST(BasicFunctions,Forth001Dot)
 {
-    RunAndCompare("1 10 100 1000 . . . .", "1000100101");
+    RunAndCompare("1 10 100 1000 . . . .", "1000 100 10 1 ");
 }
 TEST(BasicFunctions,Forth002DotS)
 {
@@ -41,25 +41,25 @@ TEST(BasicFunctions,Forth002DotS)
 }
 TEST(BasicFunctions,Forth003PlusMinusMulDiv)
 {
-    RunAndCompare("1 10 100 1000 10000 +  -  *  1  / .", "-109000");
+    RunAndCompare("1 10 100 1000 10000 +  -  *  1  / .", "-109000 ");
 }
 TEST(BasicFunctions,Forth004Dup)
 {
-    RunAndCompare("1 dup dup + + 1+ .", "4");
+    RunAndCompare("1 dup dup + + 1+ .", "4 ");
 }
 TEST(BasicFunctions,Forth005DepthDropPickRoll)
 {
-    RunAndCompare("1 1 depth .", "2");
-    RunAndCompare("1 2 drop .", "1");
-    RunAndCompare("1 2 3 4 3 pick . . . . .", "14321");
-    RunAndCompare("1 2 3 4 3 roll . . . .", "1432");
-    RunAndCompare("1 2 >R . R> .", "12");
-    RunAndCompare("1 2 >R . R@ .", "12");
-    RunAndCompare("1 2 3 rot . . .", "132");
+    RunAndCompare("1 1 depth .", "2 ");
+    RunAndCompare("1 2 drop .", "1 ");
+    RunAndCompare("1 2 3 4 3 pick . . . . .", "1 4 3 2 1 ");
+    RunAndCompare("1 2 3 4 3 roll . . . .", "1 4 3 2 ");
+    RunAndCompare("1 2 >R . R> .", "1 2 ");
+    RunAndCompare("1 2 >R . R@ .", "1 2 ");
+    RunAndCompare("1 2 3 rot . . .", "1 3 2 ");
 }
 TEST(BasicFunctions,Forth006String)
 {
-    RunAndCompare(": a s\" literal string  \" DEPTH  . .  ; a", "216");
+    RunAndCompare(": a s\" literal string  \" DEPTH  . .  ; a", "2 16 ");
 
 }
 TEST(BasicFunctions,Forth006StringOutput)
@@ -68,13 +68,13 @@ TEST(BasicFunctions,Forth006StringOutput)
         "\n"                            // CR
         "You should see 2345: "         // first message
         "2345"                          // second message
-        "0"                             // stack size after DEPTH .
+        "0 "                             // stack size after DEPTH .
     );
 }
 
 TEST(BasicFunctions,Forth008Loop1)
 {
-    RunAndCompare("1 2 3 .S >R >R >R R@ . R> . R> . R> .", "<3> 1 2 3 1123");
+    RunAndCompare("1 2 3 .S >R >R >R R@ . R> . R> . R> .", "<3> 1 2 3 1 1 2 3 ");
 
 }
 TEST(BasicFunctions,Forth008Loop2)
@@ -87,20 +87,20 @@ TEST(BasicFunctions,Forth008Loop2)
     std::string  res= "";
     RunAndCompare(cmd, res);
     cmd += " 4 1 GD1 . . . ";
-    res += "321";
+    res += "3 2 1 ";
     RunAndCompare(cmd, res);
     cmd += " 2 -1 GD1  . . . ";
-    res += "10-1";
+    res += "1 0 -1 ";
     RunAndCompare(cmd, res);
     cmd += " MID-UINT+1 MID-UINT GD1  MID-UINT = . ";
-    res += "-1";
+    res += "-1 ";
     RunAndCompare(cmd, res);
 
 
 }
 TEST(BasicFunctions,Forth008Loop3)
 {
-    RunAndCompare(": a 3 0 do i . 2 0 do i . loop loop ; a ", "001101201");
+    RunAndCompare(": a 3 0 do i . 2 0 do i . loop loop ; a ", "0 0 1 1 0 1 2 0 1 ");
 
 }
 TEST(BasicFunctions,Forth008Loop4)
@@ -113,28 +113,28 @@ TEST(BasicFunctions,Forth008Loop4)
     std::string  res = "";
     RunAndCompare(cmd, res);
     cmd += " 1          4 GD2 depth . . . . . ";
-    res += "41234";
+    res += "4 1 2 3 4 ";
     RunAndCompare(cmd, res);
     cmd += " -1 2 GD2 depth . . . . . ";
-    res += "4-1012";
+    res += "4 -1 0 1 2 ";
     RunAndCompare(cmd, res);
     cmd += " MID-UINT MID-UINT+1 GD2 MID-UINT =  swap MID-UINT+1 = . . ";
-    res += "-1-1";
+    res += "-1 -1 ";
     RunAndCompare(cmd, res);
     cmd += R"(VARIABLE gditerations 
 VARIABLE gdincrement
 : gd7 ( limit start increment -- ) gdincrement !  0 gditerations !  DO  1 gditerations +! I gditerations @ 6 = IF LEAVE THEN gdincrement @ +LOOP gditerations @ ; 
 : stack depth depth 0 do . loop ;  stack )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += "   4  4  -1 gd7 stack ";
-    res += "214";
+    res += "2 1 4 ";
     RunAndCompare(cmd, res);
     cmd += "  1  4  -1 gd7 stack";
-    res += "541234";
+    res += "5 4 1 2 3 4 ";
     RunAndCompare(cmd, res);
     cmd += " 4  1  -1 gd7 stack ";
-    res += "76-4-3-2-101";
+    res += "7 6 -4 -3 -2 -1 0 1 ";
     RunAndCompare(cmd, res);
 
 }
@@ -142,20 +142,20 @@ TEST(BasicFunctions,Forth008Loop5)
 {
     std::string cmd =
         "  : stack depth depth 0 do . loop ;  : GI4 BEGIN DUP 1+ DUP 5 > UNTIL ; stack ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     /*T{ : GI4 BEGIN DUP 1+ DUP 5 > UNTIL ; -> }T 
 T{ 3 GI4 -> 3 4 5 6 }T 
 T{ 5 GI4 -> 5 6 }T 
 T{ 6 GI4 -> 6 7 }T*/
     cmd += " 3 GI4 stack ";
-    res += "46543";
+    res += "4 6 5 4 3 ";
     RunAndCompare(cmd, res);
     cmd += "  5 GI4 stack ";
-    res += "265";
+    res += "2 6 5 ";
     RunAndCompare(cmd, res);
     cmd += "  6 GI4 stack ";
-    res += "276";
+    res += "2 7 6 ";
     RunAndCompare(cmd, res);
 
 }
@@ -170,23 +170,23 @@ TEST(BasicFunctions,Forth008Loop6)
 {
     std::string cmd =
 ": stack depth depth 0 do . loop ; : GI5 BEGIN DUP 2 > WHILE DUP 5 < WHILE DUP 1 + REPEAT 123 ELSE 345 THEN ; stack ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
 
     cmd += " 1 GI5 stack ";
-    res += "23451";
+    res += "2 345 1 ";
     RunAndCompare(cmd, res);
     cmd += "  2 GI5 stack ";
-    res += "23452";
+    res += "2 345 2 ";
     RunAndCompare(cmd, res);
     cmd += "  3 GI5 stack ";
-    res += "4123543";
+    res += "4 123 5 4 3 ";
     RunAndCompare(cmd, res);
     cmd += "  4 GI5 stack ";
-    res += "312354";
+    res += "3 123 5 4 ";
     RunAndCompare(cmd, res);
     cmd += "  5 GI5 stack ";
-    res += "21235";
+    res += "2 123 5 ";
     RunAndCompare(cmd, res);
 
 }
@@ -201,11 +201,11 @@ TEST(BasicFunctions,Forth008Loop7unloop)
     */
     std::string cmd =
         ": stack depth depth 0 do . loop ;  : GD6 0 SWAP 0 DO I 1+ 0 DO I J + 3 = IF I UNLOOP I UNLOOP EXIT THEN 1+ LOOP    LOOP  ; stack ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
 
     cmd += " 3 GD6 stack ";
-    res += "3214";
+    res += "3 2 1 4 " ;
     RunAndCompare(cmd, res, true);
     cmd += "  ";
     res += "";
@@ -222,14 +222,14 @@ TEST(BasicFunctions,Forth008Loop8_question_do)
     */
     std::string cmd =
         ": stack depth depth 0 do . loop ; : qd4 ?DO I -1 +LOOP ;  stack ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
 
     cmd += "  1 4 qd4 stack ";
-    res += "41234";
+    res += "4 1 2 3 4 ";
     RunAndCompare(cmd, res, true);
     cmd += " -1 2 qd4 stack ";
-    res += "4-1012";
+    res += "4 -1 0 1 2 ";
     RunAndCompare(cmd, res);
 
 }
@@ -271,7 +271,7 @@ TEST(BasicFunctions,Forth008Loop9_do_loop)
         " VARIABLE BUMP "
         " : GD8 BUMP ! DO 1+ BUMP @ +LOOP ; "
         "  stack ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
 
     //cmd += " -1 2 qd4 stack ";
@@ -285,7 +285,7 @@ TEST(BasicFunctions,Forth009Constant)
 
         " 1234 CONSTANT CONSTEST DEPTH CONSTEST + .";
 
-    RunAndCompare(cmd, "1234");
+    RunAndCompare(cmd, "1234 ");
 
 }
 TEST(BasicFunctions,Forth010Defined)
@@ -294,7 +294,7 @@ TEST(BasicFunctions,Forth010Defined)
 
         " : ?DEFINED  ( \"name\" -- 0 | -1 )  32 WORD FIND SWAP DROP 0= 0= ; ?DEFINED SWAP .";
 
-    RunAndCompare(cmd, "-1");
+    RunAndCompare(cmd, "-1 ");
 
 }
 TEST(BasicFunctions,Forth011Immediate)
@@ -302,7 +302,7 @@ TEST(BasicFunctions,Forth011Immediate)
     std::string cmd =
 
         "VARIABLE TIMM1 0 TIMM1 ! : TIMM2  123 TIMM1 ! ; IMMEDIATE : TIMM3 TIMM2 ; TIMM1 @ 123 = .";
-    std::string res = "-1";
+    std::string res = "-1 ";
     RunAndCompare(cmd, res);
     /*
     T{ 123 CONSTANT iw1 IMMEDIATE iw1 -> 123 }T
@@ -324,44 +324,44 @@ TEST(BasicFunctions,Forth011Immediate)
     T{ iw10 find-iw iw10 -> 224 1 }T          \ iw10 becomes immediate
     */
     cmd = "123 CONSTANT iw1 IMMEDIATE iw1 dup .";
-    res = "123";
+    res = "123 ";
     RunAndCompare(cmd, res);
     cmd += " : iw2 iw1 LITERAL ; iw2 dup .";
-    res += "123";
+    res += "123 ";
     RunAndCompare(cmd, res);
     cmd += " VARIABLE iw3 IMMEDIATE 234 iw3 ! iw3 @ dup .";
-    res += "234";
+    res += "234 ";
     RunAndCompare(cmd, res);
     cmd += " : iw4 iw3 [ @ ] LITERAL ; iw4 dup . ";
-    res += "234";
+    res += "234 ";
     RunAndCompare(cmd, res);
     cmd += " :NONAME [ 345 ] iw3 [ ! ] ; DROP iw3 @ dup . ";
-    res += "345";
+    res += "345 ";
     RunAndCompare(cmd, res);
     cmd += "  CREATE iw5 456 , IMMEDIATE  ";
     res += "";
     RunAndCompare(cmd, res);
     cmd += "  :NONAME iw5 [ @ iw3 ! ] ; DROP iw3 @ dup . ";
-    res += "456";
+    res += "456 ";
     RunAndCompare(cmd, res);
     cmd += " : iw6 CREATE , IMMEDIATE DOES> @ 1+ ; ";
     res += "";
     RunAndCompare(cmd, res);
     cmd += "  111 iw6 iw7 iw7 dup . \n";
-    res += "112";
+    res += "112 ";
     RunAndCompare(cmd, res);
     cmd += ": iw8 iw7 LITERAL 1+ ; iw8 dup .";
-    res += "113";
+    res += "113 ";
     RunAndCompare(cmd, res);
     cmd += " : iw9 CREATE , DOES> @ 2 + IMMEDIATE ; : find-iw BL WORD FIND NIP ; ";
     res += "";
     RunAndCompare(cmd, res);
     cmd += " 222 iw9 iw10 find-iw iw10 dup . ";
-    res += "-1";
+    res += "-1 ";
     RunAndCompare(cmd, res);
     //cmd += " iw10 find-iw iw10 . . ";
     cmd += " iw10 find-iw iw10  . . ";
-    res += "1224";
+    res += "1 224 ";
     RunAndCompare(cmd, res);
 
 
@@ -389,36 +389,29 @@ TEST(BasicFunctions,Forth012DoesMore)
     T{ ' W1 >BODY -> HERE }T
     T{ W1 -> HERE 1 + }T
     T{ W1 -> HERE 2 + }T*/
-    cmd += "  CR1 dup here = .  "; res += "-1";
+    cmd += "  CR1 dup here = .  "; res += "-1 ";
     RunAndCompare(cmd, res);
-    cmd += " 1 ,  CR1 @ dup .  "; res += "1";
+    cmd += " 1 ,  CR1 @ dup .  "; res += "1 ";
     RunAndCompare(cmd, res);
-    cmd += " DOES1 CR1 dup . "; res += "2";
+    cmd += " DOES1 CR1 dup . "; res += "2 ";
     RunAndCompare(cmd, res);
-    cmd += " DOES2 CR1 dup . "; res += "3";
+    cmd += " DOES2 CR1 dup . "; res += "3 ";
     RunAndCompare(cmd, res);
     cmd += " : WEIRD: CREATE DOES> 1 + DOES> 2 + ;  WEIRD: W1  "; res += "";
     RunAndCompare(cmd, res);
-    cmd += "  ' W1 >BODY dup here = . "; res += "-1";
+    cmd += "  ' W1 >BODY dup here = . "; res += "-1 ";
     RunAndCompare(cmd, res);
-    cmd += "  W1 dup here 1 + = . "; res += "-1";
+    cmd += "  W1 dup here 1 + = . "; res += "-1 ";
     RunAndCompare(cmd, res);
-    cmd += "   W1 dup here 2 + =  . "; res += "-1";
+    cmd += "   W1 dup here 2 + =  . "; res += "-1 ";
     RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
-    RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
-    RunAndCompare(cmd, res);
-    cmd += "  "; res += "";
-    RunAndCompare(cmd, res);
-
 };
 TEST(BasicFunctions,Forth013IfElseThen)
 {
     std::string cmd = "  : GI1 IF 123 THEN ;  : GI2 IF 123 ELSE 234 THEN ;  : stack depth depth 0 do . loop ;  stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
-    cmd += "   0 GI1 stack  "; res += "0";
+    cmd += "   0 GI1 stack  "; res += "0 ";
     RunAndCompare(cmd, res);
     /*
     T{  1 GI1 -> 123 }T
@@ -431,26 +424,24 @@ TEST(BasicFunctions,Forth013IfElseThen)
     T{ <FALSE> melse -> 2 4 }T
     T{ <TRUE>  melse -> 1 3 5 }T
     */
-    cmd += "   1 GI1 stack  "; res += "1123";
+    cmd += "   1 GI1 stack  "; res += "1 123 ";
     RunAndCompare(cmd, res);
-    cmd += " -1 GI1 stack  "; res += "1123";
+    cmd += " -1 GI1 stack  "; res += "1 123 ";
     RunAndCompare(cmd, res);
-    cmd += "  0 GI2 stack "; res += "1234";
+    cmd += "  0 GI2 stack "; res += "1 234 ";
     RunAndCompare(cmd, res);
-    cmd += "  1 GI2 stack "; res += "1123";
+    cmd += "  1 GI2 stack "; res += "1 123 ";
     RunAndCompare(cmd, res);
-    cmd += " -1 GI1  stack  "; res += "1123";
+    cmd += " -1 GI1  stack  "; res += "1 123 ";
     RunAndCompare(cmd, res);
-    cmd += " : melse IF 1 ELSE 2 ELSE 3 ELSE 4 ELSE 5 THEN ; stack "; res += "0";
+    cmd += " : melse IF 1 ELSE 2 ELSE 3 ELSE 4 ELSE 5 THEN ; stack "; res += "0 ";
     RunAndCompare(cmd, res);
-    cmd += " false melse stack "; res += "242";
+    cmd += " false melse stack "; res += "2 4 2 ";
     RunAndCompare(cmd, res);
-    cmd += "  true  melse stack "; res += "3531";
+    cmd += "  true  melse stack "; res += "3 5 3 1 ";
     RunAndCompare(cmd, res);
-    cmd += "   : pt1 AHEAD 1111 2222 THEN 3333 ;  pt1 stack "; res += "13333";
+    cmd += "   : pt1 AHEAD 1111 2222 THEN 3333 ;  pt1 stack "; res += "1 3333 ";
     RunAndCompare(cmd, res);
-
-
 };
 // >NUMBER
 TEST(BasicFunctions,Forth014toNumber)
@@ -460,7 +451,7 @@ BASE @ >R BASE !
 <# #S #>
 0 0 2SWAP >NUMBER SWAP DROP      \ RETURN LENGTH ONLY
 R> BASE ! ; HEX 24 CONSTANT MAX-BASE  0 INVERT CONSTANT MAX-UINT  : stack depth depth 0 do . loop ;  stack  )";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
 //			cmd += " 0 0 2 GN1 stack "; res += "3000";
 //			RunAndCompare(cmd, res);
@@ -472,26 +463,24 @@ R> BASE ! ; HEX 24 CONSTANT MAX-BASE  0 INVERT CONSTANT MAX-UINT  : stack depth 
     T{ MAX-UINT 0 MAX-BASE GN1 -> MAX-UINT 0 0 }T
     T{ MAX-UINT DUP MAX-BASE GN1 -> MAX-UINT DUP 0 }T
     */
-    cmd += " MAX-UINT DUP MAX-BASE GN1 stack "; res += "30ffffffffffffffff"; 
+    cmd += " MAX-UINT DUP MAX-BASE GN1 stack "; res += "3 0 ffffffff ffffffff "; 
     RunAndCompare(cmd, res);
-   
 };
 
 TEST(BasicFunctions,Forth015Source)
 {
     std::string cmd = R"( : GS1 S" SOURCE" 2DUP EVALUATE >R SWAP >R = R> R> = ; : GS4 SOURCE >IN ! DROP ;  : stack depth depth 0 do . loop ;  stack  )";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
-    cmd += " GS4 123 456 \nstack "; res += "0";
+    cmd += " GS4 123 456 \nstack "; res += "0 ";
     RunAndCompare(cmd, res);
-    cmd += " GS1 \nstack "; res += "2-1-1"; 
+    cmd += " GS1 \nstack "; res += "2 -1 -1 "; 
     RunAndCompare(cmd, res);
-   
 };
 TEST(BasicFunctions,Forth016MemoryAllocateFree)
 {
     std::string cmd = R"(  : stack depth depth 0 do . loop ; variable addr VARIABLE datsp HERE datsp ! stack  )";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     //			cmd += " 0 0 2 GN1 stack "; res += "3000";
     //			RunAndCompare(cmd, res);
@@ -511,23 +500,21 @@ TEST(BasicFunctions,Forth016MemoryAllocateFree)
     T{ HERE -> datsp @ }T	             \ Data space pointer unaffected by FREE
     T{ -1 ALLOCATE SWAP DROP 0= -> <FALSE> }T    \ Memory allocate failed
     */
-    cmd += " 50 CELLS ALLOCATE SWAP addr ! stack "; res += "10"; // 42949672954294967295
+    cmd += " 50 CELLS ALLOCATE SWAP addr ! stack "; res += "1 0 "; // 42949672954294967295
     RunAndCompare(cmd, res);
-    cmd += " addr @ ALIGNED addr @ - stack "; res += "10";
+    cmd += " addr @ ALIGNED addr @ - stack "; res += "1 0 ";
     RunAndCompare(cmd, res);
-    cmd += "  HERE datsp @ - stack "; res += "10";
+    cmd += "  HERE datsp @ - stack "; res += "1 0 ";
     RunAndCompare(cmd, res);
-    cmd += "  addr @ FREE stack "; res += "10";
+    cmd += "  addr @ FREE stack "; res += "1 0 ";
     RunAndCompare(cmd, res);
-
-
 };
 TEST(BasicFunctions,Forth016MemoryResize)
 {
     std::string cmd = R"(  : stack depth depth 0 do . loop ; variable addr  VARIABLE datsp HERE datsp !  stack  )";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
-    cmd += " 50 CHARS ALLOCATE SWAP addr !  stack "; res += "10";
+    cmd += " 50 CHARS ALLOCATE SWAP addr !  stack "; res += "1 0 ";
     RunAndCompare(cmd, res);
     /*
     T{ 50 CHARS ALLOCATE SWAP addr ! -> 0 }T
@@ -547,23 +534,21 @@ TEST(BasicFunctions,Forth016MemoryResize)
     T{ HERE -> datsp @ }T
 
     */
-    cmd += "  addr @ 28 CHARS RESIZE SWAP addr !  stack "; res += "10"; // 42949672954294967295
+    cmd += "  addr @ 28 CHARS RESIZE SWAP addr !  stack "; res += "1 0 "; // 42949672954294967295
     RunAndCompare(cmd, res);
-    cmd += "  addr @ 100 CHARS RESIZE SWAP addr !  stack "; res += "10";
+    cmd += "  addr @ 100 CHARS RESIZE SWAP addr !  stack "; res += "1 0 ";
     RunAndCompare(cmd, res);
-    cmd += "  addr @ -1 RESIZE 0= swap  addr @ -   stack "; res += "200";
+    cmd += "  addr @ -1 RESIZE 0= swap  addr @ -   stack "; res += "2 0 0 ";
     RunAndCompare(cmd, res);
-    cmd += "  addr @ FREE HERE datsp @ - stack "; res += "200";
+    cmd += "  addr @ FREE HERE datsp @ - stack "; res += "2 0 0 ";
     RunAndCompare(cmd, res);
-
-
 };
 TEST(BasicFunctions,Forth017Comment)
 {
     std::string cmd = R"(  : stack depth depth 0 do . loop ;  stack  )";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
-                cmd += "  : pc1 ( A comment)1234 ; pc1    stack "; res += "11234";
+                cmd += "  : pc1 ( A comment)1234 ; pc1    stack "; res += "1 1234 ";
                 RunAndCompare(cmd, res);
     /*
     T{ ( 1 2 3
@@ -574,16 +559,15 @@ TEST(BasicFunctions,Forth017Comment)
                 cmd += R"(   ( 1 2 3
 4 5 6
 7 8 9 ) 11 22 33
-stack )"; res += "3332211";
+stack )"; res += "3 33 22 11 ";
                 RunAndCompare(cmd, res);
-
 };
 TEST(BasicFunctions,Forth018Execute)
 {
     std::string cmd = "  : stack depth depth 0 do . loop ;  stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
-    cmd += "  : GT1 123 ;  : GT2 [\'] GT1 ; IMMEDIATE   stack "; res += "0";
+    cmd += "  : GT1 123 ;  : GT2 [\'] GT1 ; IMMEDIATE   stack "; res += "0 ";
     RunAndCompare(cmd, res);
     /*
     F.6.1.0070'
@@ -594,18 +578,18 @@ TEST(BasicFunctions,Forth018Execute)
     T{ GT2 EXECUTE -> 123 }T
     */
     RunAndCompare(cmd, res);
-    cmd += "  \' GT1 EXECUTE stack "; res += "1123";
+    cmd += "  \' GT1 EXECUTE stack "; res += "1 123 ";
     RunAndCompare(cmd, res);
-    cmd += " GT2 EXECUTE stack "; res += "1123";
+    cmd += " GT2 EXECUTE stack "; res += "1 123 ";
     RunAndCompare(cmd, res);
 
 };
 TEST(BasicFunctions,Forth019Catch)
 {
     std::string cmd = "  : stack depth depth 0 do . loop ;  stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
-    cmd += R"( DECIMAL : t1 9 ; : c1 1 2 3 ['] t1 CATCH ;   stack )"; res += "0";
+    cmd += R"( DECIMAL : t1 9 ; : c1 1 2 3 ['] t1 CATCH ;   stack )"; res += "0 ";
     RunAndCompare(cmd, res);
     /*
     F.9.6.1.2275THROW
@@ -627,64 +611,62 @@ TEST(BasicFunctions,Forth019Catch)
     DEPTH >R DROP 2DROP 2DROP R> ;    \ after stack has been emptied
     T{ c5 -> 5 }T
     */
-    cmd += R"(  c1  stack )"; res += "509321";
+    cmd += R"(  c1  stack )"; res += "5 0 9 3 2 1 ";
     RunAndCompare(cmd, res);
-    cmd += R"( : t2 8 0 THROW ; : c2 1 2 ['] t2 CATCH ; c2 stack )"; res += "40821";
+    cmd += R"( : t2 8 0 THROW ; : c2 1 2 ['] t2 CATCH ; c2 stack )"; res += "4 0 8 2 1 ";
     RunAndCompare(cmd, res);
-    cmd += R"( : t3 7 8 9 99 THROW ; : c3 1 2 ['] t3 CATCH ; c3 stack )"; res += "39921";
+    cmd += R"( : t3 7 8 9 99 THROW ; : c3 1 2 ['] t3 CATCH ; c3 stack )"; res += "3 99 2 1 ";
     RunAndCompare(cmd, res);
     cmd += R"( : t4 1- DUP 0> IF RECURSE ELSE 999 THROW -222 THEN ; : c4 3 4 5 10 ['] t4 CATCH -111 ; c4 stack )"; 
-    res += "6-1119990543";
+    res += "6 -111 999 0 5 4 3 ";
     RunAndCompare(cmd, res);
     cmd += R"( : t5 2DROP 2DROP 9999 THROW ; : c5 1 2 3 4 ['] t5 CATCH DEPTH >R DROP 2DROP 2DROP R> ; c5 stack )"; 
-    res += "15";
+    res += "1 5 ";
     RunAndCompare(cmd, res);
-
-
 };
 TEST(BasicFunctions,Forth020Float001)
 {
     std::string cmd = "  : stack depth depth 0 do . loop ;  stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     cmd += R"( : f1 3 0 D>F  2 0 D>F  1 0 D>F FOVER FDEPTH FMIN FMAX FSWAP F>D F>D FDEPTH ; f1   stack )";
-    res += "6002034";
+    res += "6 0 0 2 0 3 4 ";
     RunAndCompare(cmd, res);
     cmd += R"( : f1 5 0 D>F  3 0 D>F F/ FDUP FLOOR F>D FDUP FTRUNC F>D FDUP FROUND F>D FNEGATE  FDUP FLOOR F>D FDUP FTRUNC F>D FDUP FROUND F>D FDROP  ; f1   stack )";
-    res += "12-1-2-1-1-1-2020101";
+    res += "12 -1 -2 -1 -1 -1 -2 0 2 0 1 0 1 ";
     RunAndCompare(cmd, res);
-    cmd += R"( : f1 2 FLOATS FLOAT+ 1 FLOATS / ; f1   stack )"; res += "13";
+    cmd += R"( : f1 2 FLOATS FLOAT+ 1 FLOATS / ; f1   stack )"; res += "1 3 ";
     RunAndCompare(cmd, res);
-    cmd += R"( : f1  FALIGN HERE DUP FALIGNED = if 333 else 444 then  3 ALLOT HERE DUP  FALIGNED = if 555 else 666 then ; f1   stack )"; res += "2666333";
+    cmd += R"( : f1 1 0 D>F  FDUP FDUP F+ F< if 333 else 444 then     ; f1   stack )"; res += "1 333 ";
     RunAndCompare(cmd, res);
-    cmd += R"( : f1 1 0 D>F  FDUP FDUP F+ F< if 333 else 444 then     ; f1   stack )"; res += "1333";
+    cmd += R"( : f1 1 0 D>F  F0= if 0 else 1 then  0 0 D>F  F0= if 5 else 6 then   ; f1   stack )"; res += "2 5 1 ";
     RunAndCompare(cmd, res);
-    cmd += R"( : f1 1 0 D>F  F0= if 0 else 1 then  0 0 D>F  F0= if 5 else 6 then   ; f1   stack )"; res += "251";
+    cmd += R"( : f1 1 0 D>F FDUP F0< if 0 else 1 then FDEPTH FDROP ; f1 stack )"; res += "2 1 1 ";
     RunAndCompare(cmd, res);
-    cmd += R"( : f1 1 0 D>F FDUP F<0 if 0 else 1 then FDEPTH FDROP ; f1 stack )"; res += "211";
+    cmd += R"( 1 0 D>F FDUP F+ FDUP F* FDUP F/ FDUP F- F>D FDEPTH stack )"; res += "3 0 0 0 ";
     RunAndCompare(cmd, res);
-    cmd += R"( 1 0 D>F FDUP F+ FDUP F* FDUP F/ FDUP F- F>D FDEPTH stack )"; res += "3000";
+    cmd += R"(   stack )"; res += "0 ";
     RunAndCompare(cmd, res);
-    cmd += R"(   stack )"; res += "0";
+    cmd += R"(   stack )"; res += "0 ";
     RunAndCompare(cmd, res);
-    cmd += R"(   stack )"; res += "0";
-    RunAndCompare(cmd, res);
-
-
+    // FALIGN test is wrong, if aligment == 1 on this system
+    // cmd += R"( : f1  FALIGN HERE DUP FALIGNED = if 333 else 444 then  3 ALLOT HERE DUP  FALIGNED = if 555 else 666 then ; f1   stack )"; res += "2 666 333 ";
+    //RunAndCompare(cmd, res);
+     
 };
 TEST(BasicFunctions,Forth020Float003Fliteral)
 {
     std::string cmd = "  : stack depth depth 0 do . loop ;  stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     cmd += "    stack  ";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
 }
 TEST(BasicFunctions,Forth021Compare)
 {
     std::string cmd = " HERE 255 ALLOT constant pad : stack depth depth 0 do . loop ; : s1 S\" abcdefghaaa \" ; stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     /*
     T{ s1        s1 COMPARE ->  0  }T 
@@ -713,62 +695,45 @@ T{ s11 s12 COMPARE ->  1 }T
 T{ s12 s11 COMPARE -> -1 }T
     */
     cmd += R"(  s1        s1 COMPARE    stack  )";
-    res += "10";
+    res += "1 0 ";
     RunAndCompare(cmd, res);
     cmd += R"(  s1  PAD SWAP CMOVE    stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"(  s1  PAD OVER COMPARE   stack  )";
-    res += "10";
+    res += "1 0 ";
     RunAndCompare(cmd, res);
     cmd += R"(  s1     PAD 6 COMPARE    stack  )";
-    res += "11";
+    res += "1 1 ";
     RunAndCompare(cmd, res);
     cmd += R"(  PAD 10    s1 COMPARE    stack  )";
-    res += "1-1";
+    res += "1 -1 ";
     RunAndCompare(cmd, res);
     cmd += R"(  s1     PAD 0 COMPARE    stack  )";
-    res += "11";
+    res += "1 1 ";
     RunAndCompare(cmd, res);
     cmd += R"(  PAD  0    s1 COMPARE    stack  )";
-    res += "1-1";
+    res += "1 -1 ";
     RunAndCompare(cmd, res);
     cmd += R"( : "abdde" S" abdde" ; 
 : "abbde" S" abbde" ; 
 : "abcdf" S" abcdf" ; 
 : "abcdee" S" abcdee" ; s1 "abdde"  COMPARE    stack  )";
-    res += "1-1";
+    res += "1 -1 ";
     RunAndCompare(cmd, res);
     cmd += R"( : s11 S" 0abc" ; 
 : s12 S" 0aBc" ;   s11 s12 COMPARE  stack  )";
-    res += "11";
+    res += "1 1 ";
     RunAndCompare(cmd, res);
     cmd += R"(   s12 s11 COMPARE   stack  )";
-    res += "1-1";
+    res += "1 -1 ";
     RunAndCompare(cmd, res);
-    /*cmd += R"(    stack  )";
-    res += "0";
-    RunAndCompare(cmd, res);
-    cmd += R"(    stack  )";
-    res += "0";
-    RunAndCompare(cmd, res);
-    cmd += R"(    stack  )";
-    res += "0";
-    RunAndCompare(cmd, res);
-    cmd += R"(    stack  )";
-    res += "0";
-    RunAndCompare(cmd, res);
-    cmd += R"(    stack  )";
-    res += "0";
-    RunAndCompare(cmd, res);
-    */
-
 }
 
 TEST(BasicFunctions,Forth022Postpone)
 {
     std::string cmd = "  : stack depth depth 0 do . loop ;  stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     /*
 T{ : GT4 POSTPONE GT1 ; IMMEDIATE -> }T 
@@ -780,28 +745,27 @@ T{ GT7 -> 345 }T
     */
 
     cmd += R"(  : GT1 123 ;  : GT4 POSTPONE GT1 ; IMMEDIATE : GT5 GT4 ;    stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"(  GT5  stack  )";
-    res += "1123";
+    res += "1 123 ";
     RunAndCompare(cmd, res);
     cmd += R"(  : GT6 345 ; IMMEDIATE   stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"(  : GT7 POSTPONE GT6 ;    stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"(   GT7  stack  )";
-    res += "1345";
+    res += "1 345 ";
     RunAndCompare(cmd, res);
-    
 
 }
 
 TEST(BasicFunctions,Forth023Evaluate)
 {
     std::string cmd = "  : stack depth depth 0 do . loop ;  stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     /*
     : GE1 S" 123" ; IMMEDIATE
@@ -823,40 +787,37 @@ TEST(BasicFunctions,Forth023Evaluate)
     : GE2 S" 123 1+" ; IMMEDIATE
     : GE3 S" : GE4 345 ;" ;
     : GE5 EVALUATE ; IMMEDIATE   stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"(  GE1 EVALUATE   stack  )";
-    res += "1123";
+    res += "1 123 ";
     RunAndCompare(cmd, res);
     cmd += R"(  GE2 EVALUATE   stack  )";
-    res += "1124";
+    res += "1 124 ";
     RunAndCompare(cmd, res);
     cmd += R"(  GE3 EVALUATE   stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"(  GE4 stack  )";
-    res += "1345";
+    res += "1 345 ";
     RunAndCompare(cmd, res);
     cmd += R"(   : GE6 GE1 GE5 ;  stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"( GE6  stack  )";
-    res += "1123";
+    res += "1 123 ";
     RunAndCompare(cmd, res);
     cmd += R"(  : GE7 GE2 GE5 ;   stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"( GE7  stack  )";
-    res += "1124";
+    res += "1 124 ";
     RunAndCompare(cmd, res);
-
-
-
 }
 TEST(BasicFunctions,Forth023EvaluateCompile)
 {
     std::string cmd = R"(  : stack depth depth 0 do . loop ;  : GE1 S" 123" ; IMMEDIATE : GE5 EVALUATE ; IMMEDIATE  : GE6 GE1 GE5 ;  stack  )";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     /*
     : GE1 S" 123" ; IMMEDIATE
@@ -873,21 +834,15 @@ TEST(BasicFunctions,Forth023EvaluateCompile)
     T{ : GE7 GE2 GE5 ; -> }T
     T{ GE7 -> 124 }T
     */
-
-
     cmd += R"( GE6  stack  )";
-    res += "1123";
+    res += "1 123 ";
     RunAndCompare(cmd, res);
-
-
-
-
 }
 
 TEST(BasicFunctions,Forth020Float002)
 {
     std::string cmd = "  : stack depth depth 0 do . loop ;  stack  ";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     return;
     cmd += R"( 
@@ -936,7 +891,7 @@ fdrop f. cr fdrop
 
 0.2 500000 my_loop
 )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
 
 
@@ -944,7 +899,7 @@ fdrop f. cr fdrop
 TEST(BasicFunctions,Forth024Defer)
 {
     std::string cmd = R"(  : stack depth depth 0 do . loop ;  DEFER defer2 stack  )";
-    std::string res = "0";
+    std::string res = "0 ";
     RunAndCompare(cmd, res);
     /*
     T{ DEFER defer2 ->   }T
@@ -956,16 +911,16 @@ TEST(BasicFunctions,Forth024Defer)
 
 
     cmd += R"(  ' * ' defer2 DEFER! stack )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"(   2 3 defer2  stack  )";
-    res += "16";
+    res += "1 6 ";
     RunAndCompare(cmd, res);
     cmd += R"(  ' + IS defer2  stack  )";
-    res += "0";
+    res += "0 ";
     RunAndCompare(cmd, res);
     cmd += R"(   1 2 defer2  stack  )";
-    res += "13";
+    res += "1 3 ";
     RunAndCompare(cmd, res);
 }
 

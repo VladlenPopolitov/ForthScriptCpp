@@ -45,7 +45,7 @@ T{ 0. d>f 0. d>f fdrop fdepth f>d -> 1 0. }T
 T{ 0. d>f f>d -> 0. }T
 T{ 1. d>f f>d -> 1. }T
 T{ -1. d>f f>d -> -1. }T
-
+traceon
 \ IEEE754 max value (52 bit mantissa)
 T{ hex ffffffff fffff decimal d>f f>d -> hex ffffffff fffff decimal }T
 

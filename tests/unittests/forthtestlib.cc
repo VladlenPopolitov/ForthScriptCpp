@@ -17,8 +17,8 @@ void RunAndCompare(const std::string &command, const std::string &result,bool tr
 #ifdef _DEBUG
         forth.setTrace(trace);
 #endif
-        forth.ExecuteString(command);
-        res = forth.ExecutionOutput();
+        forth.ExecuteString(command); 
+        res = forth.ExecutionOutput(); 
     }
     catch (cppforth::Forth::AbortException &ex){
         const char *aaa = ex.what();
