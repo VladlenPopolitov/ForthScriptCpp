@@ -1,0 +1,526 @@
+
+Running ANS Forth and Forth 2012 test programs, version 0.13.4
+
+
+CR CR SOURCE TYPE ( Preliminary test ) CR
+SOURCE ( These lines test SOURCE, TYPE, CR and parenthetic comments ) TYPE CR
+( The next line of output should be blank to test CR ) SOURCE TYPE CR CR
+
+( Pass #1: testing 0 >IN +! ) 0 >IN +! SOURCE TYPE CR
+( Pass #2: testing 1 >IN +! ) 1 >IN +! xSOURCE TYPE CR
+( Pass #3: testing 1+ ) 1 1+ >IN +! xxSOURCE TYPE CR
+( Pass #4: testing @ ! BASE ) 0 1+ 1+ BASE ! BASE @ >IN +! xxSOURCE TYPE CR
+( Pass #5: testing decimal BASE ) BASE @ >IN +! xxxxxxxxxxSOURCE TYPE CR
+( Pass #6: testing : ; ) : .SRC SOURCE TYPE CR ; 6 >IN +! xxxxxx.SRC
+( Pass #7: testing number input ) 19 >IN +! xxxxxxxxxxxxxxxxxxx.SRC
+( Pass #8: testing VARIABLE ) VARIABLE Y 2 Y ! Y @ >IN +! xx.SRC
+( Pass #9: testing WORD COUNT ) 5 MSG abcdef) Y ! Y ! >IN +! xxxxx.SRC
+( Pass #10: testing WORD COUNT ) MSG ab) >IN +! xxY ! .SRC
+PASS #11: TESTING WORD COUNT .MSG
+PASS #12: TESTING = RETURNS ALL 1'S FOR TRUE
+PASS #13: TESTING = RETURNS 0 FOR FALSE
+PASS #14: TESTING -1 INTERPRETED CORRECTLY
+PASS #15: TESTING 2*
+PASS #16: TESTING 2*
+PASS #17: TESTING AND
+PASS #18: TESTING AND
+PASS #19: TESTING AND
+PASS #20: TESTING ?F~ ?~~ PASS ERROR
+PASS #21: TESTING ?~
+PASS #22: TESTING EMIT
+Pass #23: testing S"
+
+RESULTS: 
+
+PASS MESSAGES #1 TO #23 SHOULD BE DISPLAYED ABOVE
+AND NO ERROR MESSAGES
+
+0 TESTS FAILED OUT OF 57 ADDITIONAL TESTS
+
+
+--- END OF PRELIMINARY TESTS --- 
+
+Test utilities loaded
+0 
+0 
+
+*********************YOU SHOULD SEE THE STANDARD GRAPHIC CHARACTERS:
+ !"#$%&'()*+,-./0123456789:;<=>?@
+ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`
+abcdefghijklmnopqrstuvwxyz{|}~
+YOU SHOULD SEE 0-9 SEPARATED BY A SPACE:
+0 1 2 3 4 5 6 7 8 9 
+YOU SHOULD SEE 0-9 (WITH NO SPACES):
+0123456789
+YOU SHOULD SEE A-G SEPARATED BY A SPACE:
+A B C D E F G 
+YOU SHOULD SEE 0-5 SEPARATED BY TWO SPACES:
+0  1  2  3  4  5  
+YOU SHOULD SEE TWO SEPARATE LINES:
+LINE 1
+LINE 2
+YOU SHOULD SEE THE NUMBER RANGES OF SIGNED AND UNSIGNED NUMBERS:
+  SIGNED: 80000000 7fffffff 
+UNSIGNED: 0 FFFFFFFF 
+*
+PLEASE TYPE UP TO 80 CHARACTERS:
+
+RECEIVED: ""
+*
+End of Core word set tests
+0 
+********************
+
+Output from .(
+You should see -9876: -9876 
+and again: -9876
+
+
+On the next 2 lines you should see First then Second messages:
+First message via .( 
+Second message via ."
+
+*
+
+Output from .R and U.R
+You should see lines duplicated:
+indented by 0 spaces
+1984383623 
+1984383623
+-2088648479 
+-2088648479
+1984383623 
+1984383623
+2206318817 
+2206318817
+
+indented by 0 spaces
+1984383623 
+1984383623
+-2088648479 
+-2088648479
+1984383623 
+1984383623
+2206318817 
+2206318817
+
+indented by 5 spaces
+     1984383623 
+     1984383623
+     -2088648479 
+     -2088648479
+     1984383623 
+     1984383623
+     2206318817 
+     2206318817
+
+*******
+INCORRECT RESULT: T{ SSQ3 SWAP DROP          ->  20 }T    \ String length
+INCORRECT RESULT: T{ SSQ3 DROP            C@ ->   7 }T    \ \a   BEL  Bell
+INCORRECT RESULT: T{ SSQ3 DROP  1 CHARS + C@ ->   8 }T    \ \b   BS   Backspace
+INCORRECT RESULT: T{ SSQ3 DROP  2 CHARS + C@ ->  27 }T    \ \e   ESC  Escape
+INCORRECT RESULT: T{ SSQ3 DROP  3 CHARS + C@ ->  12 }T    \ \f   FF   Form feed
+INCORRECT RESULT: T{ SSQ3 DROP  4 CHARS + C@ ->  10 }T    \ \l   LF   Line feed
+INCORRECT RESULT: T{ SSQ3 DROP  5 CHARS + C@ ->  13 }T    \ \m        CR of CR/LF pair
+INCORRECT RESULT: T{ SSQ3 DROP  6 CHARS + C@ ->  10 }T    \           LF of CR/LF pair
+INCORRECT RESULT: T{ SSQ3 DROP  7 CHARS + C@ ->  34 }T    \ \q   "    Double Quote
+INCORRECT RESULT: T{ SSQ3 DROP  8 CHARS + C@ ->  13 }T    \ \r   CR   Carriage Return
+INCORRECT RESULT: T{ SSQ3 DROP  9 CHARS + C@ ->   9 }T    \ \t   TAB  Horizontal Tab
+INCORRECT RESULT: T{ SSQ3 DROP 10 CHARS + C@ ->  11 }T    \ \v   VT   Vertical Tab
+INCORRECT RESULT: T{ SSQ3 DROP 11 CHARS + C@ ->  15 }T    \ \x0F      Given Char
+INCORRECT RESULT: T{ SSQ3 DROP 12 CHARS + C@ ->  48 }T    \ 0    0    Digit follow on
+INCORRECT RESULT: T{ SSQ3 DROP 13 CHARS + C@ ->  31 }T    \ \x1F      Given Char
+INCORRECT RESULT: T{ SSQ3 DROP 14 CHARS + C@ ->  97 }T    \ a    a    Hex follow on
+INCORRECT RESULT: T{ SSQ3 DROP 15 CHARS + C@ -> 171 }T    \ \xaB      Insensitive Given Char
+INCORRECT RESULT: T{ SSQ3 DROP 16 CHARS + C@ -> 120 }T    \ x    x    Non hex follow on
+INCORRECT RESULT: T{ SSQ3 DROP 17 CHARS + C@ ->   0 }T    \ \z   NUL  No Character
+INCORRECT RESULT: T{ SSQ3 DROP 18 CHARS + C@ ->  34 }T    \ \"   "    Double Quote
+INCORRECT RESULT: T{ SSQ3 DROP 19 CHARS + C@ ->  92 }T    \ \\   \    Back Slash
+The next test should display:
+One line...
+another linenOne line...nanotherLinen-13 
+*
+WRONG NUMBER OF RESULTS: T{ 1. -> 1 0 }T****************
+You should see lines duplicated:
+     8970676912557384689
+     8970676912557384689 
+        8970676912557384689
+        8970676912557384689
+     -8522862768232894101
+     -8522862768232894101 
+          -8522862768232894101
+           9923881305476657515
+**
+End of Double-Number word tests
+doubletest  RES 0 
+**This should not be displayed
+INCORRECT RESULT: T{ 4 5 ' T10 C6 -> 4 77 12 }T    \ ABORT" caught, no message*
+End of Exception word tests
+exceptiontest  RES 0 
+****
+End of Facility word tests
+facilitytest  RES 0 
+***************
+INCORRECT RESULT: T{ S" abcd"  S" 1234" SSQ13  S= ROT ROT SSQ12 S= -> TRUE TRUE }T
+INCORRECT RESULT: T{ S\" abcd" S\" 1234" SSQ13 S= ROT ROT SSQ12 S= -> TRUE TRUE }T****
+End of File-Access word set tests
+filetest  RES 0 
+****
+End of Memory-Allocation word tests
+memorytest  RES 0 
+*********
+
+Some search-order words not present - TRAVERSE-WORDLIST etc not tested
+
+End of Programming Tools word tests
+toolstest  RES 0 
+
+---------------------------
+        Error Report
+Word Set             Errors
+---------------------------
+Core                    0
+Core extension          -
+Block                   -
+Double number          22
+Exception               1
+Facility                0
+File-access             2
+Locals                  -
+Memory-allocation       0
+Programming-tools       0
+Search-order            -
+String                  -
+---------------------------
+Total                  25
+---------------------------
+
+
+Forth tests completed 
+
+
+Running FP Tests
+
+Running ak-fp-test.fth
+----------------------
+
+INCORRECT RESULT: T{ 1E fbuf 5 represent -> 1 0 true }T           \ Modified to agree with GForth
+WRONG NUMBER OF FP RESULTS: T{ 1E fbuf 5 represent -> 1 0 true }T           \ Modified to agree with GForth
+INCORRECT RESULT: T{ s" 10000" fbuf 5 compare -> 0 }T
+INCORRECT RESULT: T{ -1E fbuf 5 represent -> 1 -1 true }T
+WRONG NUMBER OF FP RESULTS: T{ -1E fbuf 5 represent -> 1 -1 true }T
+INCORRECT RESULT: T{ s" 10000" fbuf 5 compare -> 0 }T
+INCORRECT RESULT: T{ 100E 3E f/ fbuf 5 represent -> 2 0 true }T   \ Modified to agree with GForth
+WRONG NUMBER OF FP RESULTS: T{ 100E 3E f/ fbuf 5 represent -> 2 0 true }T   \ Modified to agree with GForth
+INCORRECT RESULT: T{ s" 33333" fbuf 5 compare -> 0 }T
+INCORRECT RESULT: T{ 0.02E 3E f/ fbuf 5 represent -> -2 0 true }T \ Modified to agree with GForth
+WRONG NUMBER OF FP RESULTS: T{ 0.02E 3E f/ fbuf 5 represent -> -2 0 true }T \ Modified to agree with GForth
+INCORRECT RESULT: T{ s" 66667" fbuf 5 compare -> 0 }T
+
+CHECKING FS. 
+You might see 1.0000E0  : 1.00000e+00
+You might see 2.0000E1  : 2.00000e+01
+You might see 2.0000E-2 : 2.00000e-02
+You might see -3.3300E4 : -3.33000e+04
+You might see 3.3333E0  : 3.33333e+00
+You might see 6.6667E-2 : 6.66667e-02
+CHECKING FE. 
+You might see 1.0000E0  : 1.00000e+00
+You might see 20.000E0  : 2.00000e+01
+You might see 300.00E0  : 3.00000e+02
+You might see 4.0000E3  : 4.00000e+03
+You might see 333.33E-3 : 3.33333e-01
+You might see 6.6667E3  : 6.66667e+03
+CHECKING F. 
+You might see 1000.   : 1000.00000
+You might see 1100.   : 1100.00000
+You might see 0.33333 : 0.33333
+You might see 66.667  : 66.66667
+You might see 0.00023 : 0.00023
+You might see 0.00024 : 0.00024
+
+End of ak-fp-test.fth
+
+Running fatan2-test.fs
+----------------------
+
+floating-point and data stacks *separate*
+testing normal values
+testing Single UNIX 3 special values spec
+testing Single UNIX 3 special values optional spec
+
+#ERRORS: 0 
+
+
+End of fatan2-test.fs
+
+Running ieee-arith-test.fs
+--------------------------
+
+TESTING F+
+TESTING F-
+TESTING F*
+TESTING F/
+TESTING FSQRT
+#ERRORS: 0 
+
+
+End of ieee-arith-test.fs
+
+Running ieee-fprox-test.fs
+--------------------------
+
+TESTING equality of floating-point encoding
+TESTING absolute tolerance
+TESTING relative tolerance
+#ERRORS: 0 
+
+End of ieee-fprox-test.fs
+
+Running fpzero-test.4th
+-----------------------
+
+
+System supports fp signed zero. 
+#ERRORS: 0 
+
+End of fpzero-test.4th
+
+Running fpio-test.4th
+---------------------
+FPIO-TEST         V1.1      01 Dec     2010 
+TESTING Conversion of Exactly Representable Numbers
+
+TESTING Rounding of Numbers
+
+End of fpio-test.4th
+
+Running to-float-test.4th
+-------------------------
+TESTING >FLOAT
+INCORRECT RESULT: t{  S"  9"   >FLOAT  ->   FALSE     }t    \ Leading space
+WRONG NUMBER OF FP RESULTS: t{  S"  9"   >FLOAT  ->   FALSE     }t    \ Leading space
+INCORRECT RESULT: t{  S" 9 "   >FLOAT  ->   FALSE     }t    \ Trailing space
+WRONG NUMBER OF FP RESULTS: t{  S" 9 "   >FLOAT  ->   FALSE     }t    \ Trailing space
+INCORRECT CELL RESULT: t{  S" 1+1"  >FLOAT  ->   10E TRUE  rx}t
+NUMBER OF FLOAT RESULTS AFTER '->' BELOW ...}T SPECIFICATION: t{  S" 1+1"  >FLOAT  ->   10E TRUE  rx}t
+NUMBER OF FLOAT RESULTS BEFORE '->' DOES NOT MATCH ...}T SPECIFICATION: t{  S" 1+1"  >FLOAT  ->   10E TRUE  rx}t
+INCORRECT CELL RESULT: t{  S" 1-1"  >FLOAT  ->   0.1E TRUE rx}t
+NUMBER OF FLOAT RESULTS AFTER '->' BELOW ...}T SPECIFICATION: t{  S" 1-1"  >FLOAT  ->   0.1E TRUE rx}t
+NUMBER OF FLOAT RESULTS BEFORE '->' DOES NOT MATCH ...}T SPECIFICATION: t{  S" 1-1"  >FLOAT  ->   0.1E TRUE rx}t
+INCORRECT CELL RESULT: t{  S" -35.+2"    >FLOAT  ->  -3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS AFTER '->' BELOW ...}T SPECIFICATION: t{  S" -35.+2"    >FLOAT  ->  -3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS BEFORE '->' DOES NOT MATCH ...}T SPECIFICATION: t{  S" -35.+2"    >FLOAT  ->  -3500E TRUE  rx}t
+INCORRECT CELL RESULT: t{  S" +35.+2"    >FLOAT  ->   3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS AFTER '->' BELOW ...}T SPECIFICATION: t{  S" +35.+2"    >FLOAT  ->   3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS BEFORE '->' DOES NOT MATCH ...}T SPECIFICATION: t{  S" +35.+2"    >FLOAT  ->   3500E TRUE  rx}t
+INCORRECT CELL RESULT: t{  S" -.35+4"    >FLOAT  ->  -3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS AFTER '->' BELOW ...}T SPECIFICATION: t{  S" -.35+4"    >FLOAT  ->  -3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS BEFORE '->' DOES NOT MATCH ...}T SPECIFICATION: t{  S" -.35+4"    >FLOAT  ->  -3500E TRUE  rx}t
+INCORRECT CELL RESULT: t{  S" +.35+4"    >FLOAT  ->   3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS AFTER '->' BELOW ...}T SPECIFICATION: t{  S" +.35+4"    >FLOAT  ->   3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS BEFORE '->' DOES NOT MATCH ...}T SPECIFICATION: t{  S" +.35+4"    >FLOAT  ->   3500E TRUE  rx}t
+INCORRECT CELL RESULT: t{  S" -350000-2" >FLOAT  ->  -3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS AFTER '->' BELOW ...}T SPECIFICATION: t{  S" -350000-2" >FLOAT  ->  -3500E TRUE  rx}t
+NUMBER OF FLOAT RESULTS BEFORE '->' DOES NOT MATCH ...}T SPECIFICATION: t{  S" -350000-2" >FLOAT  ->  -3500E TRUE  rx}t
+
+#ERRORS: 25 
+
+End of to-float-test.4th
+
+Running paranoia.4th
+--------------------
+
+Lest this program stop prematurely, i.e. before displaying
+
+   `END OF TEST',
+
+try to persuade the computer NOT to terminate execution when an
+error like Over/Underflow or Division by Zero occurs, but rather
+to persevere with a surrogate value after, perhaps, displaying some
+warning.  If persuasion avails naught, don't despair but run this
+program anyway to see how many milestones it passes, and then
+amend it to make further progress.
+
+Answer questions with Y, y, N or n (unless otherwise indicated).
+Diagnosis resumes after milestone Number 0 
+         Page: 1 
+
+Users are invited to help debug and augment this program so it will
+cope with unanticipated and newly uncovered arithmetic pathologies.
+Please send suggestions and interesting results to
+
+Richard Karpinski
+Computer Center U-76
+University of California
+San Francisco, CA 94143-0704, USA
+
+In doing so, please include the following information:
+
+Precision: double
+Version: 10 February 1989; Forth
+Computer:
+Compiler:
+Optimization level:
+Other relevant compiler options:
+Diagnosis resumes after milestone Number 1 
+         Page: 2 
+
+Running this program should reveal these characteristics:
+
+    Radix = 1, 2, 4, 8, 10, 16, 100, 256 ...
+    Precision = number of significant digits carried.
+    U2 = Radix/Radix^Precision = One Ulp
+(OneUlpnit in the Last Place) of 1.000xxx .
+    U1 = 1/Radix^Precision = One Ulp of numbers a little less than 1.0 .
+    Adequacy of guard digits for Mult., Div. and Subt.
+    Whether arithmetic is chopped, correctly rounded, or something else
+for Mult., Div., Add/Subt. and Sqrt.
+    Whether a Sticky Bit used correctly for rounding.
+    UnderflowThreshold = an underflow threshold.
+    E0 and PseudoZero tell whether underflow is abrupt, gradual, or fuzzy.
+    V = an overflow threshold, roughly.
+    V0  tells, roughly, whether  Infinity  is represented.
+    Comparisions are checked for consistency with subtraction
+and for contamination with pseudo-zeros.
+    Sqrt is tested.  Y^X is not tested.
+    Extra-precise subexpressions are revealed but NOT YET tested.
+    Decimal-Binary conversion is NOT YET tested for accuracy.
+Diagnosis resumes after milestone Number 2 
+         Page: 3 
+
+The program attempts to discriminate among
+
+  FLAWs, like lack of a sticky bit,
+  Serious DEFECTs, like lack of a guard digit, and
+  FAILUREs, like 2+2 == 5 .
+
+Failures may confound subsequent diagnoses.
+
+The diagnostic capabilities of this program go beyond an earlier
+program called `MACHAR', which can be found at the end of the
+book  `Software Manual for the Elementary Functions' (1980) by
+W. J. Cody and W. Waite. Although both programs try to discover
+the Radix, Precision and range (over/underflow thresholds)
+of the arithmetic, this program tries to cope with a wider variety
+of pathologies, and to say how well the arithmetic is implemented.
+The program is based upon a conventional radix representation for
+floating-point numbers, but also allows logarithmic encoding
+as used by certain early WANG machines.
+
+BASIC version of this program (C) 1983 by Prof. W. M. Kahan;
+see source comments for more history.
+Diagnosis resumes after milestone Number 3 
+         Page: 4 
+
+Program is now RUNNING tests on small integers:
+Comparison alleges that -0.0 is Non-zero!
+Since comparison denies Z = 0, evaluating (Z + Z) / Z should be safe.
+What the machine gets for (Z + Z) / Z is  nan
+This is a DEFECT!
+Diagnosis resumes after milestone Number 7 
+         Page: 5 
+
+Searching for Radix and Precision.
+Radix = 2.00000.
+Closest relative separation found is U1 = 1.11022e-16
+
+Recalculating radix and precision 
+confirms closest relative separation U1 .
+Radix confirmed.
+The number of significant digits of the Radix is 53.00000
+Diagnosis resumes after milestone Number 30 
+         Page: 6 
+
+Subtraction appears to be normalized, as it should be.
+Checking for guard digit in F*, F/, and F-.
+    F*, F/, and F- appear to have guard digits, as they should.
+Diagnosis resumes after milestone Number 40 
+         Page: 7 
+
+Checking rounding on multiply, divide and add/subtract.
+Multiplication appears to round correctly.
+Division appears to round correctly.
+Addition/Subtraction appears to round correctly.
+Checking for sticky bit.
+Sticky bit apparently used correctly.
+
+Does Multiplication commute?  Testing on 20 random pairs.
+    No failures found in 20 integer pairs.
+
+Running test of square root(x).
+Testing if sqrt(X * X) == X for 20 Integers X.
+Test for sqrt monotonicity.
+sqrt has passed a test for Monotonicity.
+Testing whether sqrt is rounded or chopped.
+Square root appears to be correctly rounded.
+Diagnosis resumes after milestone Number 90 
+         Page: 8 
+
+Testing powers Z^i for small Integers Z and i.
+... no discrepancies found.
+
+Seeking Underflow thresholds UfThold and E0.
+Smallest strictly positive number found is E0 = 4.94066e-324
+Since comparison denies Z = 0, evaluating (Z + Z) / Z should be safe.
+What the machine gets for (Z + Z) / Z is  2.00000
+This is O.K., provided Over/Underflow has NOT just been signaled.
+Underflow is gradual; it incurs Absolute Error =
+(roundoff in UfThold) < E0.
+The Underflow threshold is 2.22507e-308below which
+calculation may suffer larger Relative error than merely roundoff.
+Since underflow occurs below the threshold
+UfThold = 2.00000e+00^-1.02200e+03
+only underflow should afflict the expression
+     2.00000e+00^-2.04400e+03
+actually calculating yields: 0.00000e+00
+This computed value is O.K.
+
+Testing X^((X + 1) / (X - 1)) vs. exp(2) = 7.38906e+00as X -> 1.
+Accuracy seems adequate.
+Testing powers Z^Q at four nearly extreme values.
+... no discrepancies found.
+
+Diagnosis resumes after milestone Number 160 
+         Page: 9 
+
+Searching for Overflow threshold:
+This may generate an error.
+Can `Z = -Y' overflow?
+Trying it on Y = -inf
+Seems O.K.
+Overflow threshold is V  = 1.79769e+308
+Overflow saturates at V0 = inf
+No Overflow should be signaled for V * 1 = 1.79769e+308
+                          nor for V / 1 = 1.79769e+308
+Any overflow signal separating this * from the one
+above is a DEFECT.
+
+Diagnosis resumes after milestone Number 190 
+         Page: 10 
+
+
+What message and/or values does Division by Zero produce?
+
+   Trying to compute 1 / 0 produces ...inf
+
+   Trying to compute 0 / 0 produces ...nan
+Diagnosis resumes after milestone Number 220 
+         Page: 11 
+
+
+FAILUREs  encountered = 1 
+SERIOUS DEFECTs  discovered = 0 
+DEFECTs  discovered = 1 
+FLAWs  discovered = 0 
+
+The arithmetic diagnosed has unacceptable Serious Defects.
+Potentially fatal FAILURE may have spoiled thisprogram's subsequent diagnoses.
+END OF TEST.
+
+End of paranoia.fth
+
+
+FP tests finished
+
+

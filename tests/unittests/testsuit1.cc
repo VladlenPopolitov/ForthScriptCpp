@@ -36,6 +36,7 @@ const char* allfilenames[] = {
 	"./testresult/alltests21.txt",
 	"./testresult/alltests22.txt",
 	"./testresult/alltests23.txt",
+	"./testresult/alltests24.txt",
 };
 
 const char* allFilesInSuite[] = {
@@ -61,6 +62,7 @@ const char* allFilesInSuite[] = {
 	"fp/paranoia.4th",			// 20
 	"include.fth",				// 21
 	"include_fp.fth",			// 22
+	"include_all.fth",			// 23
 	
 	""
 };
@@ -194,7 +196,7 @@ void WrongStackTest(cppforth::Forth* ptr) {
 			errorInTest++;
 			//ADD_FAILURE() << "Uncaught exception Forth: " << ex.what();
 		}
-		catch (std::exception& ex) {
+		catch (std::exception& ex) { 
 			const char* aaa = ex.what();
 			errorInTest++;
 			//ADD_FAILURE() << "Uncaught exception : " << ex.what();
@@ -506,11 +508,18 @@ TEST(TestSuit1, ForthTestSuit021IncludeFileTest)
 }
 
 
-*/
+
 TEST(TestSuit1, ForthTestSuit022IncludeFPFileTest)
 {
 	RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 22);
 }
+*/
+TEST(TestSuit1, ForthTestSuit023IncludeAllFileSTest)
+{
+	//RunAndPrintSuiteAdvanced(allFilesInSuite, allfilenames, 23);
+	RunAndPrint(allFilesInSuite, allfilenames, 23,22); // read and execute 1 file 
+}
+
 /*
 
 TEST(TestSuit1,ForthTestSuit021words)

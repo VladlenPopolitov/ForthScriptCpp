@@ -323,7 +323,7 @@ of a cell without using `1 CELLS`.
 
 ****/
 
-" 1 cells   constant /cell  "
+" 1 cells constant /cell  "
 
 /****
 

@@ -115,6 +115,7 @@ void RunAndPrint(const char *command[],
         for (int i = Start; i < numberOfTestFiles; ++i){
             try{
                 std::ifstream is;
+                std::string inFileName{command[i]};
                 is.open(command[i], std::ios_base::in);
                 if (is.is_open() && !is.bad()){
                     std::stringstream inStrStream{};
@@ -125,6 +126,7 @@ void RunAndPrint(const char *command[],
                 else {
                     content.clear();
                 }
+                std::cerr<<content<<std::endl;
                 forth.ExecuteString(content);
             }
             catch (cppforth::Forth::AbortException &ex){

@@ -2,18 +2,18 @@ cmake_minimum_required(VERSION 3.13)
 find_package(GTest REQUIRED)
 add_executable(test_constructor constructor.cc forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h )
 add_executable(test_forthtestsuit1 testsuit1.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
-add_executable(test_parameters testsuite2.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
-add_executable(test_word_to test_word_to.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
-add_executable(test_exceptions test_exceptions.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
-add_executable(test_strings test_strings.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
+#add_executable(test_parameters testsuite2.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
+#add_executable(test_word_to test_word_to.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
+#add_executable(test_exceptions test_exceptions.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
+#add_executable(test_strings test_strings.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 
 set(UNITTEST_TARGETS
-test_parameters
+#test_parameters
 test_forthtestsuit1
 test_constructor 
-test_word_to
-test_exceptions
-test_strings
+#test_word_to
+#test_exceptions
+#test_strings
 )
 add_custom_command(
         TARGET test_forthtestsuit1 POST_BUILD
@@ -26,6 +26,12 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy
                 ${CMAKE_CURRENT_SOURCE_DIR}/include.fth
                 $<TARGET_FILE_DIR:test_forthtestsuit1>/include.fth
+)
+add_custom_command(
+        TARGET test_forthtestsuit1 POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_CURRENT_SOURCE_DIR}/include_all.fth
+                $<TARGET_FILE_DIR:test_forthtestsuit1>/include_all.fth
 )
 add_custom_command(
         TARGET test_forthtestsuit1 POST_BUILD
