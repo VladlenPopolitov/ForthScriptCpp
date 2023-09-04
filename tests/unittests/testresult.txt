@@ -132,7 +132,7 @@ You should see lines duplicated:
      -8522862768232894101
      -8522862768232894101 
           -8522862768232894101
-           9923881305476657515
+          -8522862768232894101
 **
 End of Double-Number word tests
 doubletest  RES 0 

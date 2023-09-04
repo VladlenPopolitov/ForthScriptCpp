@@ -402,7 +402,7 @@ Because we'll be using `(lit)` in other word definitions, we'll create a constan
  ": D. DUP >R DABS <# #S R> SIGN #> TYPE SPACE ; " // ( d -- )
  ": U. 0 D. ; " // ( u-- )
  ": U.R  >R 0 <# #S #> R> OVER - 0 MAX SPACES TYPE ; " // ( u n -- )
- ": D.R >R <# #S #>  R> OVER - 0 MAX SPACES TYPE ; " // ( d n -- )
+ ": D.R >R DUP >R DABS <# #S R> SIGN #>  R> OVER - 0 MAX SPACES TYPE ; " // ( d n -- )
  " : MOVE ROT ROT 2DUP < IF ROT CMOVE> ELSE ROT CMOVE THEN ; "
  " : WITHIN OVER - >R - R> U< ;  "
  //" : MARKER CREATE ; immediate  " //@bug - no implemented
