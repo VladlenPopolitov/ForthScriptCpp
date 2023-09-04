@@ -3892,13 +3892,14 @@ FCell getDataFCell32(CAddr pointer){
 			defn.code = code;
 			defn.parameter = defn.does = AADDR(getDataPointer());
 			defn.name = name;
+			for (auto & c: defn.name) c = std::toupper(static_cast<unsigned char>(c));
 			definitions.emplace_back(std::move(defn));
 			getDefinition(definitions.size() - 1)->numberInVector = definitions.size() - 1;
 			if (setImmediate) immediate();
 		}
 
-		// Determine whether two names are equivalent, using case-insensitive matching.
-		bool doNamesMatch(CAddr name1, const std::string &name2, Cell nameLength) {
+		// @todo delete this member Determine whether two names are equivalent, using case-insensitive matching.
+		bool doNamesMatchDelete(CAddr name1, const std::string &name2, Cell nameLength) {
 			for (std::size_t i = 0; i < nameLength; ++i) {
 				if (std::toupper(static_cast<unsigned char>(getDataChar(name1 + i))) != std::toupper(static_cast<unsigned char>(name2[i]))) {
 					return false;
@@ -3906,50 +3907,65 @@ FCell getDataFCell32(CAddr pointer){
 			}
 			return true;
 		}
-		bool doNamesMatch(const std::string name1, const std::string &name2, Cell nameLength) {
+		// Determine whether two names are equivalent, using case-insensitive matching.
+		// assume, that both parameters are in upper case
+		bool doNamesMatchDeleteToo(const std::string name1, const std::string &name2) {
+			if(name1.compare(name2)==0) return true;
+			return false;
+			/*
 			for (std::size_t i = 0; i < nameLength; ++i) {
 				if (std::toupper(static_cast<unsigned char>(name1[i])) != std::toupper(static_cast<unsigned char>(name2[i]))) {
 					return false;
 				}
 			}
 			return true;
+			*/
 		}
 
 		// Find a definition by name.
 		Xt findDefinition(CAddr nameToFind, Cell nameLength) {
 			if (nameLength == 0)
 				return 0;
-
+			std::string Word1(nameLength,' ');
+			moveFromDataSpace(Word1, nameToFind, nameLength);
+			for (auto & c: Word1) c = std::toupper(static_cast<unsigned char>(c));
 			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
 				auto& defn = *i;
 				if (!defn.isFindable())
 					continue;
 				auto& name = defn.name;
-				if (name.length() == nameLength) {
-					if (doNamesMatch(nameToFind, name.data(), nameLength)) {
-						return defn.numberInVector; 
-					}
+				if(nameLength==name.length() && Word1.compare(name)==0) {
+					return defn.numberInVector; 
 				}
+				//if (name.length() == nameLength) {
+				//	if (doNamesMatch(nameToFind, name.data(), nameLength)) {
+				//		return defn.numberInVector; 
+				//	}
+				//}
 			}
 			return 0;
 		}
 
 		// Find a definition by name.
 		Xt findDefinition(const std::string& nameToFind) {
-			Cell nameLength = nameToFind.size();
+			auto nameLength = nameToFind.size();
 			if (nameLength == 0)
 				return 0;
-
+			std::string Word1{nameToFind};
+			for (auto & c: Word1) c = std::toupper(static_cast<unsigned char>(c));
 			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
 				auto& defn = *i;
 				if (!defn.isFindable())
 					continue;
 				auto& name = defn.name;
-				if (name.length() == nameLength) {
-					if (doNamesMatch(nameToFind, name.data(), nameLength)) {
-						return defn.numberInVector; 
-					}
+				if(nameLength==name.length() && Word1.compare(name)==0) {
+					return defn.numberInVector; 
 				}
+				//if (name.length() == nameLength) {
+				//	if (doNamesMatch(nameToFind, name.data(), nameLength)) {
+				//		return defn.numberInVector; 
+				//	}
+				//}
 			}
 			return 0;
 		}
@@ -4436,6 +4452,7 @@ FCell getDataFCell32(CAddr pointer){
 						auto xt = XT(dStack.getTop()); pop();
 						auto definition = *getDefinition(xt);
 						definition.name = newWord;
+						for (auto & c: definition.name) c = std::toupper(static_cast<unsigned char>(c));
 						definitions.emplace_back(std::move(definition));
 						getDefinition(definitions.size() - 1)->numberInVector = definitions.size() - 1;
 					}
@@ -6091,11 +6108,8 @@ FCell getDataFCell32(CAddr pointer){
 			}
 		}
 		void moveFromDataSpace(std::string &dst, Cell src, size_t count){
-			dst.resize(0);
-			dst.reserve(count);
-			while (count--){
-				dst.push_back( dataSpaceAt(src++) );
-			}
+			dst.resize(count);
+			for(auto &c : dst) c=dataSpaceAt(src++);
 		}
 
 		size_t PutStringToEndOfDataSpace(const std::string &data){
@@ -6107,16 +6121,7 @@ FCell getDataFCell32(CAddr pointer){
 			moveIntoDataSpace(static_cast<Cell>(offset), data.data(), size);
 			return offset;
 		}
-		/* @bug delete this member 
-		size_t PutStringToStartOfDataSpace(const std::string &data){
-			auto size = data.size();
-			auto offset = getDataPointer(); 
-			incDataPointer(  size );
-			alignDataPointer();
-			moveIntoDataSpace(offset, data.data(), size+1);
-			return offset;
-		}
-		*/
+
 		void defineForthWords() {
 				auto line = forthDefinitions;
 				auto length = std::strlen(line);
