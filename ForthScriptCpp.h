@@ -559,14 +559,6 @@ continue the interpreter loop.
 		 for 3 - 1 FLOAT
 		****/
 
-//": value constant ; "
-//": value! >body ! ; "
-//": 2value! >body 2! ; "
-//": 2VALUE CREATE , , DOES> 2@ ; "
-//": VALUE CREATE ,  DOES> @ ; "
-//": to       state @ if postpone ['] postpone value! else ' value! then ; immediate "
-//": TO ' >BODY STATE @ IF POSTPONE 2LITERAL POSTPONE 2! ELSE 2! THEN ; IMMEDIATE "
-//": to       state @ if postpone ['] postpone 2value! else ' 2value! then ; immediate "
 ": value create 1 , , does> dup @ 1 = if cell+ @ else then ; "
 ": 2value create 2 , , , does> dup @ 2 = if cell+ 2@ else then ; " 
 ": fvalue create 3 , F,  does> dup @ 3 = if cell+ F@ else then ; "
@@ -675,7 +667,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
  ******/
  " : [THEN] ( -- ) ; IMMEDIATE  "
  " : [ELSE] 1 BEGIN " // level 
- "       BEGIN BL WORD COUNT DUP WHILE "		// level adr len 
+ "       BEGIN BL UPPERWORD COUNT DUP WHILE "		// level adr len 
  "       2DUP S\" [IF]\" COMPARE 0= IF "		// level adr len 
  "             2DROP 1+ "						// level' 
  "          ELSE "								// level adr len 
@@ -2496,64 +2488,26 @@ Code Reserved for	Code Reserved for
 					}
 				}
 				if (getSourceBufferRemain() > 0) {
-					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
 					// Copy characters until we see the delimiter again.
-					while (getSourceBufferRemain() >0  
-						&& currentChar != delim
+					while (getSourceBufferRemain() >0 ) {
+						auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());	
+						if( currentChar != delim
 						&& !(delim == ' ' && (isspace(static_cast<unsigned char>(currentChar))))
 						) {
-						wordBuffer.push_back(std::toupper(static_cast<unsigned char>(currentChar)));
+						wordBuffer.push_back(static_cast<unsigned char>(currentChar));
 						incSourceBufferOffset();
-						currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+						} else {
+							break;
+						}
 					}
-
-					// source point to delimiter, skip it.
+					// source point to the delimiter char, skip it.
 					if (getSourceBufferRemain() >0 ) {
 						incSourceBufferOffset(); 
 					}
 				}
-#if 0
-				else {
-					bool exits{ false };
-					while (!exits){
-						while (getSourceBufferOffset() == inputSize){
-							// load next string from input buffer  @bug call mothod to do this work
-							++inputBufferStringsCurrent;
-							if (inputBufferStringsCurrent < inputBufferStrings.size()){
-								setSourceBuffer(inputBufferStrings.at(inputBufferStringsCurrent));
-								setSourceBufferOffset(0);
-								inputSize = VirtualMemory.at(vmSegmentSourceBuffer).segment.size();
-								if (delim == ' ') {
-									exits = true; break;
-								}
-							}
-							else {
-								if (delim == ' ') {
-									exits = true; break;
-								}
-								throwMessage(std::string("WORD: Did not find expected delimiter \'" +
-									std::string(1, delim) + "\'")
-									, errorParsedStringOverflow);
-							}
-						}
-						// next char
-						if (!exits){
-							auto ch = VirtualMemory.at(vmSegmentSourceBuffer).segment.at(getSourceBufferOffset());
-							incSourceBufferOffset();
-							if ((delim == ' ' && isspace(static_cast<unsigned char>(ch))) || (delim == ch)){
-								exits = true;
-							}
-							else {
-								wordBuffer.push_back(ch);
-							}
-						}
-					}
-				}
-#endif
 				if (wordBuffer.size() > 255){
-					throwMessage(std::string("WORD: very long word ")
-						, errorParsedStringOverflow);
-
+					// @bug it is catched below
+					throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
 				}
 				// Update the count at the beginning of the buffer.
 				wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
@@ -2565,6 +2519,68 @@ Code Reserved for	Code Reserved for
 				int a = 1;
 			}
 		}
+		// UPPERWORD ( char "<chars>ccc<char>" -- c-addr )
+		void  upperword() {
+			REQUIRE_DSTACK_DEPTH(1, "UPPERWORD");
+			auto delim = static_cast<char>(dStack.getTop());
+			/****
+
+			I need a buffer to store the result of the Forth `WORD` word.  As with the
+			input buffer, I use a `std::string` so I don't need to worry about memory
+			management.
+
+			Note that while this is a `std::string`, its format is not a typical strings.
+			The buffer returned by `WORD` has the word length as its first character.
+			That is, it is a Forth _counted string_.
+
+			****/
+
+			std::string wordBuffer{};
+			wordBuffer.push_back(0);  // First char of buffer is length.
+			try {
+				// Skip leading delimiters
+				if (getSourceBufferRemain() > 0) {
+					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+					while (getSourceBufferRemain() > 0 && ((currentChar == delim)
+						|| (delim == ' ' && isspace(static_cast<unsigned char>(currentChar)))
+						)) {
+						incSourceBufferOffset();
+						currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+					}
+				}
+				if (getSourceBufferRemain() > 0) {
+					// Copy characters until we see the delimiter again.
+					while (getSourceBufferRemain() >0 ) {
+						auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());	
+						if( currentChar != delim
+						&& !(delim == ' ' && (isspace(static_cast<unsigned char>(currentChar))))
+						) {
+						wordBuffer.push_back(std::toupper(static_cast<unsigned char>(currentChar)));
+						incSourceBufferOffset();
+						} else {
+							break;
+						}
+					}
+					// source point to the delimiter char, skip it.
+					if (getSourceBufferRemain() >0 ) {
+						incSourceBufferOffset(); 
+					}
+				}
+				if (wordBuffer.size() > 255){
+					// @bug it is catched below
+					throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
+				}
+				// Update the count at the beginning of the buffer.
+				wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
+				// copy to fixed buffer
+				moveIntoDataSpace(VarOffsetWordBuffer, wordBuffer.c_str(), wordBuffer.size());
+				dStack.setTop(CELL(VarOffsetWordBuffer));
+			}
+			catch (...){
+				int a = 1;
+			}
+		}
+
 
 		/****
 
@@ -5863,6 +5879,7 @@ FCell getDataFCell32(CAddr pointer){
 				{ "unused", &Forth::unused, false }, // CORE EXT
 				{ "utctime&date", &Forth::utcTimeAndDate, false }, // not standard word
 				{ "word", &Forth::word, false }, // CORE
+				{ "upperword", &Forth::upperword, false }, // Not standart, used in definition of [IF],[ELSE], [THEN]
 				{ "words", &Forth::words, false }, // TOOLS
 				{ "xt>name", &Forth::xtToName, false }, // not standard word
 				{ "xor", &Forth::bitwiseXor, false }, // CORE

@@ -16,29 +16,29 @@ SOURCE ( These lines test SOURCE, TYPE, CR and parenthetic comments ) TYPE CR
 ( Pass #8: testing VARIABLE ) VARIABLE Y 2 Y ! Y @ >IN +! xx.SRC
 ( Pass #9: testing WORD COUNT ) 5 MSG abcdef) Y ! Y ! >IN +! xxxxx.SRC
 ( Pass #10: testing WORD COUNT ) MSG ab) >IN +! xxY ! .SRC
-PASS #11: TESTING WORD COUNT .MSG
-PASS #12: TESTING = RETURNS ALL 1'S FOR TRUE
-PASS #13: TESTING = RETURNS 0 FOR FALSE
-PASS #14: TESTING -1 INTERPRETED CORRECTLY
-PASS #15: TESTING 2*
-PASS #16: TESTING 2*
-PASS #17: TESTING AND
-PASS #18: TESTING AND
-PASS #19: TESTING AND
-PASS #20: TESTING ?F~ ?~~ PASS ERROR
-PASS #21: TESTING ?~
-PASS #22: TESTING EMIT
+Pass #11: testing WORD COUNT .MSG
+Pass #12: testing = returns all 1's for true
+Pass #13: testing = returns 0 for false
+Pass #14: testing -1 interpreted correctly
+Pass #15: testing 2*
+Pass #16: testing 2*
+Pass #17: testing AND
+Pass #18: testing AND
+Pass #19: testing AND
+Pass #20: testing ?F~ ?~~ Pass Error
+Pass #21: testing ?~
+Pass #22: testing EMIT
 Pass #23: testing S"
 
-RESULTS: 
+Results: 
 
-PASS MESSAGES #1 TO #23 SHOULD BE DISPLAYED ABOVE
-AND NO ERROR MESSAGES
+Pass messages #1 to #23 should be displayed above
+and no error messages
 
-0 TESTS FAILED OUT OF 57 ADDITIONAL TESTS
+0 tests failed out of 57 additional tests
 
 
---- END OF PRELIMINARY TESTS --- 
+--- End of Preliminary Tests --- 
 
 Test utilities loaded
 0 
@@ -115,32 +115,15 @@ indented by 5 spaces
      2206318817
 
 *******
-INCORRECT RESULT: T{ SSQ3 SWAP DROP          ->  20 }T    \ String length
-INCORRECT RESULT: T{ SSQ3 DROP            C@ ->   7 }T    \ \a   BEL  Bell
-INCORRECT RESULT: T{ SSQ3 DROP  1 CHARS + C@ ->   8 }T    \ \b   BS   Backspace
-INCORRECT RESULT: T{ SSQ3 DROP  2 CHARS + C@ ->  27 }T    \ \e   ESC  Escape
-INCORRECT RESULT: T{ SSQ3 DROP  3 CHARS + C@ ->  12 }T    \ \f   FF   Form feed
-INCORRECT RESULT: T{ SSQ3 DROP  4 CHARS + C@ ->  10 }T    \ \l   LF   Line feed
-INCORRECT RESULT: T{ SSQ3 DROP  5 CHARS + C@ ->  13 }T    \ \m        CR of CR/LF pair
-INCORRECT RESULT: T{ SSQ3 DROP  6 CHARS + C@ ->  10 }T    \           LF of CR/LF pair
-INCORRECT RESULT: T{ SSQ3 DROP  7 CHARS + C@ ->  34 }T    \ \q   "    Double Quote
-INCORRECT RESULT: T{ SSQ3 DROP  8 CHARS + C@ ->  13 }T    \ \r   CR   Carriage Return
-INCORRECT RESULT: T{ SSQ3 DROP  9 CHARS + C@ ->   9 }T    \ \t   TAB  Horizontal Tab
-INCORRECT RESULT: T{ SSQ3 DROP 10 CHARS + C@ ->  11 }T    \ \v   VT   Vertical Tab
-INCORRECT RESULT: T{ SSQ3 DROP 11 CHARS + C@ ->  15 }T    \ \x0F      Given Char
-INCORRECT RESULT: T{ SSQ3 DROP 12 CHARS + C@ ->  48 }T    \ 0    0    Digit follow on
-INCORRECT RESULT: T{ SSQ3 DROP 13 CHARS + C@ ->  31 }T    \ \x1F      Given Char
-INCORRECT RESULT: T{ SSQ3 DROP 14 CHARS + C@ ->  97 }T    \ a    a    Hex follow on
-INCORRECT RESULT: T{ SSQ3 DROP 15 CHARS + C@ -> 171 }T    \ \xaB      Insensitive Given Char
-INCORRECT RESULT: T{ SSQ3 DROP 16 CHARS + C@ -> 120 }T    \ x    x    Non hex follow on
-INCORRECT RESULT: T{ SSQ3 DROP 17 CHARS + C@ ->   0 }T    \ \z   NUL  No Character
-INCORRECT RESULT: T{ SSQ3 DROP 18 CHARS + C@ ->  34 }T    \ \"   "    Double Quote
-INCORRECT RESULT: T{ SSQ3 DROP 19 CHARS + C@ ->  92 }T    \ \\   \    Back Slash
 The next test should display:
 One line...
-another linenOne line...nanotherLinen-13 
-*
-WRONG NUMBER OF RESULTS: T{ 1. -> 1 0 }T****************
+another line
+One line...
+anotherLine
+
+End of Core Extension word tests
+0 
+*****************
 You should see lines duplicated:
      8970676912557384689
      8970676912557384689 
@@ -180,9 +163,9 @@ toolstest  RES 0
 Word Set             Errors
 ---------------------------
 Core                    0
-Core extension          -
+Core extension          0
 Block                   -
-Double number          22
+Double number           0
 Exception               1
 Facility                0
 File-access             2
@@ -192,7 +175,7 @@ Programming-tools       0
 Search-order            -
 String                  -
 ---------------------------
-Total                  25
+Total                   3
 ---------------------------
 
 
