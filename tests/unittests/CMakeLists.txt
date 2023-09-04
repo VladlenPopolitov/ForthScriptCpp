@@ -6,11 +6,15 @@ add_executable(test_forthtestsuit1 testsuit1.cc  forthtestlib.cc forthtestlib.h 
 #add_executable(test_word_to test_word_to.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 #add_executable(test_exceptions test_exceptions.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 #add_executable(test_strings test_strings.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
+add_executable(test_wordlist test_wordlist.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h 
+words-check.frt )
+
 
 set(UNITTEST_TARGETS
 #test_parameters
 test_forthtestsuit1
 test_constructor 
+test_wordlist
 #test_word_to
 #test_exceptions
 #test_strings
@@ -38,6 +42,12 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy
                 ${CMAKE_CURRENT_SOURCE_DIR}/include_fp.fth
                 $<TARGET_FILE_DIR:test_forthtestsuit1>/include_fp.fth
+)
+add_custom_command(
+        TARGET test_wordlist POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_CURRENT_SOURCE_DIR}/words-check.frt
+                $<TARGET_FILE_DIR:test_forthtestsuit1>/words-check.frt
 )
 add_custom_command(
         TARGET test_forthtestsuit1 POST_BUILD
