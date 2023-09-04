@@ -3094,21 +3094,40 @@ FCell getDataFCell32(CAddr pointer){
 			}
 			dStack.setTop(False);
 		}
+		/// @brief REPRESENT ( c-addr u -- n flag1 flag2 ) ( F: r -- ) 
+
 		void represent(){
 			REQUIRE_DSTACK_AVAILABLE(1, "REPRESENT");
 			REQUIRE_DSTACK_DEPTH(2, "REPRESENT");
-			REQUIRE_FSTACK_AVAILABLE(1, "REPRESENT");
-			toFloat();
-			auto flag = (dStack.getTop()); 
-			if (flag){
-				dStack.setTop(0);
-				dStack.push(0);
-				dStack.push(False);
+			REQUIRE_FSTACK_DEPTH(1, "REPRESENT");
+			auto number=fStack.getTop();fStack.pop();
+			auto length=dStack.getTop();
+			auto address = (dStack.getTop(1)); 
+			auto Sign=False;
+			if(number<0.0){
+				Sign=True;
+				number=-number;
 			}
-			else {
-				dStack.setTop(0);
-				dStack.push(0);
-				dStack.push(False);
+if(length>31) length=31;
+int newLog{};
+char buffer[32];
+if(number!=0.0){
+double loga=std::log10(number);
+int logaint=floor(loga);
+int newlogDiv=logaint-(length-1);
+newLog=logaint+1; 
+double new_a=number/pow(10,newlogDiv);
+auto new_a_round=std::llround(new_a);
+sprintf(buffer,"%lld",new_a_round);
+} else {
+  std::memset(buffer,'0',length);
+  buffer[length]=0;
+}
+moveIntoDataSpace(address,buffer,std::strlen(buffer));
+			if (1){
+				dStack.setTop(1,newLog);
+				dStack.setTop(Sign);
+				dStack.push(True);
 			}
 		}
 

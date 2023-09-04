@@ -187,18 +187,6 @@ Running FP Tests
 Running ak-fp-test.fth
 ----------------------
 
-INCORRECT RESULT: T{ 1E fbuf 5 represent -> 1 0 true }T           \ Modified to agree with GForth
-WRONG NUMBER OF FP RESULTS: T{ 1E fbuf 5 represent -> 1 0 true }T           \ Modified to agree with GForth
-INCORRECT RESULT: T{ s" 10000" fbuf 5 compare -> 0 }T
-INCORRECT RESULT: T{ -1E fbuf 5 represent -> 1 -1 true }T
-WRONG NUMBER OF FP RESULTS: T{ -1E fbuf 5 represent -> 1 -1 true }T
-INCORRECT RESULT: T{ s" 10000" fbuf 5 compare -> 0 }T
-INCORRECT RESULT: T{ 100E 3E f/ fbuf 5 represent -> 2 0 true }T   \ Modified to agree with GForth
-WRONG NUMBER OF FP RESULTS: T{ 100E 3E f/ fbuf 5 represent -> 2 0 true }T   \ Modified to agree with GForth
-INCORRECT RESULT: T{ s" 33333" fbuf 5 compare -> 0 }T
-INCORRECT RESULT: T{ 0.02E 3E f/ fbuf 5 represent -> -2 0 true }T \ Modified to agree with GForth
-WRONG NUMBER OF FP RESULTS: T{ 0.02E 3E f/ fbuf 5 represent -> -2 0 true }T \ Modified to agree with GForth
-INCORRECT RESULT: T{ s" 66667" fbuf 5 compare -> 0 }T
 
 CHECKING FS. 
 You might see 1.0000E0  : 1.00000e+00
