@@ -3075,11 +3075,22 @@ FCell getDataFCell32(CAddr pointer){
 			auto caddr = CADDR(dStack.getTop());
 			std::string currentWord{};
 			moveFromDataSpace(currentWord, caddr, length);
-			std::regex regexFloat{ "^[ ]*[-+]?(([0-9]*[\\.]{0,1}[0-9]+)|([0-9]+[\\.]{0,1}[0-9]*))([eEdD][-+]?[0-9]*)?[ ]*$" };
+			static std::regex regexFloat{ "^[-+]?(([0-9]*[\\.]{0,1}[0-9]+)|([0-9]+[\\.]{0,1}[0-9]*))(([eEdD][-+]?)[0-9]*)?$" };
 			std::smatch m1{};
 			bool found = regex_search(currentWord, m1, regexFloat);
 			if (found){
 				FCell number = std::stod(currentWord);
+				dStack.setTop(True);
+				fStack.push(number);
+				return;
+			}
+			// version for float numbers like 1+1 35.+2 etc (without E)
+			static std::regex regexFloat2{ "^([-+]?)(([0-9]*[\\.]{0,1}[0-9]+)|([0-9]+[\\.]{0,1}[0-9]*))([-+][0-9]+)?$" };
+			found = regex_search(currentWord, m1, regexFloat2);
+			if (found){
+				std::string currentWord2{};
+				currentWord2.append( m1[1] ).append( m1[2] ).append("E").append(m1[5]);
+				FCell number = std::stod(currentWord2);
 				dStack.setTop(True);
 				fStack.push(number);
 				return;
