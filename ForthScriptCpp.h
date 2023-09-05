@@ -2793,12 +2793,12 @@ Code Reserved for	Code Reserved for
 #define REQUIRE_FSTACK_AVAILABLE(n, name)    requireFStackAvailable(n, name)
 		void requireFStackDepth(std::size_t n, const char* name) {
 			RUNTIME_ERROR_IF(fStack.stackDepth() < static_cast<size_t>(n),
-				std::string(name) + ": stack underflow", errorStackUnderflow);
+				std::string(name) + ": float stack underflow", errorStackUnderflow);
 		}
 
 		void requireFStackAvailable(std::size_t n, const char* name) {
 			RUNTIME_ERROR_IF(!fStack.availableStack(n),
-				std::string(name) + ": stack overflow", errorStackOverflow);
+				std::string(name) + ": float stack overflow", errorStackOverflow);
 		}
 		void setDataCell(AAddr pointer, const FCell &value){
 			for (size_t i = 0; i < sizeof(FCell); ++i){
@@ -3503,6 +3503,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 											} 
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
 			else if (currentWord.compare("FLOATING-STACK") == 0){
+				ret = 200;
+			}else if (currentWord.compare("FLOATING") == 0){
 				ret = 200;
 			} else
 			if (currentWord.compare("MAX-FLOAT") == 0){
@@ -4588,7 +4590,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		bool isValidDigit(Char c) {
 			return isValidDigit(c, getNumericBase());
 		}
-		bool isValidDigit(Char c, int numericBase) {
+		static bool isValidDigit(Char c, int numericBase) {
 			if (numericBase > 10) {
 				if (('A' <= c) && (c < ('A' + numericBase - 10)))
 					return true;
@@ -4599,7 +4601,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		}
 
 		// Return numeric value associated with a character.
-		Cell digitValue(Char c) {
+		static Cell digitValue(Char c) {
 			if (c >= 'a')
 				return c - 'a' + 10;
 			else if (c >= 'A')
@@ -4693,7 +4695,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			}
 
 		}
-		unsigned long parseUnsignedNumber(const std::string valueStr, size_t skip, size_t &i, int numericBase) {
+		static unsigned long parseUnsignedNumber(const std::string valueStr, size_t skip, size_t &i, int numericBase) {
 
 			auto length = valueStr.length();
 			auto caddr = valueStr.c_str();
@@ -4713,8 +4715,61 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			}
 			return value;
 		}
+static void skipDecimalDigits(const std::string::const_iterator beginIt, const std::string::const_iterator endIt, 
+				std::string::const_iterator &it) {
+			it = beginIt;
+			while (it < endIt) {
+				auto c = (*it);
+				if (c>='0' && c<='9') {
+					++it;
+				}
+				else {
+					break;
+				}
+			}
+			return ;
+		}
 
-		long parseSignedNumber(const std::string value, size_t &rest, int numericBase) {
+
+		static unsigned long parseUnsignedNumber(const std::string::const_iterator beginIt, const std::string::const_iterator endIt, 
+				std::string::const_iterator &it, int numericBase) {
+			it = beginIt;
+			unsigned long value=0;
+			while (it < endIt) {
+				auto c = (*it);
+				if (isValidDigit(c, numericBase)) {
+					auto n = digitValue(c);
+					value = value * numericBase + n;
+					++it;
+				}
+				else {
+					break;
+				}
+			}
+			return value;
+		}
+
+		static double parseUnsignedNumberAsFloat(const std::string::const_iterator beginIt, const std::string::const_iterator endIt, 
+				std::string::const_iterator &it, int numericBase) {
+			it = beginIt;
+			double value=0.0;
+			double power=1.0;
+			while (it < endIt) {
+				auto c = (*it);
+				if (isValidDigit(c, numericBase)) {
+					auto n = digitValue(c);
+					power/=10.;
+					value += n*power;
+					++it;
+				}
+				else {
+					break;
+				}
+			}
+			return value;
+		}
+
+		static long parseSignedNumber(const std::string value, size_t &rest, int numericBase) {
 			auto length = value.length();			
 			if (length > rest+1 && value[rest] == '-') {
 				return -static_cast<long>(parseUnsignedNumber(value,rest+1,rest, numericBase));
@@ -4725,269 +4780,170 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		}
 
 		bool interpretNumbers(const std::string &value){
-			static std::regex regexInt{ "^[\\-]?\\d+$" };
-			static std::regex regexDouble{ "^\\d+\\.$" };
-			static std::regex regexNegativeDouble{ "^\\-\\d+\\.$" };
-			static std::regex regexDoubleNot10{ "^[\\dA-Za-z]+\\.$" };
-			static std::regex regexNegativeDoubleNot10{ "^\\-[\\dA-Za-z]+\\.$" };
-			static std::regex regexInt10{ "^#([\\-]?\\d+)$" };
-			static std::regex regexDouble10{ "^#([\\-]?\\d+)\\.$" };
-			static std::regex regexDouble16{ "^\\$([\\-]?[\\dA-Fa-f]+)\\.$" };
-			static std::regex regexDouble2{ "^%([\\-]?[01]+)\\.$" };
-			static std::regex regexInt16{ "^\\$([\\-]?[0-9A-Fa-f]+)$" };
-			static std::regex regexInt2{ "^%([\\-]?[01]+)$" };
-			static std::regex regexIntChar{ "^\'(.{1,1})\'$" };
-
 			int base = getNumericBase();
-			// consider it is int
+			auto valueSize=value.length();
+			bool signNegative{};
+			long long numericIntValue{};
+			// consider it is signed int
+			if(valueSize>0 && value[valueSize-1]!='.'){
+				auto begin=value.begin();
+				auto end=value.end();
+				auto localBase=base;
+				auto firstChar=*begin;
+				if(firstChar=='#') {localBase=10; ++begin;}
+				else if(firstChar=='$') {localBase=16; ++begin;}
+				else if(firstChar=='%') {localBase=2; ++begin;}
+				firstChar=*begin;
+				if(firstChar=='-') {signNegative=true; ++begin;}
+				else {signNegative=false;};
+				auto returnValue{begin};
+				numericIntValue=parseUnsignedNumber(begin,end,returnValue,localBase);
+				if(returnValue==end){
+					if(signNegative) numericIntValue=-numericIntValue;
+					int numberInt{static_cast<int>(numericIntValue)};
+					if (getIsCompiling()) {
+						data(CELL(doLiteralXt));
+						data(numberInt);
+					}
+					else {
+						push(numberInt);
+					}
+					return true;
+				}
+			}
 
+			// consider it is double int
+			if(valueSize>1 && value[valueSize-1]=='.'){
+				auto begin=value.begin();
+				auto end=value.end()-1;
+				auto localBase=base;
+				auto firstChar=*begin;
+				if(firstChar=='#') {localBase=10; ++begin;}
+				else if(firstChar=='$') {localBase=16; ++begin;}
+				else if(firstChar=='%') {localBase=2; ++begin;}
+				firstChar=*begin;
+				if(firstChar=='-') {signNegative=true; ++begin;}
+				else {signNegative=false;};
+				auto returnValue{begin};
+				numericIntValue=parseUnsignedNumber(begin,end,returnValue,localBase);
+				if(returnValue==end){
+					if(signNegative) numericIntValue=-numericIntValue;
+					SDCell numberD(numericIntValue);
+					if (getIsCompiling()) {
+						data(CELL(doLiteralXt));
+						data(numberD.data_.Cells.lo);
+						data(CELL(doLiteralXt));
+						data(numberD.data_.Cells.hi);
+					}
+					else {
+						push(numberD.data_.Cells.lo);
+						push(numberD.data_.Cells.hi);
+					}
+					return true;
+				}
+
+			}
+			// consider it is char
+			if (valueSize==3 && value[0]=='\'' and value[2]=='\''){
+				unsigned number;
+				number = static_cast<unsigned char>(value[1]);
+				if (getIsCompiling()) {
+					data(CELL(doLiteralXt));
+					data(number);
+				}
+				else {
+					push(number);
+				}
+				return true;
+			}			
+#ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
+/*
+if(0){
 			std::smatch m1{};
 			bool found{};
-			if (base == 10){
-				found = regex_search(value, m1, regexDouble);
-				if (found){
-					unsigned long long int number = std::stoll(value);
-					DCell numberD(number);
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.lo);
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.hi);
-
-					}
-					else {
-						push(numberD.data_.Cells.lo);
-						push(numberD.data_.Cells.hi);
-					}
-					return true;
-				}
-				found = regex_search(value, m1, regexNegativeDouble);
-				if (found){
-					long long int number = std::stoll(value);
-					SDCell numberD(number);
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.lo);
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.hi);
-					}
-					else {
-						push(numberD.data_.Cells.lo);
-						push(numberD.data_.Cells.hi);
-					}
-					return true;
-				}
-			}
-			found = regex_search(value, m1, regexDoubleNot10);
-			if (found) {
-				size_t ptr{};
-				unsigned long long int number = std::stoll(value,&ptr, base);
-				DCell numberD(number);
+			static std::regex regexFloat{ "^[-+]?(([0-9]*[\\.]{0,1}[0-9]+)|([0-9]+[\\.]{0,1}[0-9]*))([eE][-+]?[0-9]*)?$" };
+			found = regex_search(value, m1, regexFloat);
+			if (found){
+				FCell number = std::stod(value);
 				if (getIsCompiling()) {
-					data(CELL(doLiteralXt));
-					data(numberD.data_.Cells.lo);
-					data(CELL(doLiteralXt));
-					data(numberD.data_.Cells.hi);
-
+					data(CELL(doFLiteralXt));
+					dataFloat(number);
 				}
 				else {
-					push(numberD.data_.Cells.lo);
-					push(numberD.data_.Cells.hi);
+					fStack.push(number);
 				}
 				return true;
 			}
-			found = regex_search(value, m1, regexNegativeDoubleNot10);
-			if (found) {
-				size_t ptr{};
-				long long int number = std::stoll(value,&ptr,base);
-				SDCell numberD(number);
-				if (getIsCompiling()) {
-					data(CELL(doLiteralXt));
-					data(numberD.data_.Cells.lo);
-					data(CELL(doLiteralXt));
-					data(numberD.data_.Cells.hi);
-				}
-				else {
-					push(numberD.data_.Cells.lo);
-					push(numberD.data_.Cells.hi);
-				}
-				return true;
-			}
-				found = regex_search(value, m1, regexInt10);
-				if (found){
-					size_t ptr; int number;
-					try{
-						number = std::stoi(m1[1], &ptr, 10);
+} else
+*/
+ 			{
+				long long significandDigits{},exponentDigits0{};
+				double significandDigits0{};
+				bool signNegative{},exponentSignNegative{};
+				auto begin=value.begin();
+				auto end=value.end();
+				auto firstChar=*begin;
+				if(firstChar=='-') { signNegative=true; ++begin;}
+				else if(firstChar=='+') {signNegative=false; ++begin;}
+				auto returnValue{begin};
+				// own calculation: significandDigits=parseUnsignedNumber(begin,end,returnValue,10);
+				skipDecimalDigits(begin,end,returnValue);
+				if(returnValue>begin && returnValue<end){ // value has at least 1 decimal digit
+					firstChar=*returnValue;
+					if(firstChar=='.'){
+						begin=++returnValue;
+						// own calculation: significandDigits0=parseUnsignedNumberAsFloat(begin,end,returnValue,10);
+						skipDecimalDigits(begin,end,returnValue);
 					}
-					catch (...){
-						ptr = ptr;
-					}
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(number);
-					}
-					else {
-						push(number);
-					}
-					return true;
-				}
-				found = regex_search(value, m1, regexDouble10);
-				if (found) {
-					size_t ptr; long long number;
-					try {
-						number = std::stoll(m1[1], &ptr, 10);
-					}
-					catch (...) {
-						ptr = ptr;
-					}
-					SDCell numberD(number);
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.lo);
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.hi);
-					}
-					else {
-						push(numberD.data_.Cells.lo);
-						push(numberD.data_.Cells.hi);
-					}
-					return true;
-				}
-				found = regex_search(value, m1, regexDouble16);
-				if (found) {
-					size_t ptr; long long number;
-					try {
-						number = std::stoll(m1[1], &ptr, 16);
-					}
-					catch (...) {
-						ptr = ptr;
-					}
-					SDCell numberD(number);
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.lo);
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.hi);
-					}
-					else {
-						push(numberD.data_.Cells.lo);
-						push(numberD.data_.Cells.hi);
-					}
-					return true;
-				}
-				found = regex_search(value, m1, regexDouble2);
-				if (found) {
-					size_t ptr; long long number;
-					try {
-						number = std::stoll(m1[1], &ptr, 2);
-					}
-					catch (...) {
-						ptr = ptr;
-					}
-					SDCell numberD(number);
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.lo);
-						data(CELL(doLiteralXt));
-						data(numberD.data_.Cells.hi);
-					}
-					else {
-						push(numberD.data_.Cells.lo);
-						push(numberD.data_.Cells.hi);
-					}
-					return true;
-				}
-				found = regex_search(value, m1, regexInt16);
-				if (found){
-					size_t ptr; int number;
-					try{
-						number = std::stoi(m1[1], &ptr, 16);
-					}
-					catch (...){
-						ptr = ptr;
-					}
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(number);
-					}
-					else {
-						push(number);
-					}
-					return true;
-				}
-				found = regex_search(value, m1, regexInt2);
-				if (found){
-					size_t ptr; int number;
-					try{
-						number = std::stoi(m1[1], &ptr, 2);
-					}
-					catch (...){
-						ptr = ptr;
-					}
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(number);
-					}
-					else {
-						push(number);
-					}
-					return true;
-				}
-			
-				found = regex_search(value, m1, regexIntChar);
-				if (found){
-					unsigned number;
-					try{
-						std::string num{ m1[1] };
-						number = num[0];
-					}
-					catch (...){
-						size_t ptr = 0;
-					}
-					if (getIsCompiling()) {
-						data(CELL(doLiteralXt));
-						data(number);
-					}
-					else {
-						push(number);
-					}
-					return true;
-				}
+					if(returnValue<end){
+						firstChar=*returnValue++;
+						if(firstChar=='E' || firstChar=='e'){
+							if(returnValue<end){
+								firstChar=*returnValue;
+								if(firstChar=='-') { exponentSignNegative=true; ++returnValue;}
+								else if(firstChar=='+') {exponentSignNegative=false; ++returnValue;}
+								begin=returnValue;
+								// own calculation: exponentDigits0=parseUnsignedNumber(begin,end,returnValue,10);
+								skipDecimalDigits(begin,end,returnValue);
+								if(returnValue!=end){
+									return false;
+								}
+								// own calculation: if(exponentSignNegative) exponentDigits0=-exponentDigits0;
+							}
+							// pattern matched
+							// convert numbers to digits;
+							
+							// own calculation: double significant1=significandDigits;
+							// own calculation: significant1+=significandDigits0;
+							// own calculation: significant1*=std::pow(10,exponentDigits0);
+							// own calculation: if(signNegative) significant1=-significant1;
+							
+							// standard library function provides better precision
+							double significantStd=std::stod(value);
+							//if(significant1!=significantStd){static int cnt=0;
+							//std::cerr <<++cnt<<" Value "<<value<<" My "<<std::setprecision(20)<<significant1<< " , STD "<<std::setprecision(20)<<significantStd 
+							//<<" Diff " <<(significant1-significantStd) 
+							//<<std::endl;
+							//}
+							FCell number = significantStd;
+							if (getIsCompiling()) {
+								data(CELL(doFLiteralXt));
+								dataFloat(number);
+							}
+							else {
+								fStack.push(number);
+							}
+							return true;
 
-				found = true;
-				if (found){
-					size_t  ptr2{};
-					int number2=parseSignedNumber(value, ptr2, base);
-					if (ptr2 == value.length()){
-						if (getIsCompiling()) {
-							data(CELL(doLiteralXt));
-							data(number2);
+
 						}
-						else {
-							push(number2);
-						}
-						return true;
 					}
-					number2 = number2;
 				}
-#ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
-				std::regex regexFloat{ "^[ ]*[-+]?(([0-9]*[\\.]{0,1}[0-9]+)|([0-9]+[\\.]{0,1}[0-9]*))([eEdD][-+]?[0-9]*)?[ ]*$" };
-				found = regex_search(value, m1, regexFloat);
-				if (found){
-					FCell number = std::stod(value);
-					if (getIsCompiling()) {
-						data(CELL(doFLiteralXt));
-						dataFloat(number);
-					}
-					else {
-						fStack.push(number);
-					}
-					return true;
-				}
+			}
+
 #endif
-
 			return false;
-		}
+}
 		enum InterpretStates { InterpretSource=0, InterpretWords=1 };
 		InterpretStates InterpretState = InterpretSource;
 		void interpret() {

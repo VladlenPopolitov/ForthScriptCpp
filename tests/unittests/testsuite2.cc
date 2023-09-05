@@ -422,7 +422,7 @@ TEST_P(MyTestSuite, MyTest)
             if (content.length() > 0)
             {
                 contentGlobal=content;
-                std::cerr <<line<<" "<<content << std::endl;
+                //std::cerr <<line<<" "<<content << std::endl;
                 shared_resource_->ExecuteString(content);
                 if (errorInTest != saveError)
                 {
