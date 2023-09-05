@@ -180,6 +180,20 @@ namespace cppforth {
 	 String to convert numeric to string and string to numeric
 	****/
 	static const std::string digitsCodes{ "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" };
+	inline int  tolower_ascii(int const c) {
+    	if (c >= 'A' && c <= 'Z') {
+                return c - ('A' - 'a');
+        }
+        return c;
+    }
+
+    inline int toupper_ascii(int const c) {
+            if (c >= 'a' && c <= 'z') {
+                return c - ('a' - 'A');
+            }
+            return c;
+    }
+
 	/****
 
 	The Forth Part
@@ -1308,7 +1322,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		executed.  This will be explained below in the **Inner Interpreter** section.
 
 		****/
-		Xt next_command = 0;
+		Xt next_command{0};
 
 		/****
 
@@ -2457,7 +2471,18 @@ Code Reserved for	Code Reserved for
 		requirement.
 
 		****/
-
+// WORD ( char "<chars>ccc<char>" -- c-addr )
+		void  skipSpacesInSource() {
+				// Skip leading delimiters
+				while(getSourceBufferRemain() > 0) {
+					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+					if (isspace(static_cast<unsigned char>(currentChar))) {
+						incSourceBufferOffset();
+					} else {
+						return;
+					}
+				}
+		}
 		// WORD ( char "<chars>ccc<char>" -- c-addr )
 		void  word() {
 			REQUIRE_DSTACK_DEPTH(1, "WORD");
@@ -2555,7 +2580,7 @@ Code Reserved for	Code Reserved for
 						if( currentChar != delim
 						&& !(delim == ' ' && (isspace(static_cast<unsigned char>(currentChar))))
 						) {
-						wordBuffer.push_back(std::toupper(static_cast<unsigned char>(currentChar)));
+						wordBuffer.push_back(toupper_ascii(static_cast<unsigned char>(currentChar)));
 						incSourceBufferOffset();
 						} else {
 							break;
@@ -3095,7 +3120,7 @@ FCell getDataFCell32(CAddr pointer){
 				fStack.push(number);
 				return;
 			}
-			std::regex regexSpace{ "^[ ]*$" }; // special case - empty string is zero
+			static std::regex regexSpace{ "^[ ]*$" }; // special case - empty string is zero
 			found = regex_search(currentWord, m1, regexSpace);
 			if (found){
 				FCell number{};
@@ -3922,34 +3947,10 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			defn.code = code;
 			defn.parameter = defn.does = AADDR(getDataPointer());
 			defn.name = name;
-			for (auto & c: defn.name) c = std::toupper(static_cast<unsigned char>(c));
+			for (auto & c: defn.name) c = toupper_ascii(static_cast<unsigned char>(c));
 			definitions.emplace_back(std::move(defn));
 			getDefinition(definitions.size() - 1)->numberInVector = definitions.size() - 1;
 			if (setImmediate) immediate();
-		}
-
-		// @todo delete this member Determine whether two names are equivalent, using case-insensitive matching.
-		bool doNamesMatchDelete(CAddr name1, const std::string &name2, Cell nameLength) {
-			for (std::size_t i = 0; i < nameLength; ++i) {
-				if (std::toupper(static_cast<unsigned char>(getDataChar(name1 + i))) != std::toupper(static_cast<unsigned char>(name2[i]))) {
-					return false;
-				}
-			}
-			return true;
-		}
-		// Determine whether two names are equivalent, using case-insensitive matching.
-		// assume, that both parameters are in upper case
-		bool doNamesMatchDeleteToo(const std::string name1, const std::string &name2) {
-			if(name1.compare(name2)==0) return true;
-			return false;
-			/*
-			for (std::size_t i = 0; i < nameLength; ++i) {
-				if (std::toupper(static_cast<unsigned char>(name1[i])) != std::toupper(static_cast<unsigned char>(name2[i]))) {
-					return false;
-				}
-			}
-			return true;
-			*/
 		}
 
 		// Find a definition by name.
@@ -3958,7 +3959,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				return 0;
 			std::string Word1(nameLength,' ');
 			moveFromDataSpace(Word1, nameToFind, nameLength);
-			for (auto & c: Word1) c = std::toupper(static_cast<unsigned char>(c));
+			for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
 			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
 				auto& defn = *i;
 				if (!defn.isFindable())
@@ -3982,7 +3983,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			if (nameLength == 0)
 				return 0;
 			std::string Word1{nameToFind};
-			for (auto & c: Word1) c = std::toupper(static_cast<unsigned char>(c));
+			for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
 			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
 				auto& defn = *i;
 				if (!defn.isFindable())
@@ -4482,7 +4483,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 						auto xt = XT(dStack.getTop()); pop();
 						auto definition = *getDefinition(xt);
 						definition.name = newWord;
-						for (auto & c: definition.name) c = std::toupper(static_cast<unsigned char>(c));
+						for (auto & c: definition.name) c = toupper_ascii(static_cast<unsigned char>(c));
 						definitions.emplace_back(std::move(definition));
 						getDefinition(definitions.size() - 1)->numberInVector = definitions.size() - 1;
 					}
@@ -4984,6 +4985,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			Xt xt{};
 			while (true){
 				if (InterpretState == InterpretSource){
+					skipSpacesInSource();
 					if (getSourceBufferRemain() >0 ) {
 						bl();
 						word();
@@ -5016,18 +5018,18 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 							}
 							else {
 								// read buffer empty
+								// on next cycle go to 'refill' branch
 								continue;
-								//assert(!"interpret() impossible condition");
-								//return; // this return is not possible()
 							}
 						}
 					}
 					else {
-						refill(); // @bug if read from file, refill must be from file.
+						// 'refill' branch
+						refill(); 
 						auto refillFlag = dStack.getTop(); pop();
-						if (!refillFlag){
-							auto qty = savedInput.size();
-							if (qty > 0){
+						if (!refillFlag){  // input sorce empty ?
+							auto qty = savedInput.size();  	// if empty, check saved input sources
+							if (qty > 0){					// if have saved source - restore it and run
 								RestoreInput();
 								if (InterpretState == InterpretWords){
 									if (next_command != 0){
@@ -5127,8 +5129,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				savedInputVector.push_back(save);
 				push(saveInputVectorLastSaved);
 				push(1);
-				// @bug check how it works
-				//next_command = 0;
 		}
 
 		/**
@@ -5171,16 +5171,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		}
 		void SaveInput(structSavedInput::InputBufferSourceSavedByEnum source){
 			struct structSavedInput save{};
-			/*
-			save.inputBufferStringsCurrent_ = inputBufferStringsCurrent;
-			std::swap(save.inputBufferStrings_ ,inputBufferStrings);  // consider std::swap here
-			inputBufferStringsCurrent = 0;
-			getSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
-			save.InputBufferSourceSavedBy_ = source;
-			save.SourceDashId_ = getSourceId();
-			save.interpretState_ = InterpretState;
-			save.next_ = next_command;
-			*/
 			saveInput(save, true);
 			next_command = 0;
 			savedInput.push_back(save);
@@ -5193,7 +5183,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			setSourceBuffer();
 		}
 		void restoreInput(struct structSavedInput& save, bool emptyCurrentBuffer, bool restoreNextCommand) {
-			//if (save.inputBufferStrings_.size() > 0) {
 				if (emptyCurrentBuffer) {
 					std::swap(save.inputBufferStrings_, inputBufferStrings);
 				}
@@ -5210,23 +5199,12 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				if (restoreNextCommand) {
 					next_command = save.next_;
 				}
-			//}
 		}
 		size_t RestoreInput(){
 			auto size = savedInput.size();
 			if (size > 0){
 				struct structSavedInput &save{ savedInput.at(size-1)};
 				restoreInput(save,true,true);
-				/*
-				if (save.inputBufferStrings_.size()>0){
-					std::swap(save.inputBufferStrings_, inputBufferStrings);
-					inputBufferStringsCurrent = save.inputBufferStringsCurrent_;
-					setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
-					setSourceId(save.SourceDashId_);
-					InterpretState = save.interpretState_;
-					next_command = save.next_;
-				}
-				*/
 				savedInput.pop_back();
 			}
 			return savedInput.size();

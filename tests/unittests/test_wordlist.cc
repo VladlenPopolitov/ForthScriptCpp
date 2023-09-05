@@ -23,7 +23,7 @@ const char* allFilesInSuite[] = {
 	""
 };
 
-TEST(TestSuit1, ForthTestSuit023IncludeAllFileSTest)
+TEST(TestWordList, CheckAllWordsForth2012)
 {
 	RunAndPrint(allFilesInSuite, allfilenames, 2,1); // read and execute 1 file 
 }
