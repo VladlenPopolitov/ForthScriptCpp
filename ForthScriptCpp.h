@@ -556,6 +556,11 @@ continue the interpreter loop.
 ": fvariable   create 0.0e0 f, ; "
 ": F> FSWAP F< ; " // not standard word
 ": SFLOATS FLOATS ; : SFLOAT+ FLOAT+ ; : DFLOATS FLOATS ; : DFLOAT+ FLOAT+ ;  "
+": SFALIGNED ALIGNED ; "
+": DFALIGNED ALIGNED ; "
+": SFALIGN ALIGN ; "
+": DFALIGN ALIGN ; "
+
 #endif
 
 		/****
@@ -715,8 +720,6 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
   * 
  */
 
-": SFALIGNED ALIGNED ; "
-": DFALIGNED ALIGNED ; "
 ": BEGIN-STRUCTURE CREATE HERE 0 0 , DOES> @ ; "
 ": END-STRUCTURE SWAP ! ; "
 ": +FIELD CREATE OVER , + DOES> @ + ; "
@@ -3335,6 +3338,12 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			REQUIRE_FSTACK_DEPTH(1, "FACOSH");
 			auto r1 = fStack.getTop(0);
 			fStack.setTop(std::acosh(r1));
+		}		
+		// FATANH ( F: r1 -- r2 ) or ( r1 -- r2 )
+		void f_fatanh() {
+			REQUIRE_FSTACK_DEPTH(1, "FATANH");
+			auto r1 = fStack.getTop(0);
+			fStack.setTop(std::atanh(r1));
 		}		
 		// F ( F: r1 -- r2 ) or ( r1 -- r2 )
 		void f_f() {
@@ -6069,6 +6078,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				{ "FALOG", &Forth::f_falog, false },
 				{ "FASINH", &Forth::f_fasinh, false },
 				{ "FACOSH", &Forth::f_facosh, false },
+				{ "FATANH", &Forth::f_fatanh, false },
 				{ "FSINH", &Forth::f_fsinh, false },
 				{ "FCOSH", &Forth::f_fcosh, false },
 				{ "FTANH", &Forth::f_ftanh, false },

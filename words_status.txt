@@ -187,7 +187,7 @@ ABORT"  word OK
 CATCH  word OK
 THROW  word OK
   exceptions words total 4   exceptions words missing 0 
-DFALIGN  word missing
+DFALIGN  word OK
 DFALIGNED  word OK
 DFFIELD:  word OK
 DF@  word OK
@@ -204,7 +204,7 @@ FALOG  word OK
 FASIN  word OK
 FASINH  word OK
 FATAN  word OK
-FATANH  word missing
+FATANH  word OK
 FATAN2  word OK
 FCONSTANT  word OK
 FCOS  word OK
@@ -257,7 +257,7 @@ F>S  word OK
 PRECISION  word OK
 REPRESENT  word OK
 SET-PRECISION  word OK
-SFALIGN  word missing
+SFALIGN  word OK
 SFALIGNED  word OK
 SFFIELD:  word OK
 SF@  word OK
@@ -266,7 +266,7 @@ SFLOATS  word OK
 SF!  word OK
 S>F  word OK
 >FLOAT  word OK
-  float words total 79   float words missing 3 
+  float words total 79   float words missing 0 
 AHEAD  word OK
 ASSEMBLER  word missing
 BYE  word OK
@@ -469,7 +469,7 @@ coreext words total 49 coreext words missing 1
 exceptions words total 4 exceptions words missing 0 
   facility words total 40   facility words missing 32 
   file words total 29   file words missing 0 
-  float words total 79   float words missing 3 
+  float words total 79   float words missing 0 
   locals words total 3   locals words missing 3 
   memory words total 3   memory words missing 0 
   search words total 14   search words missing 12 
