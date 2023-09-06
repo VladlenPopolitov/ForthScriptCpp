@@ -825,6 +825,18 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		"    .\" ForthScriptCPP " FORTHSCRIPTCPP_VERSION "\" cr "
 		"    .\" Type \" .dquot .\" about\" .dquot .\"  for more information.  \" "
 		"    .\" Type \" .dquot .\" bye\" .dquot .\"  to exit.\" cr ; "
+
+/**
+ * DEBUG WORDS (not standard)
+ * */		
+
+": display-line ( addr -- ) hex dup 8 U.R BL EMIT dup dup $10 + swap DO I C@ 2 U.R I 1 + 4 MOD 0= IF BL EMIT THEN  LOOP BL DUP EMIT EMIT '*' EMIT BL EMIT   dup $10 + SWAP DO I C@ DUP $20 - 0< IF DROP '?' THEN EMIT LOOP BL EMIT '*' EMIT CR ; "  
+": display ( addr u -- ) BASE @ ROT ROT dup $400 - 0> IF DROP $400 THEN OVER + SWAP CR DO I display-line $10 +LOOP BASE ! ; "
+"[UNDEFINED] FIND-CALLER [IF] : FIND-CALLER DROP S\" ________________\" TYPE ; [THEN] "
+"[UNDEFINED] FIND-XT-NAME [IF] : FIND-XT-NAME DROP S\" ________________\" TYPE ; [THEN] "
+": display-disasm-line ( addr -- ) hex dup 8 U.R BL EMIT DUP @ 8 U.R BL EMIT DUP FIND-CALLER BL EMIT FIND-XT-NAME CR ; "
+": disasm ( addr u -- )  CR BASE @ ROT ROT dup $100 - 0> IF DROP $100 THEN OVER + SWAP CR DO I display-disasm-line 4 +LOOP BASE !   ; "
+ 
 	;
 
 
@@ -1284,9 +1296,11 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		const CAddr VarOffsetNumericBase = CellSize * 6;	// BASE variable
 		const CAddr VarOffsetWordBuffer = CellSize * 7;
 		const CAddr WordBufferSize = CellSize * 256;
+		const CAddr VarOffsetPadBuffer = VarOffsetWordBuffer+WordBufferSize;
 		const CAddr PadBufferSize = 256;
-		const CAddr VarOffsetPadBuffer = WordBufferSize + CellSize * 8;
-		const CAddr VarOffsetSourceBuffer = WordBufferSize + CellSize * 8 + PadBufferSize;
+		const CAddr VarOffsetDebugBuffer = VarOffsetPadBuffer+PadBufferSize;
+		const CAddr DebugBufferSize = CellSize * 256;
+		const CAddr VarOffsetSourceBuffer = VarOffsetDebugBuffer+DebugBufferSize;
 
 
 		Char getDataChar(CAddr pointer){
@@ -2607,6 +2621,75 @@ Code Reserved for	Code Reserved for
 			catch (...){
 				int a = 1;
 			}
+		}
+		// FIND-XT-NAME ( addr -- addr u )
+		void  findxtname() {
+			REQUIRE_DSTACK_DEPTH(1, "FIND-XT-NAME");
+			std::string wordBuffer(16,' ');
+			auto address = dStack.getTop(); pop();
+			auto xt=CELL(getDataCell(address));
+			auto xtfound=findXt(xt);
+			//std::cout << std::endl << address << " "<< xt << " " << xtfound << std::endl;
+			if(xtfound>0){
+				wordBuffer=definitionsAt(xtfound).name;	
+				//std::cerr << " more " << wordBuffer;
+			} 
+			if(wordBuffer.size()<16) {
+			 wordBuffer.append(std::string(16-wordBuffer.size(), ' '));
+			}
+
+#ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
+			switch (writeToTarget) {
+			case ToString:
+				std_cout << wordBuffer  ;
+				break;
+			case ToStdCout:
+				std::cout << wordBuffer ;
+				std::cout.flush();
+				break;
+			default:
+				break;
+			}
+#endif
+		}
+		void  findcaller() {
+			REQUIRE_DSTACK_DEPTH(1, "FIND-CALLER");
+			std::string wordBuffer(16,' ');
+			auto address = dStack.getTop(); pop();
+			auto xtfound=findDoes(address);
+			//std::cout << std::endl << address << " "<< xt << " " << xtfound << std::endl;
+			if(xtfound>0){
+				wordBuffer=definitionsAt(xtfound).name;	
+			} 
+			if(wordBuffer.size()<16) {
+			 wordBuffer.append(std::string(16-wordBuffer.size(), ' '));
+			}
+
+#ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
+			switch (writeToTarget) {
+			case ToString:
+				std_cout << wordBuffer  ;
+				break;
+			case ToStdCout:
+				std::cout << wordBuffer ;
+				std::cout.flush();
+				break;
+			default:
+				break;
+			}
+#endif
+		}
+
+		// Given a cell that might be an DOES member of the defined name, search for it in the definitions list.
+		//
+		// Returns a pointer to the definition if found, or 0 if not.
+		Xt findDoes(Cell x) {
+			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
+				auto& defn = *i;
+				if ((defn.does) == static_cast<Xt>(x))
+					return defn.numberInVector; 
+			}
+			return 0;
 		}
 
 
@@ -4155,7 +4238,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 					std_cout << " " << definitionsAt(xt).name;
 				else
 					std_cout << " " << SETBASE() << static_cast<SCell>(getDataCell(does));
-				++does;
+				does+=sizeof(Cell);
 			}
 			std_cout << " ;";
 #endif
@@ -4171,7 +4254,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			auto defn = getDefinition(XT(dStack.getTop())); pop();
 			if ((defn)->code == &Forth::doColon) {
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
-				std_cout << ": " << (defn)->name;
+				std_cout <<  SETBASE() << static_cast<SCell>(defn->does);
+				std_cout << " : " << (defn)->name;
 #endif
 				seeDoes((defn)->does);
 			}
@@ -4186,7 +4270,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			}
 			else {
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
-				std_cout << ": " << defn->name << " <primitive " << SETBASE() << "addr of proc is not defined " /*CELL((void*)(defn->code))*/ << "> ;";
+				std_cout << ": " << defn->name << " <primitive " << SETBASE() << "addr of proc is not defined " << "> ;";
 #endif
 			}
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
@@ -6049,6 +6133,8 @@ if(0){
 				{ "DF@", &Forth::df_fetch, false }, // FLOAT-EXT
 
 #endif
+				{"FIND-XT-NAME",&Forth::findxtname,false},
+				{"FIND-CALLER",&Forth::findcaller,false},
 			};
 
 			int numWords = sizeof(codeWords) / sizeof(CodeWord);
