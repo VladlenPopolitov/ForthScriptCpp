@@ -1301,30 +1301,6 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		const CAddr VarOffsetDebugBuffer = VarOffsetPadBuffer+PadBufferSize;
 		const CAddr DebugBufferSize = CellSize * 256;
 		const CAddr VarOffsetSourceBuffer = VarOffsetDebugBuffer+DebugBufferSize;
-
-
-		Char getDataChar(CAddr pointer){
-			return dataSpaceAt(pointer);
-		}
-		void setDataChar(CAddr pointer, Char value){
-			dataSpaceSet(pointer, value);
-		}
-		Cell getDataCell(CAddr pointer){
-			Cell tmp{ 0 }, tmpRes{ 0 };
-			for (size_t i = 0; i < sizeof(Cell); ++i){
-				tmp=dataSpaceAt(pointer + i) ;
-				tmp <<= 8*i;
-				tmpRes |= tmp;
-			}
-			return tmpRes;
-		}
-		void setDataCell(AAddr pointer, Cell value){
-			Cell tmp{ 0 };
-			for (size_t i = 0; i < sizeof(Cell); ++i){
-				dataSpaceSet(pointer+i, value & 0x00ff);
-				value >>= 8;
-			}
-		}
 		
 		Definition &definitionsAt(Cell index){
 			if (index >= definitions.size() || index<0){
@@ -6271,9 +6247,22 @@ if(0){
 				}
 			}
 			return Char(0); // all memory is filled by 0x00
-			throwMessage("Access outside dataspace",errorInvalidAddress);
-			throw;
 		}
+		Cell dataSpaceAtCell(Cell index){
+			for (auto it = VirtualMemory.begin(), itend=VirtualMemory.end(); it != itend ; ++it){
+				if ((*it).start <= index && (*it).end > index){
+					Cell tmp{ 0 }, tmpRes{ 0 };
+					for (size_t i = 0; i < sizeof(Cell) && (*it).end > index; ++i,++index){
+						tmp=(*it).segment.at(index - (*it).start) ;
+						tmp <<= 8*i;
+						tmpRes |= tmp;
+					}
+					return tmpRes;		
+				}
+			}
+			return Cell(0); // all memory is filled by 0x00
+		}
+
 		void dataSpaceSet(Cell index,Char value) {
 			for (auto it = VirtualMemory.begin() , itend=VirtualMemory.end(); it != itend ; ++it) {
 				if ((*it).start <= index && (*it).end > index) {
@@ -6283,6 +6272,34 @@ if(0){
 			// ignore writes outside of allocated memory (it is ROM)
 			//throwMessage("Access outside dataspace", errorInvalidAddress);
 			//throw;
+		}
+
+
+		Char getDataChar(CAddr pointer){
+			return dataSpaceAt(pointer);
+		}
+		void setDataChar(CAddr pointer, Char value){
+			dataSpaceSet(pointer, value);
+		}
+		/// read int value from address pointer
+		/// it is used often and require optimization
+		Cell getDataCell(CAddr pointer){
+			return dataSpaceAtCell(pointer);
+			/* Cell tmp{ 0 }, tmpRes{ 0 };
+			for (size_t i = 0; i < sizeof(Cell); ++i){
+				tmp=dataSpaceAt(pointer + i) ;
+				tmp <<= 8*i;
+				tmpRes |= tmp;
+			}
+			return tmpRes;
+			*/
+		}
+		void setDataCell(AAddr pointer, Cell value){
+			Cell tmp{ 0 };
+			for (size_t i = 0; i < sizeof(Cell); ++i){
+				dataSpaceSet(pointer+i, value & 0x00ff);
+				value >>= 8;
+			}
 		}
 
 	public:
