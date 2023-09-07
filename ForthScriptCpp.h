@@ -1058,7 +1058,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				flags |= FlagImmediate;  
 			}
 
-			bool isFindable() const { return !name.empty() && !isHidden(); }
+			bool isFindable() const { return name.size()>0 && !isHidden(); }
 		};
 
 
@@ -4054,7 +4054,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			std::string Word1(nameLength,' ');
 			moveFromDataSpace(Word1, nameToFind, nameLength);
 			for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
-			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
+			for (auto i = definitions.rbegin(), iend=definitions.rend(); i != iend ; ++i) {
 				auto& defn = *i;
 				if (!defn.isFindable())
 					continue;
@@ -4062,11 +4062,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				if(nameLength==name.length() && Word1.compare(name)==0) {
 					return defn.numberInVector; 
 				}
-				//if (name.length() == nameLength) {
-				//	if (doNamesMatch(nameToFind, name.data(), nameLength)) {
-				//		return defn.numberInVector; 
-				//	}
-				//}
 			}
 			return 0;
 		}
@@ -4078,7 +4073,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				return 0;
 			std::string Word1{nameToFind};
 			for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
-			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
+			for (auto i = definitions.rbegin(), iend=definitions.rend(); i != iend ; ++i) {
 				auto& defn = *i;
 				if (!defn.isFindable())
 					continue;
@@ -4086,11 +4081,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				if(nameLength==name.length() && Word1.compare(name)==0) {
 					return defn.numberInVector; 
 				}
-				//if (name.length() == nameLength) {
-				//	if (doNamesMatch(nameToFind, name.data(), nameLength)) {
-				//		return defn.numberInVector; 
-				//	}
-				//}
 			}
 			return 0;
 		}
