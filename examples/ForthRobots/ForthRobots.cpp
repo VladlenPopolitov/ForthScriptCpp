@@ -3,6 +3,10 @@
 // define FORTHSCRIPTCPP_ENABLE_INTERNALDEBUGGER to activate internal debugger and 
 // callback function executed before every step
 #define FORTHSCRIPTCPP_ENABLE_INTERNALDEBUGGER 1
+#define FORTHSCRIPTCPP_ENABLE_FILE   1
+#define FORTHSCRIPTCPP_ENABLE_MEMORY  1
+#define FORTHSCRIPTCPP_ENABLE_FLOAT 1
+#define FORTHSCRIPTCPP_ENABLE_FLOAT_EXT 1
 #ifdef _WIN32
 #include "..\..\ForthScriptCpp.h"
 #else
