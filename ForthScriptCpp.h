@@ -1395,15 +1395,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		Cell getSourceBufferSize() {
 			return getDataCell(VarOffsetSourceSize);
 		}
-		/* bug delete - it unclear
-		void setSourceBuffer(const std::string &value){
-			auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBufferRefill).segment;
-			sourceBufferVirtual.resize(0);
-			std::copy(value.begin(), value.end(), std::back_inserter(sourceBufferVirtual));
-			VirtualMemory.at(vmSegmentSourceBufferRefill).end = VirtualMemory.at(vmSegmentSourceBufferRefill).start + VirtualMemory.at(vmSegmentSourceBufferRefill).segment.size();
-			setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, sourceBufferVirtual.size(), 0);
-			//setSourceBufferSize(sourceBufferVirtual.size());
-		} */
+
 		bool setSourceBuffer(){
 			if (inputBufferStringsCurrent < inputBufferStrings.size()){
 				// load next string from input buffer
@@ -1413,15 +1405,11 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				std::copy(value.begin(), value.end(), std::back_inserter(sourceBufferVirtual));
 				VirtualMemory.at(vmSegmentSourceBufferRefill).end = VirtualMemory.at(vmSegmentSourceBufferRefill).start + VirtualMemory.at(vmSegmentSourceBufferRefill).segment.size();
 				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, sourceBufferVirtual.size(), 0);
-				//setSourceBufferSize(sourceBufferVirtual.size());
-				//setSourceBufferOffset(0);
 				return true;
 			}
 			else {
 				// fill input buffer by zero length vector
 				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, 0, 0);
-				//setSourceBufferSize(0);
-				//setSourceBufferOffset(0);
 				return false;
 			}
 		}
@@ -2518,7 +2506,61 @@ Code Reserved for	Code Reserved for
 
 			std::string wordBuffer{};
 			wordBuffer.push_back(0);  // First char of buffer is length.
-			try {
+			// Skip leading delimiters
+			if (getSourceBufferRemain() > 0) {
+				auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+				while (getSourceBufferRemain() > 0 && ((currentChar == delim)
+					|| (delim == ' ' && isspace(static_cast<unsigned char>(currentChar)))
+					)) {
+					incSourceBufferOffset();
+					currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+				}
+			}
+			if (getSourceBufferRemain() > 0) {
+				// Copy characters until we see the delimiter again.
+				while (getSourceBufferRemain() >0 ) {
+					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());	
+					if( currentChar != delim
+					&& !(delim == ' ' && (isspace(static_cast<unsigned char>(currentChar))))
+					) {
+					wordBuffer.push_back(static_cast<unsigned char>(currentChar));
+					incSourceBufferOffset();
+					} else {
+						break;
+					}
+				}
+				// source point to the delimiter char, skip it.
+				if (getSourceBufferRemain() >0 ) {
+					incSourceBufferOffset(); 
+				}
+			}
+			if (wordBuffer.size() > 255){
+				// @bug it is catched below
+				throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
+			}
+			// Update the count at the beginning of the buffer.
+				wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
+				// copy to fixed buffer
+				moveIntoDataSpace(VarOffsetWordBuffer, wordBuffer.c_str(), wordBuffer.size());
+				dStack.setTop(CELL(VarOffsetWordBuffer));
+
+		}
+		Xt blWordFind(std::string &wordBuffer) {
+
+			auto delim = ' ';
+			/****
+
+			I need a buffer to store the result of the Forth `WORD` word.  As with the
+			input buffer, I use a `std::string` so I don't need to worry about memory
+			management.
+
+			Note that while this is a `std::string`, its format is not a typical strings.
+			The buffer returned by `WORD` has the word length as its first character.
+			That is, it is a Forth _counted string_.
+
+			****/
+			wordBuffer.resize(0);  // First char of buffer is length.
+			
 				// Skip leading delimiters
 				if (getSourceBufferRemain() > 0) {
 					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
@@ -2552,14 +2594,13 @@ Code Reserved for	Code Reserved for
 					throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
 				}
 				// Update the count at the beginning of the buffer.
-				wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
+				//wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
 				// copy to fixed buffer
-				moveIntoDataSpace(VarOffsetWordBuffer, wordBuffer.c_str(), wordBuffer.size());
-				dStack.setTop(CELL(VarOffsetWordBuffer));
-			}
-			catch (...){
-				int a = 1;
-			}
+				//moveIntoDataSpace(VarOffsetWordBuffer, wordBuffer.c_str(), wordBuffer.size());
+				//dStack.setTop(CELL(VarOffsetWordBuffer));
+			auto word = findDefinition(wordBuffer);
+			return word;
+			
 		}
 		// UPPERWORD ( char "<chars>ccc<char>" -- c-addr )
 		void  upperword() {
@@ -2684,7 +2725,7 @@ Code Reserved for	Code Reserved for
 		//
 		// Returns a pointer to the definition if found, or 0 if not.
 		Xt findDoes(Cell x) {
-			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
+			for (auto i = definitions.rbegin() , iend=definitions.rend(); i != iend ; ++i) {
 				auto& defn = *i;
 				if ((defn.does) == static_cast<Xt>(x))
 					return defn.numberInVector; 
@@ -4056,7 +4097,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
 			for (auto i = definitions.rbegin(), iend=definitions.rend(); i != iend ; ++i) {
 				auto& defn = *i;
-				if (!defn.isFindable())
+				//if (!defn.isFindable())
+				if (defn.isHidden())
 					continue;
 				auto& name = defn.name;
 				if(nameLength==name.length() && Word1.compare(name)==0) {
@@ -4075,7 +4117,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
 			for (auto i = definitions.rbegin(), iend=definitions.rend(); i != iend ; ++i) {
 				auto& defn = *i;
-				if (!defn.isFindable())
+				//if (!defn.isFindable())
+				if (defn.isHidden())
 					continue;
 				auto& name = defn.name;
 				if(nameLength==name.length() && Word1.compare(name)==0) {
@@ -4211,11 +4254,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		//
 		// Returns a pointer to the definition if found, or nullptr if not.
 		Xt findXt(Cell x) {
-			for (auto i = definitions.rbegin(); i != definitions.rend(); ++i) {
-				auto& defn = *i;
-				if ((&defn - &*definitions.begin()) == static_cast<Xt>(x))
-					return defn.numberInVector; 
-			}
+			if(x>0 && x<definitions.size()) return x;
 			return 0;
 		}
 
@@ -5022,16 +5061,15 @@ if(0){
 		InterpretStates InterpretState = InterpretSource;
 		void interpret() {
 			Xt xt{};
+			std::string currentWord(33,0); // reserve at least 33 chars in word
 			while (true){
 				if (InterpretState == InterpretSource){
 					skipSpacesInSource();
 					if (getSourceBufferRemain() >0 ) {
-						bl();
-						word();
-						find();
-						auto found = static_cast<int>(dStack.getTop()); pop();
-						if (found) {
-							xt = XT(dStack.getTop()); pop();
+						// bl(); word(); find(); auto found = static_cast<int>(dStack.getTop()); pop();
+						xt=blWordFind(currentWord);
+						if (xt>0) {
+							// xt = XT(dStack.getTop()); pop();
 							if (getIsCompiling() && !getDefinition(xt)->isImmediate()) {
 								data(CELL(xt));
 							}
@@ -5041,12 +5079,10 @@ if(0){
 						}
 						else {
 							// Try to parse it as a number.
-							count();
-							auto length = SIZE_T(dStack.getTop()); pop();
-							auto caddr = CADDR(dStack.getTop()); pop();
-							if (length > 0) {
-								std::string currentWord{};
-								moveFromDataSpace(currentWord, caddr, length);
+							// count(); 	auto length = SIZE_T(dStack.getTop()); pop(); auto caddr = CADDR(dStack.getTop()); pop();
+							if (currentWord.size() > 0) {
+								// std::string currentWord{};
+								// moveFromDataSpace(currentWord, caddr, length);
 								if (!interpretNumbers(currentWord)){
 									push(-13);
 									exceptionsThrow();
@@ -6229,7 +6265,7 @@ if(0){
 		std::vector<VirtualMemorySegment> VirtualMemory{};
 		Cell VirtualMemoryFreeSegment{};
 		Char dataSpaceAt(Cell index){
-			for (auto it = VirtualMemory.begin(); it != VirtualMemory.end(); ++it){
+			for (auto it = VirtualMemory.begin(), itend=VirtualMemory.end(); it != itend ; ++it){
 				if ((*it).start <= index && (*it).end > index){
 					return (*it).segment.at(index - (*it).start);
 				}
@@ -6239,7 +6275,7 @@ if(0){
 			throw;
 		}
 		void dataSpaceSet(Cell index,Char value) {
-			for (auto it = VirtualMemory.begin(); it != VirtualMemory.end(); ++it) {
+			for (auto it = VirtualMemory.begin() , itend=VirtualMemory.end(); it != itend ; ++it) {
 				if ((*it).start <= index && (*it).end > index) {
 					(*it).segment.at(index - (*it).start) = value;
 				}
