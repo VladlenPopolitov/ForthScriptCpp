@@ -3,7 +3,7 @@
 EmbedForthCpp: A Forth implementation as C++ Class by Vladlen Popolitov 
 
 
-CORE is fully impelemented, all CORE tests are passed.
+CORE, CORE-EXT, DOUBLE, EXCEPTION, FILE, FLOAT, MEMORY are fully impelemented, all tests for these words are passed.
 ==============================================
 C++ Class forthcpp::Forth (https://github.com/VladlenPopolitov/ForthScriptCpp) 
 is inspired by Kristopher Johnson's cxxforth (https://github.com/kristopherjohnson/cxxforth). 
