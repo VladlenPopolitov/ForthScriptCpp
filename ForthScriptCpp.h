@@ -3206,7 +3206,7 @@ FCell getDataFCell32(CAddr pointer){
 		// is used by `FLITERAL` and other Forth words that need to specify a cell value
 		// to put on the stack during execution.
 		void doFLiteral() {
-			REQUIRE_FSTACK_AVAILABLE(1, "(flit)");
+			REQUIRE_FSTACK_AVAILABLE(1, "(FLIT)");
 			fStack.push(getDataFCell(next_command));
 			next_command += sizeof(FCell);
 		}
@@ -4029,7 +4029,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		// is used by `LITERAL` and other Forth words that need to specify a cell value
 		// to put on the stack during execution.
 		void doLiteral() {
-			REQUIRE_DSTACK_AVAILABLE(1, "(lit)");
+			REQUIRE_DSTACK_AVAILABLE(1, "(LIT)");
 			push(CELL(getDataCell(next_command)));
 			next_command+=sizeof(Cell);
 		}
@@ -4056,7 +4056,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		// instruction.  If top-of-stack is not zero, then continue to the next
 		// instruction.
 		void zbranch() {
-			REQUIRE_DSTACK_DEPTH(1, "(zbranch)");
+			REQUIRE_DSTACK_DEPTH(1, "(ZBRANCH)");
 			auto flag = dStack.getTop(); pop();
 			if (flag == False)
 				branch();
@@ -5763,12 +5763,12 @@ if(0){
 		}
 
 		void markerstart() {
-			REQUIRE_DSTACK_AVAILABLE(1, "markerstart");
+			REQUIRE_DSTACK_AVAILABLE(1, "MARKERSTART");
 			Cell defn = definitions.size();
 			push(defn-1);
 		}
 		void markerremove() {
-			REQUIRE_DSTACK_DEPTH(1, "markerremove");
+			REQUIRE_DSTACK_DEPTH(1, "MARKERREMOVE");
 			Cell defn = dStack.getTop(); pop();
 			for (size_t i = defn; i<definitions.size(); ++i) {
 				auto& def = definitions[i];
@@ -5878,129 +5878,129 @@ if(0){
 				// name             code
 				// ------------------------------
 				{ "", nullptr, true }, // empty difinition (zero index - not found)
-				{ "(lit)", &Forth::doLiteral, false },
-				{ "(does)", &Forth::setDoes, false },
-				{ "exit", &Forth::exit, false },
+				{ "(LIT)", &Forth::doLiteral, false },
+				{ "(DOES)", &Forth::setDoes, false },
+				{ "EXIT", &Forth::exit, false },
 				{ "(;)", &Forth::endOfDefinition, false },
-				{ "(branch)", &Forth::branch, false },
-				{ "(zbranch)", &Forth::zbranch, false },
-				{ ">r", &Forth::toR, false },
-				{ "r>", &Forth::rFrom, false },
-				{ "2drop",&Forth::drop2, false },
-				{ "2dup", &Forth::dup2, false },
+				{ "(BRANCH)", &Forth::branch, false },
+				{ "(ZBRANCH)", &Forth::zbranch, false },
+				{ ">R", &Forth::toR, false },
+				{ "R>", &Forth::rFrom, false },
+				{ "2DROP",&Forth::drop2, false },
+				{ "2DUP", &Forth::dup2, false },
 				{ "1+", &Forth::plus1, false },
 				{ "=", &Forth::equals, false },
-				{ "rot", &Forth::rot, false },
+				{ "ROT", &Forth::rot, false },
 				{ "+", &Forth::plus, false },  // CORE
-				{ "swap", &Forth::swap, false },
+				{ "SWAP", &Forth::swap, false },
 				{ "", &Forth::loops_plusloop_check, false },
-				{ "noop", &Forth::noop, false }, // 17
+				{ "NOOP", &Forth::noop, false }, // 17
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
-				{ "(flit)", &Forth::doFLiteral, false }, // 18
+				{ "(FLIT)", &Forth::doFLiteral, false }, // 18
 #else
-				{ "noop", &Forth::noop, false }, // 18
+				{ "NOOP", &Forth::noop, false }, // 18
 #endif
 				{ ";", &Forth::semicolon, true }, // CORE
 				{ "!", &Forth::store, false },  // CORE
 				{ "*", &Forth::star, false }, // CORE
 				{ "-", &Forth::minus, false }, // CORE
 				{ ".", &Forth::dot, false },   // CORE
-				{ ".r", &Forth::dotR, false },  // CORE EXT
-				{ ".rs", &Forth::dotRS, false }, // not standard
-				{ ".s", &Forth::dotS, false }, // TOOLS
+				{ ".R", &Forth::dotR, false },  // CORE EXT
+				{ ".RS", &Forth::dotRS, false }, // not standard
+				{ ".S", &Forth::dotS, false }, // TOOLS
 				{ "/", &Forth::slash, false },  // CORE
 				{ "/mod", &Forth::slashMod, false },  // CORE
 				{ ":", &Forth::colon, false },  // CORE
 				{ ":noname", &Forth::noname, false },  // CORE EXT
 				{ "<", &Forth::lessThan, false },  // CORE
 				{ ">", &Forth::greaterThan, false },  // CORE
-				{ ">body", &Forth::toBody, false }, // CORE
-				{ ">in", &Forth::toIn, false }, // CORE
+				{ ">BODY", &Forth::toBody, false }, // CORE
+				{ ">IN", &Forth::toIn, false }, // CORE
 				{ "@", &Forth::fetch, false },  // CORE
-				{ "abort", &Forth::abort, false },  // CORE
-				{ "abort-message", &Forth::abortMessage, false },  // not standard
-				{ "accept", &Forth::accept, false },  // CORE
-				{ "align", &Forth::align, false },  // CORE
-				{ "aligned", &Forth::aligned, false },  // CORE
-				{ "allot", &Forth::allot, false },  // CORE
-				{ "and", &Forth::bitwiseAnd, false },  // CORE
-				{ "base", &Forth::base, false },  // CORE
-				{ "bl", &Forth::bl, false },  // CORE
-				{ "bye", &Forth::bye, false }, // TOOLS EXT
-				{ "c!", &Forth::cstore, false }, // CORE
-				{ "c@", &Forth::cfetch, false },  // CORE
-				{ "cells", &Forth::cells, false },  // CORE
-				{ "cmove", &Forth::cMove, false }, // STRING
-				{ "cmove>", &Forth::cMoveUp, false }, // STRING
-				{ "compare", &Forth::compare, false }, // STRING
-				{ "count", &Forth::count, false },  // CORE
-				{ "cr", &Forth::cr, false },  // CORE
-				{ "create", &Forth::create, false },  // CORE
-				{ "depth", &Forth::depth, false },  // CORE
-				{ "does>", &Forth::does, true },  // CORE
-				{ "drop", &Forth::drop, false },  // CORE
-				{ "dup", &Forth::dup, false }, // CORE
-				{ "emit", &Forth::emit, false },  // CORE
-				{ "evaluate", &Forth::evaluate, false },  // CORE
-				{ "evaluatestart", &Forth::evaluateStart, false },  // not standard word
-				{ "evaluatestop", &Forth::evaluateStop, false },  // not standard word
-				{ "execute", &Forth::execute, false },  // CORE
-				{ "fill", &Forth::fill, false },  // CORE
-				{ "find", &Forth::find, false }, // CORE
-				{ "here", &Forth::here, false }, // CORE
-				{ "immediate", &Forth::immediate, false }, // CORE // immediate is not immediate command, it can be compiled
-				//{ "interpret", &Forth::interpret, false }, // not standard word
-				{ "key", &Forth::key, false }, // CORE
-				{ "key?", &Forth::key_question, false }, // FACILITY
-				{ "latest", &Forth::latest, false }, // not standard word
-				{ "lshift", &Forth::lshift, false },  // CORE
-				{ "ms", &Forth::ms, false }, // FACILITY EXT
-				{ "or", &Forth::bitwiseOr, false }, // CORE
-				{ "pad", &Forth::pad, false }, // CORE EXT
-				{ "parse", &Forth::parse, false }, // CORE EXT
-				{ "pick", &Forth::pick, false }, // CORE EXT
-				//{ "prompt", &Forth::prompt, false }, // not standard word
-				{ "quit", &Forth::quit, false }, // CORE
+				{ "ABORT", &Forth::abort, false },  // CORE
+				{ "ABORT-MESSAGE", &Forth::abortMessage, false },  // not standard
+				{ "ACCEPT", &Forth::accept, false },  // CORE
+				{ "ALIGN", &Forth::align, false },  // CORE
+				{ "ALIGNED", &Forth::aligned, false },  // CORE
+				{ "ALLOT", &Forth::allot, false },  // CORE
+				{ "AND", &Forth::bitwiseAnd, false },  // CORE
+				{ "BASE", &Forth::base, false },  // CORE
+				{ "BL", &Forth::bl, false },  // CORE
+				{ "BYE", &Forth::bye, false }, // TOOLS EXT
+				{ "C!", &Forth::cstore, false }, // CORE
+				{ "C@", &Forth::cfetch, false },  // CORE
+				{ "CELLS", &Forth::cells, false },  // CORE
+				{ "CMOVE", &Forth::cMove, false }, // STRING
+				{ "CMOVE>", &Forth::cMoveUp, false }, // STRING
+				{ "COMPARE", &Forth::compare, false }, // STRING
+				{ "COUNT", &Forth::count, false },  // CORE
+				{ "CR", &Forth::cr, false },  // CORE
+				{ "CREATE", &Forth::create, false },  // CORE
+				{ "DEPTH", &Forth::depth, false },  // CORE
+				{ "DOES>", &Forth::does, true },  // CORE
+				{ "DROP", &Forth::drop, false },  // CORE
+				{ "DUP", &Forth::dup, false }, // CORE
+				{ "EMIT", &Forth::emit, false },  // CORE
+				{ "EVALUATE", &Forth::evaluate, false },  // CORE
+				{ "EVALUATESTART", &Forth::evaluateStart, false },  // not standard word
+				{ "EVALUATESTOP", &Forth::evaluateStop, false },  // not standard word
+				{ "EXECUTE", &Forth::execute, false },  // CORE
+				{ "FILL", &Forth::fill, false },  // CORE
+				{ "FIND", &Forth::find, false }, // CORE
+				{ "HERE", &Forth::here, false }, // CORE
+				{ "IMMEDIATE", &Forth::immediate, false }, // CORE // immediate is not immediate command, it can be compiled
+				//{ "INTERPRET", &Forth::interpret, false }, // not standard word
+				{ "KEY", &Forth::key, false }, // CORE
+				{ "KEY?", &Forth::key_question, false }, // FACILITY
+				{ "LATEST", &Forth::latest, false }, // not standard word
+				{ "LSHIFT", &Forth::lshift, false },  // CORE
+				{ "MS", &Forth::ms, false }, // FACILITY EXT
+				{ "OR", &Forth::bitwiseOr, false }, // CORE
+				{ "PAD", &Forth::pad, false }, // CORE EXT
+				{ "PARSE", &Forth::parse, false }, // CORE EXT
+				{ "PICK", &Forth::pick, false }, // CORE EXT
+				//{ "PROMPT", &Forth::prompt, false }, // not standard word
+				{ "QUIT", &Forth::quit, false }, // CORE
 				{ "r@", &Forth::rFetch, false }, // CORE
-				{ "refill", &Forth::refill, false }, // CORE EXT
-				{ "roll", &Forth::roll, false },  // CORE EXT
-				{ "rshift", &Forth::rshift, false },  // CORE
+				{ "REFILL", &Forth::refill, false }, // CORE EXT
+				{ "ROLL", &Forth::roll, false },  // CORE EXT
+				{ "RSHIFT", &Forth::rshift, false },  // CORE
 				{ "2/", &Forth::rshiftBy1, false }, // CORE
-				{ "see", &Forth::see, false }, // TOOLS
-				{ "source", &Forth::source, false }, // CORE
-				{ "source-id", &Forth::sourcedashid, false }, // CORE
-				{ "state", &Forth::state, false }, // CORE
-				{ "time&date", &Forth::timeAndDate, false }, // FACILITY EXT
-				{ "ms@", &Forth::ms_at, false }, // not standard word - milliseconds since Forth start execution
-				{ "type", &Forth::type, false },  // CORE
+				{ "SEE", &Forth::see, false }, // TOOLS
+				{ "SOURCE", &Forth::source, false }, // CORE
+				{ "SOURCE-ID", &Forth::sourcedashid, false }, // CORE
+				{ "STATE", &Forth::state, false }, // CORE
+				{ "TIME&DATE", &Forth::timeAndDate, false }, // FACILITY EXT
+				{ "MS@", &Forth::ms_at, false }, // not standard word - milliseconds since Forth start execution
+				{ "TYPE", &Forth::type, false },  // CORE
 				{ "u<", &Forth::uLessThan, false },  // CORE
-				{ "u>", &Forth::uGreaterThan, false }, // CORE EXT
-				{ "u.", &Forth::uDot, false },  // CORE
-				{ "unused", &Forth::unused, false }, // CORE EXT
-				{ "utctime&date", &Forth::utcTimeAndDate, false }, // not standard word
-				{ "word", &Forth::word, false }, // CORE
-				{ "upperword", &Forth::upperword, false }, // Not standart, used in definition of [IF],[ELSE], [THEN]
-				{ "words", &Forth::words, false }, // TOOLS
-				{ "xt>name", &Forth::xtToName, false }, // not standard word
-				{ "xor", &Forth::bitwiseXor, false }, // CORE
-				{ "do", &Forth::loops_do, true }, // CORE
-				{ "?do", &Forth::loops_question_do, true }, // CORE EXT
-				{ "loop", &Forth::loops_loop, true },  // CORE
+				{ "U>", &Forth::uGreaterThan, false }, // CORE EXT
+				{ "U.", &Forth::uDot, false },  // CORE
+				{ "UNUSED", &Forth::unused, false }, // CORE EXT
+				{ "UTCTIME&DATE", &Forth::utcTimeAndDate, false }, // not standard word
+				{ "WORD", &Forth::word, false }, // CORE
+				{ "UPPERWORD", &Forth::upperword, false }, // Not standart, used in definition of [IF],[ELSE], [THEN]
+				{ "WORDS", &Forth::words, false }, // TOOLS
+				{ "XT>NAME", &Forth::xtToName, false }, // not standard word
+				{ "XOR", &Forth::bitwiseXor, false }, // CORE
+				{ "DO", &Forth::loops_do, true }, // CORE
+				{ "?DO", &Forth::loops_question_do, true }, // CORE EXT
+				{ "LOOP", &Forth::loops_loop, true },  // CORE
 				{ "+loop", &Forth::loops_plusloop, true }, // CORE
-				{ "leave", &Forth::loops_leave, true }, // CORE
-				{ "i", &Forth::loops_i, false }, // CORE
-				{ "j", &Forth::loops_j, false }, // CORE
-				{ "k", &Forth::loops_k, false }, // not standard word
-				{ "unloop", &Forth::loops_unloop, false }, // CORE
-				{ "if", &Forth::ifthenelse_if, true }, // CORE
-				{ "then", &Forth::ifthenelse_then, true }, // CORE
-				{ "else", &Forth::ifthenelse_else, true }, // CORE
-				{ "ahead", &Forth::ifthenelse_ahead, true }, // TOOLS EXT
-				{ "begin", &Forth::begin_etc_begin, true }, // CORE
-				{ "again", &Forth::begin_etc_again, true }, // CORE
-				{ "until", &Forth::begin_etc_until, true }, // CORE
-				{ "while", &Forth::begin_etc_while, true }, // CORE
-				{ "repeat", &Forth::begin_etc_repeat, true }, // CORE
+				{ "LEAVE", &Forth::loops_leave, true }, // CORE
+				{ "I", &Forth::loops_i, false }, // CORE
+				{ "J", &Forth::loops_j, false }, // CORE
+				{ "K", &Forth::loops_k, false }, // not standard word
+				{ "UNLOOP", &Forth::loops_unloop, false }, // CORE
+				{ "IF", &Forth::ifthenelse_if, true }, // CORE
+				{ "THEN", &Forth::ifthenelse_then, true }, // CORE
+				{ "ELSE", &Forth::ifthenelse_else, true }, // CORE
+				{ "AHEAD", &Forth::ifthenelse_ahead, true }, // TOOLS EXT
+				{ "BEGIN", &Forth::begin_etc_begin, true }, // CORE
+				{ "AGAIN", &Forth::begin_etc_again, true }, // CORE
+				{ "UNTIL", &Forth::begin_etc_until, true }, // CORE
+				{ "WHILE", &Forth::begin_etc_while, true }, // CORE
+				{ "REPEAT", &Forth::begin_etc_repeat, true }, // CORE
 				{ "[ELSE2]", &Forth::bracketElse, true }, // TOOLS
 				{ "S>D", &Forth::StoD, false }, // CORE
 				{ "D>S", &Forth::DtoS, false }, // DOUBLE
@@ -6059,33 +6059,33 @@ if(0){
 				
 
 #ifdef FORTHSCRIPTCPP_ENABLE_MEMORY
-				{ "resize", &Forth::memResize , false }, //MEMORY
-				{ "allocate", &Forth::memAllocate , false }, // MEMORY
-				{ "free", &Forth::memFree , false }, // MEMORY
+				{ "RESIZE", &Forth::memResize , false }, //MEMORY
+				{ "ALLOCATE", &Forth::memAllocate , false }, // MEMORY
+				{ "FREE", &Forth::memFree , false }, // MEMORY
 #endif
 #ifdef FORTHSCRIPTCPP_ENABLE_FILE
-				{ "bin", &Forth::bin, false },
-				{ "close-file", &Forth::closeFile, false },
-				{ "create-file", &Forth::createFile, false },
-				{ "delete-file", &Forth::deleteFile, false },
-				{ "flush-file", &Forth::flushFile, false },
-				{ "include-file", &Forth::includeFile, false },
-				{ "open-file", &Forth::openFile, false },
-				{ "r/o", &Forth::readOnly, false },
-				{ "r/w", &Forth::readWrite, false },
-				{ "read-char", &Forth::readChar, false },
-				{ "read-file", &Forth::readFile, false },
-				{ "read-line", &Forth::readLine, false },
-				{ "rename-file", &Forth::renameFile, false },
-				{ "w/o", &Forth::writeOnly, false },
-				{ "write-char", &Forth::writeChar, false },
-				{ "write-file", &Forth::writeFile, false },
-				{ "write-line", &Forth::writeLine, false },
-				{ "file-position", &Forth::filePosition, false },
-				{ "file-size", &Forth::fileSize, false },
-				{ "reposition-file", &Forth::fileReposition, false },
-				{ "file-status", &Forth::fileStatus, false },
-				{ "resize-file", &Forth::resizeFile, false },
+				{ "BIN", &Forth::bin, false },
+				{ "CLOSE-FILE", &Forth::closeFile, false },
+				{ "CREATE-FILE", &Forth::createFile, false },
+				{ "DELETE-FILE", &Forth::deleteFile, false },
+				{ "FLUSH-FILE", &Forth::flushFile, false },
+				{ "INCLUDE-FILE", &Forth::includeFile, false },
+				{ "OPEN-FILE", &Forth::openFile, false },
+				{ "R/O", &Forth::readOnly, false },
+				{ "R/W", &Forth::readWrite, false },
+				{ "READ-CHAR", &Forth::readChar, false },
+				{ "READ-FILE", &Forth::readFile, false },
+				{ "READ-LINE", &Forth::readLine, false },
+				{ "RENAME-FILE", &Forth::renameFile, false },
+				{ "W/O", &Forth::writeOnly, false },
+				{ "WRITE-CHAR", &Forth::writeChar, false },
+				{ "WRITE-FILE", &Forth::writeFile, false },
+				{ "WRITE-LINE", &Forth::writeLine, false },
+				{ "FILE-POSITION", &Forth::filePosition, false },
+				{ "FILE-SIZE", &Forth::fileSize, false },
+				{ "REPOSITION-FILE", &Forth::fileReposition, false },
+				{ "FILE-STATUS", &Forth::fileStatus, false },
+				{ "RESIZE-FILE", &Forth::resizeFile, false },
 
 
 
@@ -6210,13 +6210,13 @@ if(0){
 
 		void defineForthWords() {
 				auto line = forthDefinitions;
-				auto length = std::strlen(line);
 				SetInput( line );
 				interpret();
 		}
 
 		void initializeDefinitions() {
 			definitions.clear();
+			definitions.reserve(500);
 			definePrimitives();
 			defineForthWords();
 		}
