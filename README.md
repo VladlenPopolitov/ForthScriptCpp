@@ -6,7 +6,7 @@ Use CMake to build examples and tests. Forth class is implemented as include onl
 
 CORE, CORE-EXT, DOUBLE, EXCEPTION, FILE, FLOAT, MEMORY are fully impelemented, all tests for these words are passed.
 ==============================================
-
+The list of all FORTH-2012 words with impelemntation status is in [a relative link](words_status.txt) 
 Quick check of Forth implementation, run example SimpleForth - program read from keyboard input and execute everythng as Forth words:
 ```
 git clone https://github.com/VladlenPopolitov/ForthScriptCpp
