@@ -11,12 +11,7 @@
 #include  <ForthScriptCpp.h>
 #include <crobots.h>
 
-TEST(BasicFunctions,Test1OK)
-{
-  EXPECT_TRUE(true);
-}
-
-TEST(MotionCPP,lcos)
+TEST(ExamplesForthRobotsMotionCPP,lcos)
 {
   long degrees=0;
   const auto MAXSIN=SCALE;
@@ -29,7 +24,7 @@ TEST(MotionCPP,lcos)
   
 }
 
-TEST(MotionCPP,lsin)
+TEST(ExamplesForthRobotsMotionCPP,lsin)
 {
   long degrees=0;
   const long MAXSIN=100000;
@@ -41,12 +36,6 @@ TEST(MotionCPP,lsin)
   }
   
 }
-
-TEST(MotionCPP,a){
-
-
-}
-
 
 int main(int argc, char **argv)
 {

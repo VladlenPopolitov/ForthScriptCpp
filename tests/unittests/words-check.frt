@@ -566,14 +566,14 @@ word-check-string SEARCH
 word-check-string SLITERAL
 word-check-string SUBSTITUTE
 word-check-string UNESCAPE
-
 S"   string words total " type string-words-check @ . S"   string words missing " type string-words-missing @ . CR 
-
-S" core words total " type core-words-check @ . S" core words missing " type core-words-missing @ . CR 
-S" coreext words total " type coreext-words-check @ . S" coreext words missing " type coreext-words-missing @ . CR 
+CR CR
+S"   Results:" CR
+S"   core words total " type core-words-check @ . S" core words missing " type core-words-missing @ . CR 
+S"   coreext words total " type coreext-words-check @ . S" coreext words missing " type coreext-words-missing @ . CR 
 S"   block words total " type block-words-check @ . S"   block words missing " type block-words-missing @ . CR 
 S"   double words total " type double-words-check @ . S"   double words missing " type double-words-missing @ . CR 
-S" exceptions words total " type exceptions-words-check @ . S" exceptions words missing " type exceptions-words-missing @ . CR  
+S"   exceptions words total " type exceptions-words-check @ . S" exceptions words missing " type exceptions-words-missing @ . CR  
 S"   facility words total " type facility-words-check @ . S"   facility words missing " type facility-words-missing @ . CR 
 S"   file words total " type file-words-check @ . S"   file words missing " type file-words-missing @ . CR 
 S"   float words total " type float-words-check @ . S"   float words missing " type float-words-missing @ . CR 

@@ -157,6 +157,9 @@ Some search-order words not present - TRAVERSE-WORDLIST etc not tested
 
 End of Programming Tools word tests
 toolstest  RES 0 
+**********
+End of String word tests
+stringstest  RES 0 
 
 ---------------------------
         Error Report
@@ -173,7 +176,7 @@ Locals                  -
 Memory-allocation       0
 Programming-tools       0
 Search-order            -
-String                  -
+String                  0
 ---------------------------
 Total                   3
 ---------------------------

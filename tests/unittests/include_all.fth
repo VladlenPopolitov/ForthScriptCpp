@@ -30,8 +30,7 @@ S" tester.fr" INCLUDED
 : test_memory S" memorytest.fth" ['] INCLUDED CATCH S" memorytest  RES " TYPE . CR ; test_memory
 : test_tools S" toolstest.fth" ['] INCLUDED CATCH S" toolstest  RES " TYPE . CR ; test_tools
 \ S" searchordertest.fth" INCLUDED
-\ S" stringtest.fth" INCLUDED
-
+: test_strings S" stringtest.fth" ['] INCLUDED CATCH S" stringstest  RES " TYPE . CR ; test_strings
 
 REPORT-ERRORS
 

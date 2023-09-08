@@ -42,9 +42,7 @@ int main(int argc, const char** argv) {
 			forth.ExecuteString(str);
 			res2 = forth.ExecutionOutput();
 			forth.ExecutionOutputReset();
-			
-			<< res2;
-                }
+		}
 		while (!forth.isFinished()){
 			std::cout << std::endl << ">" ;
  			std::getline(std::cin, line);

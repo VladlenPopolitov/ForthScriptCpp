@@ -418,9 +418,9 @@ TEST_P(MyTestSuite, MyTest)
     {
         if (line < fileLines.size())
         {
-            content = fileLines.at(line);
+            content = fileLines.at(line); 
             if (content.length() > 0)
-            {
+            { 
                 contentGlobal=content;
                 //std::cerr <<line<<" "<<content << std::endl;
                 shared_resource_->ExecuteString(content);

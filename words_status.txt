@@ -456,24 +456,27 @@ CMOVE>  word OK
 COMPARE  word OK
 /STRING  word OK
 -TRAILING  word OK
-REPLACES  word missing
+REPLACES  word OK
 SEARCH  word OK
 SLITERAL  word OK
-SUBSTITUTE  word missing
+SUBSTITUTE  word OK
 UNESCAPE  word OK
-  string words total 11   string words missing 2 
-core words total 133 core words missing 0 
-coreext words total 49 coreext words missing 1 
+  string words total 11   string words missing 0 
+
+
+
+  core words total 133 core words missing 0 
+  coreext words total 49 coreext words missing 1 
   block words total 14   block words missing 11 
   double words total 23   double words missing 0 
-exceptions words total 4 exceptions words missing 0 
+  exceptions words total 4 exceptions words missing 0 
   facility words total 40   facility words missing 32 
   file words total 29   file words missing 0 
   float words total 79   float words missing 0 
   locals words total 3   locals words missing 3 
   memory words total 3   memory words missing 0 
   search words total 14   search words missing 12 
-  string words total 11   string words missing 2 
+  string words total 11   string words missing 0 
   tools words total 27   tools words missing 10 
   xchar words total 21   xchar words missing 15 
 

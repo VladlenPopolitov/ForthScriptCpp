@@ -169,7 +169,7 @@ implementation to get the basic gist of how Forth is usually implemented.
 #endif
 
 #ifndef FORTHSCRIPTCPP_VERSION
-#define FORTHSCRIPTCPP_VERSION "1.0.1"
+#define FORTHSCRIPTCPP_VERSION "1.0.2"
 #endif
 
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
@@ -2084,6 +2084,96 @@ Code Reserved for	Code Reserved for
 			moveFromDataSpace(Word2, caddr2, length2);
 			auto result = Word1.compare(Word2);
 			dStack.setTop((result < 0) ? -1 : ((result > 0) ? 1 : 0)); 
+		}
+
+		std::map<std::string,std::string> replacesSubstitute{};
+		// REPLACES ( c-addr1 u1 c-addr2 u2 --  )
+		void replaces(){
+			REQUIRE_DSTACK_DEPTH(4, "REPLACES");
+			auto length2 = dStack.getTop(); pop();
+			auto caddr2 = CADDR(dStack.getTop()); pop();
+			auto length1 = dStack.getTop(); pop();
+			auto caddr1 = CADDR(dStack.getTop());pop(); 
+			std::string Word1{};
+			moveFromDataSpace(Word1, caddr1, length1);
+			std::string Word2{};
+			moveFromDataSpace(Word2, caddr2, length2);
+			for(auto &c : Word2) c=toupper_ascii(c);
+			auto itfound=replacesSubstitute.find(Word1);
+			if(Word2.size()==0){
+				int a=1;
+				a=a+1;
+			}
+			if(itfound!=replacesSubstitute.end()){
+				replacesSubstitute.insert(std::pair<std::string,std::string>(Word2,Word1));
+			} else {
+				replacesSubstitute[Word2]=Word1;
+			}
+			//dStack.setTop((result < 0) ? -1 : ((result > 0) ? 1 : 0)); 
+		}
+		// SUBSTITUTE ( c-addr1 u1 c-addr2 u2 --  )
+		void substitute(){
+			REQUIRE_DSTACK_DEPTH(4, "SUBSTITUTE");
+			auto length2 = dStack.getTop(); pop();
+			auto caddr2 = CADDR(dStack.getTop()); ;
+			auto length1 = dStack.getTop(1); ;
+			auto caddr1 = CADDR(dStack.getTop(2));; 
+			std::string Word1{};
+			moveFromDataSpace(Word1, caddr1, length1);
+			std::string Word2{}, key{}, keyUpper{};
+			auto result = 0;
+			auto processedIt=0;
+			auto processEnd=Word1.size();
+			// start processing of Word1
+			while(processedIt<processEnd){
+				//auto nextPercent=std::find(processedIt,processEnd,'%');
+				auto nextPercent=Word1.find('%',processedIt);
+				if(nextPercent==std::string::npos){
+					// copy chars to buffer and exit from loop
+					Word2.append(Word1.substr(processedIt,processEnd-processedIt));
+					break;	
+				}
+				// copy chars before percent char
+				Word2.append(Word1.substr(processedIt,nextPercent-processedIt));
+				processedIt=nextPercent+1;
+				if(processedIt>=processEnd) {
+					Word2.append("%");
+					break;
+				} 
+				nextPercent=Word1.find('%',processedIt);
+				if(nextPercent==std::string::npos){
+					// unclosed percent chars - everything copied to the buffer
+					 Word2.append("%");
+					 Word2.append(Word1.substr(processedIt,processEnd-processedIt));
+					 break;
+				}
+				if(nextPercent==processedIt){
+					// two percents replaced by one percent
+					Word2.append("%");
+					++processedIt;
+					continue;
+				}
+				key=Word1.substr(processedIt,nextPercent-processedIt);
+				keyUpper=key;
+				for(auto &c : keyUpper) c=toupper_ascii(c);
+				auto foundIt=replacesSubstitute.find(keyUpper);
+				if(foundIt==replacesSubstitute.end()){
+					Word2.append("%").append(key).append("%");
+				} else {
+				 Word2.append((*foundIt).second);
+				 ++result;
+				}
+				processedIt=nextPercent+1;
+			}
+			if(Word2.size()> length2) {
+				result=-1;
+			} else {
+				moveIntoDataSpace( caddr2, Word2.c_str(), CELL(Word2.size()));
+				dStack.setTop(1, CELL(Word2.size()) );
+				dStack.setTop(2, CELL(caddr2) );
+
+			}
+			dStack.setTop((result < 0) ? -1 : result ); 
 		}
 		/// SEARCH ( c-addr1 u1 c-addr2 u2 -- c-addr3 u3 flag )
 		//Search the string specified by c-addr1 u1 for the string specified by c-addr2 u2. 
@@ -5015,6 +5105,7 @@ if(0){
 								// std::string currentWord{};
 								// moveFromDataSpace(currentWord, caddr, length);
 								if (!interpretNumbers(currentWord)){
+									std::cerr << "!!!Wrong word "<<currentWord<<std::endl;
 									push(CELL(-13));
 									exceptionsThrow();
 									xt = getDataCell(next_command);
@@ -5863,6 +5954,8 @@ if(0){
 				{ "CMOVE", &Forth::cMove, false }, // STRING
 				{ "CMOVE>", &Forth::cMoveUp, false }, // STRING
 				{ "COMPARE", &Forth::compare, false }, // STRING
+				{ "REPLACES", &Forth::replaces, false }, // STRING-EXT
+				{ "SUBSTITUTE", &Forth::substitute, false }, // STRING-EXT
 				{ "COUNT", &Forth::count, false },  // CORE
 				{ "CR", &Forth::cr, false },  // CORE
 				{ "CREATE", &Forth::create, false },  // CORE

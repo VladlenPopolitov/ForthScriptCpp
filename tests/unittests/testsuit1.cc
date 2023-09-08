@@ -13,7 +13,7 @@
 #include "forthtestlib.h"
 
 const char* allfilenames[] = {
-	"./testresult/alltests1.txt", // 1
+	"./testresult/alltests1.txt", // 1 
 	"./testresult/alltests2.txt", // 2
 	"./testresult/alltests3.txt", // 3
 	"./testresult/alltests4.txt", // 4
