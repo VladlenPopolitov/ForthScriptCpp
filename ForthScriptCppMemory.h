@@ -25,7 +25,7 @@
 		void memAllocate() {
 			REQUIRE_DSTACK_DEPTH(1, "ALLOCATE");
 			REQUIRE_DSTACK_AVAILABLE(1, "ALLOCATE");
-			auto size = SIZE_T(dStack.getTop());
+			auto size = dStack.getTop();
 			Cell start = VirtualMemoryFreeSegment;
 			dStack.push(0);
 			try{
@@ -37,19 +37,19 @@
 				}
 				else {
 					dStack.setTop(1,CELL(0));
-					dStack.setTop(errorAllocate);
+					dStack.setTop(CELL(errorAllocate));
 				}
 			}
 			catch (...){
 				dStack.setTop(1, CELL(0));
-				dStack.setTop(errorAllocate);
+				dStack.setTop(CELL(errorAllocate));
 			}
 		}
 
 		// RESIZE ( a-addr1 u -- a-addr2 ior )
 		void memResize() {
 			REQUIRE_DSTACK_DEPTH(2, "RESIZE");
-			Cell size = SIZE_T(dStack.getTop());
+			Cell size = dStack.getTop();
 			auto addr = dStack.getTop(1);
 			// find segment 
 			if (size <= vmMaxSegmentSize){
@@ -90,7 +90,7 @@
 								// (addr addrnew ior -- )
 								pop();
 								// (addr addrnew -- )
-								dStack.setTop(errorResize);
+								dStack.setTop(CELL(errorResize));
 								// (addr ior -- )
 							}
 							return;
@@ -121,7 +121,7 @@
 					return;
 				}
 			}
-			dStack.setTop(errorFree);
+			dStack.setTop(CELL(errorFree));
 		}
 
 #endif

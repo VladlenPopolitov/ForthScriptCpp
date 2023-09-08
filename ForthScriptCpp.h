@@ -180,14 +180,14 @@ namespace cppforth {
 	 String to convert numeric to string and string to numeric
 	****/
 	static const std::string digitsCodes{ "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" };
-	inline int  tolower_ascii(int const c) {
+	inline char  tolower_ascii(char const c) {
     	if (c >= 'A' && c <= 'Z') {
                 return c - ('A' - 'a');
         }
         return c;
     }
 
-    inline int toupper_ascii(int const c) {
+    inline char toupper_ascii(char const c) {
             if (c >= 'a' && c <= 'z') {
                 return c - ('a' - 'A');
             }
@@ -924,14 +924,14 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		typedef Cell CAddr;          // Any address
 		typedef Cell AAddr;          // Cell-aligned address
 
-#define CELL(x)    (Cell)(x)
+#define CELL(x)    static_cast<Cell>(x)
 #define CADDR(x)   static_cast<CAddr>(x)
 #define AADDR(x)   static_cast<AAddr>(x)
 #define CHARPTR(x) reinterpret_cast<char*>(x)
 #define SIZE_T(x)  static_cast<std::size_t>(x)
 
-		const size_t CellSize = sizeof(Cell);
-		const size_t DCellSize = sizeof(DCell);
+		const Cell CellSize = sizeof(Cell);
+		const Cell DCellSize = sizeof(DCell);
 
 		/****
 
@@ -1032,8 +1032,9 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				//std::cout << numberInVector << " " << name << " " << code << std::endl;
 				if (code) {
 					if (pointer.isTraceCalls()) {
-						int i = pointer.forth_depth();
+						
 						std::cout << name << " ";
+						// int i = pointer.forth_depth();
 						// std::cerr << name << " " << pointer.forth_depth();
 						// while (i > 0) std::cerr << " " << pointer.forth_tocell(i--  - 1);
 						// std::cerr<< std::endl;
@@ -1094,33 +1095,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				lastPos = str.find(delimiters, pos + delimitersSize);
 			}
 		}
-#ifdef _DEBUG
-		/****
 
-		method for trace and debug of this class. You can place breakpoints inside and view stacks content
-
-		****/
-		bool trace = false;
-		void traceDebug(const std::string &name){
-			if (trace){
-				int here = getDataPointer();
-				std::vector<Cell> stack{ dStack.debugStack() };
-				std::vector<Cell> stackIf{ controlStackIf_Begin.debugStack() };
-				std::vector<Cell> stackLoop{ controlStackLoops.debugStack() };
-				std::vector<Cell> stackr{ rStack.debugStack() };
-#ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
-				std::vector<FCell> stackf{ fStack.debugStack() };
-#endif
-				// std::cerr << "Execute:" << name << std::endl;
-			}
-		}
-
-	public:
-		void setTrace(bool value){
-			trace = value;
-		}
-	private:
-#endif
 		/****
 
 		----
@@ -1138,9 +1113,9 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 
 		template <typename CellType> class ForthStack {
 			std::vector<CellType> stack;
-			size_t top;
+			Cell top;
 		public:
-			ForthStack() : top{ 0 }, stack{}{
+			ForthStack() :  stack{}, top{ 0 } {
 				stack.resize(256); 
 			};
 			void resize(size_t newsize){
@@ -1215,7 +1190,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 
 			}
 			// Return the depth of the data stack.
-			std::size_t stackDepth() {
+			Cell stackDepth() {
 				return top ;
 			}
 			// return stack content as std::vector for debug and trace 
@@ -1278,14 +1253,14 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 
 			CAddr getIsCompilingAddress()  { return VarOffsetState; }
 
-		size_t dataPointer = 0;
-		size_t getDataPointer(){
+		CAddr dataPointer = 0;
+		CAddr getDataPointer(){
 			return dataPointer;
 		}
-		void setDataPointer(size_t value){
+		void setDataPointer(CAddr value){
 			dataPointer = value;
 		}
-		void incDataPointer(size_t value){
+		void incDataPointer(SCell value){
 			setDataPointer(getDataPointer() + value);
 		}
 		const CAddr VarOffsetState = CellSize*1;
@@ -1300,7 +1275,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		const CAddr PadBufferSize = 256;
 		const CAddr VarOffsetDebugBuffer = VarOffsetPadBuffer+PadBufferSize;
 		const CAddr DebugBufferSize = CellSize * 256;
-		const CAddr VarOffsetSourceBuffer = VarOffsetDebugBuffer+DebugBufferSize;
+		// remove const CAddr VarOffsetSourceBuffer = VarOffsetDebugBuffer+DebugBufferSize;
 		
 		Definition &definitionsAt(Cell index){
 			if (index >= definitions.size() || index<0){
@@ -1379,8 +1354,9 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 				auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBufferRefill).segment;
 				sourceBufferVirtual.resize(0);
 				std::copy(value.begin(), value.end(), std::back_inserter(sourceBufferVirtual));
-				VirtualMemory.at(vmSegmentSourceBufferRefill).end = VirtualMemory.at(vmSegmentSourceBufferRefill).start + VirtualMemory.at(vmSegmentSourceBufferRefill).segment.size();
-				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, sourceBufferVirtual.size(), 0);
+				VirtualMemory.at(vmSegmentSourceBufferRefill).end = VirtualMemory.at(vmSegmentSourceBufferRefill).start + 
+					static_cast<Cell>(VirtualMemory.at(vmSegmentSourceBufferRefill).segment.size());
+				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, static_cast<Cell>(sourceBufferVirtual.size()), 0);
 				return true;
 			}
 			else {
@@ -1652,8 +1628,9 @@ Code Reserved for	Code Reserved for
 		void throwMessage(const std::string &msg, enum errorCodes ec){
 			initClass();
 			std::string buffer{};
+			int ecInt=static_cast<int>(ec);
 			moveFromDataSpace(buffer, getSourceAddress(), getSourceBufferSize());
-			throw AbortException(msg + "\n" + buffer + "\n Offset " + std::to_string(getSourceBufferOffset()));
+			throw AbortException(msg + "\nError code " + std::to_string(ecInt) +"\n" + buffer + "\n Offset " + std::to_string(getSourceBufferOffset()));
 		}
 		// ABORT ( i*x -- ) ( R: j*x -- )
 		void abort() {
@@ -1666,7 +1643,7 @@ Code Reserved for	Code Reserved for
 		// Same semantics as the standard ABORT", but takes a string address and length
 		// instead of parsing the message string.
 		void abortMessage() {
-			auto count = SIZE_T(dStack.getTop()); pop();
+			auto count = dStack.getTop(); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
 			std::string message{};
 			assignStringFromCaddress(message,caddr, count);
@@ -1938,9 +1915,6 @@ Code Reserved for	Code Reserved for
 		void fetch() {
 			REQUIRE_DSTACK_DEPTH(1, "@");
 			auto aaddr = AADDR(dStack.getTop());
-			if (aaddr > 0x10000 && aaddr < 0xefffffff){
-				aaddr = aaddr;
-			}
 			REQUIRE_ALIGNED(aaddr, "@");
 			dStack.setTop(getDataCell(aaddr));
 		}
@@ -1998,8 +1972,8 @@ Code Reserved for	Code Reserved for
 		AAddr alignAddress(T addr) {
 			return addr; // vector storage does not need alignment
 			// old version of alignment
-			auto offset = CELL(addr) % CellSize;
-			return (offset == 0) ? AADDR(addr) : AADDR(CADDR(addr) + (CellSize - offset));
+			//auto offset = CELL(addr) % CellSize;
+			//return (offset == 0) ? AADDR(addr) : AADDR(CADDR(addr) + (CellSize - offset));
 		}
 
 		void alignDataPointer() {
@@ -2016,7 +1990,8 @@ Code Reserved for	Code Reserved for
 		void aligned() {
 			REQUIRE_DSTACK_DEPTH(1, "ALIGNED");
 			return; // data always aligned
-			dStack.setTop(CELL(alignAddress(dStack.getTop())));
+			// version with alignment
+			// dStack.setTop(CELL(alignAddress(dStack.getTop())));
 		}
 
 		// HERE ( -- addr )
@@ -2065,28 +2040,21 @@ Code Reserved for	Code Reserved for
 		// CMOVE ( c-addr1 c-addr2 u -- )
 		void cMove() {
 			REQUIRE_DSTACK_DEPTH(3, "CMOVE");
-			auto length = SIZE_T(dStack.getTop()); pop();
+			auto length = dStack.getTop(); pop();
 			auto dst = CADDR(dStack.getTop()); pop();
 			auto src = CADDR(dStack.getTop()); pop();
-			for (std::size_t i = 0; i < length; ++i) {
-				try {
-					dataSpaceSet(dst + i, dataSpaceAt(src + i));
-				}
-				catch (std::exception &ex) {
-					auto err = ex.what();
-					auto counter = i;
-					auto dst1 = dst;
-				}
+			for (Cell i = 0; i < length; ++i) {
+				dataSpaceSet(dst + i, dataSpaceAt(src + i));
 			}
 		}
 
 		// CMOVE> ( c-addr1 c-addr2 u -- )
 		void cMoveUp() {
 			REQUIRE_DSTACK_DEPTH(3, "CMOVE>");
-			auto length = SIZE_T(dStack.getTop()); pop();
+			auto length = dStack.getTop(); pop();
 			auto dst = CADDR(dStack.getTop()); pop();
 			auto src = CADDR(dStack.getTop()); pop();
-			for (std::size_t i = 0; i < length; ++i) {
+			for (Cell i = 0; i < length; ++i) {
 				auto offset = length - i - 1;
 				dataSpaceSet(dst + offset, dataSpaceAt(src + offset));
 			}
@@ -2096,9 +2064,9 @@ Code Reserved for	Code Reserved for
 		void fill() {
 			REQUIRE_DSTACK_DEPTH(3, "FILL");
 			auto ch = static_cast<Char>(dStack.getTop()); pop();
-			auto length = SIZE_T(dStack.getTop()); pop();
+			auto length = dStack.getTop(); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
-			for (std::size_t i = 0; i < length; ++i) {
+			for (Cell i = 0; i < length; ++i) {
 				dataSpaceSet(caddr + i, ch);
 			}
 		}
@@ -2106,9 +2074,9 @@ Code Reserved for	Code Reserved for
 		// COMPARE ( c-addr1 u1 c-addr2 u2 -- n )
 		void compare(){
 			REQUIRE_DSTACK_DEPTH(4, "COMPARE");
-			auto length2 = SIZE_T(dStack.getTop()); pop();
+			auto length2 = dStack.getTop(); pop();
 			auto caddr2 = CADDR(dStack.getTop()); pop();
-			auto length1 = SIZE_T(dStack.getTop()); pop();
+			auto length1 = dStack.getTop(); pop();
 			auto caddr1 = CADDR(dStack.getTop()); 
 			std::string Word1{};
 			moveFromDataSpace(Word1, caddr1, length1);
@@ -2123,9 +2091,9 @@ Code Reserved for	Code Reserved for
 		//If flag is false there was no match and c-addr3 is c-addr1 and u3 is u1.
 		void search(){
 			REQUIRE_DSTACK_DEPTH(4, "SEARCH");
-			auto length2 = SIZE_T(dStack.getTop()); pop();
+			auto length2 = dStack.getTop(); pop();
 			auto caddr2 = CADDR(dStack.getTop()); 
-			auto length1 = SIZE_T(dStack.getTop(1)); 
+			auto length1 = dStack.getTop(1); 
 			auto caddr1 = CADDR(dStack.getTop(2)); 
 			std::string Word1{};
 			moveFromDataSpace(Word1, caddr1, length1);
@@ -2134,8 +2102,8 @@ Code Reserved for	Code Reserved for
 			auto result = Word1.find(Word2,0);
 			if(result!=std::string::npos){
 				dStack.setTop(True);
-				dStack.setTop(1,length1-result);
-				dStack.setTop(2,caddr1+result);
+				dStack.setTop(1,length1-CELL(result));
+				dStack.setTop(2,caddr1+CELL(result));
 
 			} else {
 				dStack.setTop(False);
@@ -2199,12 +2167,12 @@ Code Reserved for	Code Reserved for
 		void key_question() {
 			REQUIRE_DSTACK_AVAILABLE(1, "KEY?");
 			Cell flag{} ;
-			auto &stream = std::cin;
 			switch (readFromSource) {
 				case FromString:
 					flag = std_cin.rdbuf()->in_avail() > 0 ? True : False;
 					break;
 				case FromStdCin:
+					std::cin.clear(); // clear previous error codes
 					std::cin.sync();
 					std::cin.sync_with_stdio(true);
 					std::cin.rdbuf()->pubsync();
@@ -2353,7 +2321,7 @@ Code Reserved for	Code Reserved for
 			REQUIRE_DSTACK_AVAILABLE(1, "SOURCE-ID");
 			push(sourceid); // bug it is not content of variable, it is address of variable
 		}
-		void setSourceId(Cell value) {
+		void setSourceId(SCell value) {
 			sourceid = value;
 		}
 		SCell getSourceId() {
@@ -2385,8 +2353,8 @@ Code Reserved for	Code Reserved for
 		// REFILL ( -- flag )
 		void refill() { 
 			REQUIRE_DSTACK_AVAILABLE(1, "REFILL");
-			auto sourceid = getSourceId();
-			if (sourceid >= 0) { // if input from file or from input buffer
+			auto sourceid_ = getSourceId();
+			if (sourceid_ >= 0) { // if input from file or from input buffer
 				inputBufferStringsCurrent++;
 				if (inputBufferStringsCurrent < inputBufferStrings.size()) {
 
@@ -2428,7 +2396,7 @@ Code Reserved for	Code Reserved for
 				break;
 			}
 				auto copySize = std::min(line.length(), bufferSize);
-				for (std::size_t i = 0; i < copySize; ++i) {
+				for (Cell i = 0; i < copySize; ++i) {
 					dataSpaceSet(buffer + i, line.at(i));
 				}
 				dStack.setTop(static_cast<Cell>(copySize));
@@ -2596,7 +2564,7 @@ Code Reserved for	Code Reserved for
 
 			std::string wordBuffer{};
 			wordBuffer.push_back(0);  // First char of buffer is length.
-			try {
+			
 				// Skip leading delimiters
 				if (getSourceBufferRemain() > 0) {
 					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
@@ -2634,10 +2602,6 @@ Code Reserved for	Code Reserved for
 				// copy to fixed buffer
 				moveIntoDataSpace(VarOffsetWordBuffer, wordBuffer.c_str(), wordBuffer.size());
 				dStack.setTop(CELL(VarOffsetWordBuffer));
-			}
-			catch (...){
-				int a = 1;
-			}
 		}
 		// FIND-XT-NAME ( addr -- addr u )
 		void  findxtname() {
@@ -2901,26 +2865,26 @@ Code Reserved for	Code Reserved for
 				std::string(name) + ": float stack overflow", errorStackOverflow);
 		}
 		void setDataCell(AAddr pointer, const FCell &value){
-			for (size_t i = 0; i < sizeof(FCell); ++i){
+			for (Cell i = 0; i < sizeof(FCell); ++i){
 				dataSpaceSet(pointer + i,  static_cast<const unsigned char*>(static_cast<const void*>(&value))[i]);
 			}
 		}
 		void setDataCell32(AAddr pointer, const FCell &value) {
-			float value1 = value;
-			for (size_t i = 0; i < sizeof(value1); ++i) {
+			float value1{ static_cast<float>(value) };
+			for (Cell i = 0; i < sizeof(value1); ++i) {
 				dataSpaceSet(pointer + i, static_cast<const unsigned char*>(static_cast<const void*>(&value1))[i]);
 			}
 		}
 		void setDataCell64(AAddr pointer, const FCell  &value) {
 			double value1 = value;
-			for (size_t i = 0; i < sizeof(value1); ++i) {
+			for (Cell i = 0; i < sizeof(value1); ++i) {
 				dataSpaceSet(pointer + i, static_cast<const unsigned char*>(static_cast<const void*>(&value1))[i]);
 			}
 		}
 
 		FCell getDataFCell(CAddr pointer) {
 			FCell value1{ 0 };
-			for (size_t i = 0; i < sizeof(value1); ++i) {
+			for (Cell i = 0; i < sizeof(value1); ++i) {
 				static_cast<unsigned char*>(static_cast<void*>(&value1))[i] = dataSpaceAt(pointer + i);
 			}
 			return value1;
@@ -2928,7 +2892,7 @@ Code Reserved for	Code Reserved for
 
 FCell getDataFCell32(CAddr pointer){
 			float value1{ 0 };
-			for (size_t i = 0; i < sizeof(value1); ++i){
+			for (Cell i = 0; i < sizeof(value1); ++i){
 				static_cast<unsigned char*>(static_cast<void*>(&value1))[i] = dataSpaceAt(pointer + i);
 			}
 			return value1;
@@ -2937,7 +2901,7 @@ FCell getDataFCell32(CAddr pointer){
 
 		FCell getDataFCell64(CAddr pointer) {
 			double value1{ 0 };
-			for (size_t i = 0; i < sizeof(value1); ++i) {
+			for (Cell i = 0; i < sizeof(value1); ++i) {
 				static_cast<unsigned char*>(static_cast<void*>(&value1))[i] = dataSpaceAt(pointer + i);
 			}
 			return value1;
@@ -3023,13 +2987,13 @@ FCell getDataFCell32(CAddr pointer){
 			REQUIRE_DSTACK_DEPTH(2, "D>F");
 			REQUIRE_FSTACK_AVAILABLE(1, "D>F");
 			DCell d1(dStack.getTop(1), dStack.getTop()); dStack.pop(); dStack.pop();
-			fStack.push(d1.data_.SDcells);
+			fStack.push(static_cast<FCell>(d1.data_.SDcells));
 		}
 		// F>D ( -- d ) ( F: r -- ) or ( r -- d )
 		void f_ftod(){
 			REQUIRE_FSTACK_DEPTH(1, "F>D");
 			REQUIRE_DSTACK_AVAILABLE(2, "F>D");
-			auto n2 = static_cast<FCell>(fStack.getTop()); fStack.pop();
+			auto n2 = fStack.getTop(); fStack.pop();
 			DCell d1(n2);
 			dStack.push(d1.data_.Cells.lo);
 			dStack.push(d1.data_.Cells.hi);
@@ -3251,13 +3215,13 @@ if(length>31) length=31;
 int newLog{};
 char buffer[32];
 if(number!=0.0){
-double loga=std::log10(number);
-int logaint=floor(loga);
-int newlogDiv=logaint-(length-1);
-newLog=logaint+1; 
-double new_a=number/pow(10,newlogDiv);
-auto new_a_round=std::llround(new_a);
-sprintf(buffer,"%lld",new_a_round);
+ double loga=std::log10(number);
+ int logaint=static_cast<int>(floor(loga));
+ int newlogDiv=logaint-(length-1);
+ newLog=logaint+1; 
+ double new_a=number/pow(10,newlogDiv);
+ auto new_a_round=std::llround(new_a);
+ sprintf(buffer,"%lld",new_a_round);
 } else {
   std::memset(buffer,'0',length);
   buffer[length]=0;
@@ -3909,7 +3873,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		}
 		void assignStringFromCaddress(std::string &target,  CAddr source, size_t length){
 			target.clear();
-			for (size_t i = 0; i < length; ++i){
+			for (Cell i = 0; i < length; ++i){
 				target.push_back(getDataChar(source + i));
 			}
 		}
@@ -4060,7 +4024,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			defn.name = name;
 			for (auto & c: defn.name) c = toupper_ascii(static_cast<unsigned char>(c));
 			definitions.emplace_back(std::move(defn));
-			getDefinition(definitions.size() - 1)->numberInVector = definitions.size() - 1;
+			getDefinition(CELL(definitions.size()) - 1)->numberInVector = CELL(definitions.size()) - 1;
 			if (setImmediate) immediate();
 		}
 
@@ -4143,9 +4107,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			assert(!"Should not be executed");
 			REQUIRE_DSTACK_DEPTH(1, "EXECUTE");
 			auto defn = XT(dStack.getTop()); pop();
-#ifdef _DEBUG
-			traceDebug( definitionsAt(defn).name );
-#endif
 			definitionsAt(defn).executeDefinition(*this);
 		}
 
@@ -4382,7 +4343,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			int signNewIndex = newIndex > 0 ? 0 : 1;
 			int signIncrement = increment > 0 ? 0 : 1;
 			int compare = conditions[signIncrement][signIndex][signNewIndex];
-			Cell result = 0;
+			SCell result = 0;
 			if (compare == 1){
 				if (((index <= limitMinus1) && (newIndex >= limit)) || ((newIndex <= limitMinus1) && (index >= limit))){
 					result = -1;
@@ -4585,7 +4546,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 						definition.name = newWord;
 						for (auto & c: definition.name) c = toupper_ascii(static_cast<unsigned char>(c));
 						definitions.emplace_back(std::move(definition));
-						getDefinition(definitions.size() - 1)->numberInVector = definitions.size() - 1;
+						getDefinition(CELL(definitions.size()) - 1)->numberInVector = CELL(definitions.size()) - 1;
 					}
 					else {
 						pop(); // remove from stack. not found , ambigous state
@@ -4708,11 +4669,11 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		void parseUnsignedNumber(int numericBase) {
 			REQUIRE_DSTACK_DEPTH(3, ">UNUM");
 
-			auto length = SIZE_T(dStack.getTop());
+			auto length = dStack.getTop();
 			auto caddr = CADDR(dStack.getTop(1));
 			auto value = dStack.getTop(2);
 
-			auto i = std::size_t(0);
+			auto i = CELL(0);
 			while (i < length) {
 				auto c = getDataChar(caddr+i);
 				if (isValidDigit(c, numericBase)) {
@@ -4787,12 +4748,11 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		static unsigned long parseUnsignedNumber(const std::string valueStr, size_t skip, size_t &i, int numericBase) {
 
 			auto length = valueStr.length();
-			auto caddr = valueStr.c_str();
-			auto value = 0;
+			unsigned long value = 0;
 
 			 i = std::size_t(skip);
 			while (i < length) {
-				auto c = valueStr.at(i);
+				auto c = valueStr[i];
 				if (isValidDigit(c, numericBase)) {
 					auto n = digitValue(c);
 					value = value * numericBase + n;
@@ -4966,8 +4926,9 @@ if(0){
 } else
 */
  			{
-				long long significandDigits{},exponentDigits0{};
-				double significandDigits0{};
+				// used for own calculation of value without library function
+				//long long significandDigits{},exponentDigits0{};
+				//double significandDigits0{};
 				bool signNegative{},exponentSignNegative{};
 				auto begin=value.begin();
 				auto end=value.end();
@@ -5060,11 +5021,10 @@ if(0){
 								// std::string currentWord{};
 								// moveFromDataSpace(currentWord, caddr, length);
 								if (!interpretNumbers(currentWord)){
-									push(-13);
+									push(CELL(-13));
 									exceptionsThrow();
 									xt = getDataCell(next_command);
 									next_command += sizeof(next_command);
-									// throwMessage(std::string("unrecognized word: ") + currentWord, errorUndefinedWord);
 								}
 							}
 							else {
@@ -5220,7 +5180,7 @@ if(0){
 			save.interpretState_ = InterpretState;
 			save.next_ = next_command;
 		}
-		void SaveInput(structSavedInput::InputBufferSourceSavedByEnum source){
+		void SaveInput(/*structSavedInput::InputBufferSourceSavedByEnum source */) {
 			struct structSavedInput save{};
 			saveInput(save, true);
 			next_command = 0;
@@ -5264,8 +5224,8 @@ if(0){
 		// This function redefined in initialization string (check the reason).
 		void evaluate() {
 			REQUIRE_DSTACK_DEPTH(2, "EVALUATE");
-			SaveInput(structSavedInput::fromEvaluate);
-			auto length = static_cast<std::size_t>(dStack.getTop()); pop();
+			SaveInput();
+			auto length = dStack.getTop(); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
 			setSourceId(-1);
 			setSourceVariables(caddr, length, 0);
@@ -5274,8 +5234,8 @@ if(0){
 		// EVALUATE ( i*x c-addr u -- j*x )
 		void evaluateStart() {
 			REQUIRE_DSTACK_DEPTH(2, "EVALUATE");
-			SaveInput(structSavedInput::fromEvaluate);
-			auto length = static_cast<std::size_t>(dStack.getTop()); pop();
+			SaveInput();
+			auto length = dStack.getTop(); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
 			setSourceId(-1);
 			setSourceVariables(caddr, length, 0);
@@ -5301,7 +5261,7 @@ if(0){
 			REQUIRE_DSTACK_DEPTH(2, "D>S");
 			DCell d(dStack.getTop(1), dStack.getTop());
 			dStack.pop();
-			SCell n = d.data_.SDcells;
+			SCell n = static_cast<SCell>(d.data_.SDcells);
 			dStack.setTop(0,n);
 		}
 		// M*
@@ -5396,7 +5356,7 @@ if(0){
 		void dnegate(){
 			REQUIRE_DSTACK_DEPTH(2, "DNEGATE");
 			DCell d1(dStack.getTop(1), dStack.getTop());
-			d1.data_.Dcells = -d1.data_.Dcells;
+			d1.data_.SDcells = -d1.data_.SDcells;
 			dStack.setTop(1, d1.data_.Cells.lo);
 			dStack.setTop(0, d1.data_.Cells.hi);
 		}
@@ -5452,7 +5412,7 @@ if(0){
 			Cell lmod =  l.data_.Dcells % static_cast<Cell>(n2);
 			Cell hmod =  h.data_.Dcells % static_cast<Cell>(n2);
 			DCell third(lmod,hmod);
-			third= third.data_.Dcells / static_cast<Cell>(n2); // third add
+			third.data_.Dcells = third.data_.Dcells / static_cast<Cell>(n2); // third add
 
 			d1.data_.Dcells = ldiv.data_.Dcells+second.data_.Dcells+third.data_.Dcells;
 			if(changeSign){
@@ -5645,7 +5605,7 @@ if(0){
 			REQUIRE_DSTACK_DEPTH(2, "#>");
 			auto dataInDataSpace = PutStringToEndOfDataSpace(std::string(picturedInputBuffer.rbegin(), picturedInputBuffer.rend()));
 			dStack.setTop(1,CELL(dataInDataSpace));
-			dStack.setTop(picturedInputBuffer.size());
+			dStack.setTop(CELL(picturedInputBuffer.size()));
 
 		}
 
@@ -5695,7 +5655,7 @@ if(0){
 			catchStack.push(static_cast<Cell>(dStack.stackDepth()-1));
 			catchStack.push(static_cast<Cell>(rStack.stackDepth()));
 			catchStack.push(static_cast<Cell>(returnStack.stackDepth()));
-			catchStack.push(savedInput.size());
+			catchStack.push(CELL(savedInput.size()));
 			catchStack.push(exceptionHandler);
 			exceptionHandler = static_cast<Cell>(catchStack.stackDepth());
 		}
@@ -5740,7 +5700,7 @@ if(0){
 
 		void markerstart() {
 			REQUIRE_DSTACK_AVAILABLE(1, "MARKERSTART");
-			Cell defn = definitions.size();
+			Cell defn = CELL(definitions.size());
 			push(defn-1);
 		}
 		void markerremove() {
@@ -6197,11 +6157,11 @@ if(0){
 			defineForthWords();
 		}
 
-		enum {
+		enum vmSegments {
 			vmSegmentVariables=0,
 			vmSegmentSourceBufferRefill=1,
 			vmSegmentDataSpace=2
-		} vmSegments;
+		} ;
 		void forthscriptcpp_reset() {
 			size_t sourceBufferSize = 0x010000;
 			executionStarted = std::chrono::duration_cast< std::chrono::milliseconds >(
@@ -6295,8 +6255,7 @@ if(0){
 			*/
 		}
 		void setDataCell(AAddr pointer, Cell value){
-			Cell tmp{ 0 };
-			for (size_t i = 0; i < sizeof(Cell); ++i){
+			for (Cell i = 0; i < sizeof(Cell); ++i){
 				dataSpaceSet(pointer+i, value & 0x00ff);
 				value >>= 8;
 			}
@@ -6313,7 +6272,7 @@ if(0){
 			push(value); 
 		} 
 		// return the depth of the stack
-		size_t forth_depth(){ 
+		Cell forth_depth(){ 
 			return dStack.stackDepth(); 
 		} 
 		// return true, if stack is available for 'num' elements
@@ -6436,7 +6395,11 @@ if(0){
 			setTrace(true);
 #endif			
 		}
+		bool trace = false;
 		public:
+			void setTrace(bool value) {
+				trace = value;
+			}
 		bool isTraceCalls(){
 			return traceCalls;	
 		}

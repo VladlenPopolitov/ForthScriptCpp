@@ -51,10 +51,10 @@ std::shared_ptr<std::fstream> GetFileHandle(Cell handler, const std::string &fun
 	throw;
 }
 
-void  MoveFileHandle(Cell handler,std::shared_ptr<std::fstream>& fileHandle,  const std::string& function, errorCodes ec = errorAbort) {
+void  MoveFileHandle(Cell handler,std::shared_ptr<std::fstream>& fileHandle_,  const std::string& function, errorCodes ec = errorAbort) {
 	for (auto it = OpenFiles.begin(); it != OpenFiles.end(); ++it) {
 		if ((*it).FILE == handler) {
-			std::swap((*it).fileObject, fileHandle);
+			std::swap((*it).fileObject, fileHandle_);
 			return;
 		}
 	}
@@ -231,7 +231,7 @@ void readFile() {
 	f->read(&readBuffer[0], static_cast<std::streamsize>(length));
 	auto status = f->rdstate();
 	auto realLength = static_cast<Cell>(std::strlen(&readBuffer[0]));
-	auto realLengthF = f->gcount();
+	auto realLengthF = CELL(f->gcount());
 	moveIntoDataSpace(caddr, &readBuffer[0], realLengthF);
 	dStack.setTop(f->bad() ? Cell(errorReadFile) : 0);
 	dStack.setTop(1, realLengthF);
@@ -475,7 +475,7 @@ void includeFile() {
 	std::stringstream inStrStream{};
 	inStrStream << (*f).rdbuf();   // read the file
 	fileContent = inStrStream.str(); //
-	SaveInput(structSavedInput::fromFile);
+	SaveInput();
 	setSourceId(h);
 	setDataCell(VarOffsetBlkAddress, Cell(0)); // set BLK=0
 	SetInput(fileContent);
