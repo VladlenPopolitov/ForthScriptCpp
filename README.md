@@ -51,7 +51,7 @@ This free software released into public domain and can be used without any restr
   result=Forth.ExecutionOutput();   // result will be "3"
 ```
 
- If scripts reads from input buffer ( REFILL , ACCEPT ) , input buffer can be assigned and cleared by members
+ If scripts reads from input buffer ( ACCEPT ) , input buffer can be assigned and cleared by members
 
   `void SetExecutionInputBuffer(const std::string &input)`
 
