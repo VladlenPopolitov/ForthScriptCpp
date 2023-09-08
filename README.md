@@ -6,6 +6,19 @@ Use CMake to build examples and tests. Forth class is implemented as include onl
 
 CORE, CORE-EXT, DOUBLE, EXCEPTION, FILE, FLOAT, MEMORY are fully impelemented, all tests for these words are passed.
 ==============================================
+
+Quick check of Forth implementation, run example SimpleForth - program read from keyboard input and execute everythng as Forth words:
+```
+git clone https://github.com/VladlenPopolitov/ForthScriptCpp
+cd ForthScriptCpp
+mkdir build
+cd build
+cmake ..
+make
+cd examples/SimpleForth
+./SimpleForth
+```
+
 C++ Class cppforth::Forth (https://github.com/VladlenPopolitov/ForthScriptCpp) 
 is inspired by Kristopher Johnson's cxxforth (https://github.com/kristopherjohnson/cxxforth). 
 
