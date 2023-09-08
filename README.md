@@ -1,6 +1,7 @@
 # EmbedForthCpp
 
 EmbedForthCpp: A Forth implementation as C++ Class by Vladlen Popolitov 
+
 Use CMake to build examples and tests. Forth class is implemented as include only file.
 
 CORE, CORE-EXT, DOUBLE, EXCEPTION, FILE, FLOAT, MEMORY are fully impelemented, all tests for these words are passed.
@@ -18,15 +19,15 @@ This free software released into public domain and can be used without any restr
 
  Create forth object:
  Include file EmbedForthCpp.h into your C++ program. 
-
+```
 #define FORTHSCRIPTCPP_ENABLE_FILE   1
 #define FORTHSCRIPTCPP_ENABLE_MEMORY  1
 #define FORTHSCRIPTCPP_ENABLE_FLOAT  1
 #define FORTHSCRIPTCPP_ENABLE_FLOAT_EXT 1
 #define FORTHSCRIPTCPP_ENABLE_INTERNALDEBUGGER 1
 
-#include "../../ForthScriptCpp.h"
-
+#include "ForthScriptCpp.h"
+```
 
  Create object forthcpp::Forth .
 
