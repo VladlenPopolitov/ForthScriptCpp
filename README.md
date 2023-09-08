@@ -100,3 +100,48 @@ This free software released into public domain and can be used without any restr
 
 Example:
 
+```
+#define FORTHSCRIPTCPP_ENABLE_FILE   1
+#define FORTHSCRIPTCPP_ENABLE_MEMORY  1
+#define FORTHSCRIPTCPP_ENABLE_FLOAT  1
+#define FORTHSCRIPTCPP_ENABLE_FLOAT_EXT 1
+#define FORTHSCRIPTCPP_ENABLE_INTERNALDEBUGGER 1
+#include "ForthScriptCpp.h"
+
+static int Width = 0;
+void SetWidth(cppforth::Forth* ptr){
+	if (ptr->forth_depth() > 0){
+		Width=ptr->forth_tocell(0);
+	}
+}
+void GetWidth(cppforth::Forth* ptr){
+	if (ptr->forth_available(1)){
+		 ptr->forth_push(Width);
+	}
+	else {
+		throw std::runtime_error("GetWidth does not have space in Forth stack");
+	}
+}
+
+int main(int argc, const char** argv) {
+	try {
+		cppforth::Forth forth{};
+		forth.SetExecutionInputBuffer(" ");
+	 // Register functions as Forth words		
+		forth.forth_setcfunction(SetWidth, "SetWidth");
+		forth.forth_setcfunction(GetWidth, "GetWidth");
+  // Execute string  f.e. from configuration file
+	 forth.ExecuteString(" 100 SetWidth ");
+		std::string res = forth.ExecutionOutput();
+		forth.ExecutionOutputReset();
+		std::cout <<" Width "<< Width << std::endl;
+	} catch (cppforth::Forth::AbortException &ex){
+		const char *errorMessage = ex.what();
+	} catch (std::exception &ex){
+		const char *errorMessage = ex.what();
+	} catch (...){
+		;
+	}
+	return 0;
+}
+```
