@@ -42,7 +42,8 @@ int main(int argc, const char** argv) {
 			forth.ExecuteString(str);
 			res2 = forth.ExecutionOutput();
 			forth.ExecutionOutputReset();
-			std::cout << res2;
+			
+			<< res2;
                 }
 		while (!forth.isFinished()){
 			std::cout << std::endl << ">" ;

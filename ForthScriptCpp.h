@@ -169,7 +169,7 @@ implementation to get the basic gist of how Forth is usually implemented.
 #endif
 
 #ifndef FORTHSCRIPTCPP_VERSION
-#define FORTHSCRIPTCPP_VERSION "1.0.0"
+#define FORTHSCRIPTCPP_VERSION "1.0.1"
 #endif
 
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
@@ -544,16 +544,16 @@ continue the interpreter loop.
 ****/
 
 //": (abort\")   rot if abort-message then 2drop ; "
-": (abort\")   rot if type -1 throw then 2drop ; "
-": abort\"     postpone s\" postpone (abort\") ; immediate "
+": (abort\") rot if type -1 throw then 2drop ; "
+": abort\" postpone s\" postpone (abort\") ; immediate "
 
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
-": fover    1 fpick ; "
-": f, here  1 floats allot  f! ; " // not standard word
+": fover 1 fpick ; "
+": f, here 1 floats allot  f! ; " // not standard word
 " ' (flit) constant '(flit)  "
-": fliteral   '(flit) , f, ; immediate  "
-": fconstant    create f,    does>  f@ ; "
-": fvariable   create 0.0e0 f, ; "
+": fliteral '(flit) , f, ; immediate  "
+": fconstant create f,    does>  f@ ; "
+": fvariable create 0.0e0 f, ; "
 ": F> FSWAP F< ; " // not standard word
 ": SFLOATS FLOATS ; : SFLOAT+ FLOAT+ ; : DFLOATS FLOATS ; : DFLOAT+ FLOAT+ ;  "
 ": SFALIGNED ALIGNED ; "
@@ -3081,12 +3081,6 @@ FCell getDataFCell32(CAddr pointer){
 			}
 		}
 
-		void f_fconstant(){
-			; // @bug to be done
-		}
-		void f_fliteral(){
-			; // @bug to be done
-		}
 		// FLOOR ( F: r1 -- r2 ) or ( r1 -- r2 )
 		void f_floor() {
 			REQUIRE_FSTACK_DEPTH(1, "FLOOR");
@@ -3438,7 +3432,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				break;
 			case ToStdCout:
 				std::cout << SETBASE() << std::fixed << std::setprecision(precision_) << static_cast<FCell>(fStack.getTop());
-				std::cout.flush(); // @bug should we make flush every output
+				std::cout.flush(); 
 				break;
 			default:
 				break;
