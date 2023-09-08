@@ -4,8 +4,7 @@ ForthScriptCpp: A Forth implementation as C++ Class by Vladlen Popolitov
 
 Use CMake to build examples and tests. Forth class is implemented as include only file.
 
-CORE, CORE-EXT, DOUBLE, EXCEPTION, FILE, FLOAT, MEMORY, STRING, STRING-EXT are fully implemented, [all tests](tests/unittests
-/testresult.txt) for these words are passed.
+CORE, CORE-EXT, DOUBLE, EXCEPTION, FILE, FLOAT, MEMORY, STRING, STRING-EXT are fully implemented, [all tests](tests/unittests/testresult.txt) for these words are passed.
 ==============================================
 The list of all FORTH-2012 words with the impelementation status is in [words_status.txt](words_status.txt). 
 
