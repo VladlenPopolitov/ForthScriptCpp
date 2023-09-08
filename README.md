@@ -33,22 +33,19 @@ This free software released into public domain and can be used without any restr
  Create object forthcpp::Forth .
 
 ```
-  cppforth::Forth Forth{};
+  cppforth::Forth ForthExample{};
 ```
 
  Forth is called by member `void ExecuteString(const std::string &commands)` :
 
 ```
-   Forth.ExecuteString("1 2 + .");
+   ForthExample.ExecuteString("1 2 + .");
 ```
 
- Output buffer can be read by member  ExecutionOutput and cleared by ExecutionOutputReset
+ Output buffer can be read by member  ExecutionOutput `std::string ExecutionOutput() const` and cleared by ExecutionOutputReset `void ExecutionOutputReset()`
 ```
-  std::string ExecutionOutput() const
-
-  void ExecutionOutputReset()
-
-  result=Forth.ExecutionOutput();   // result will be "3"
+  ForthExample.ExecuteString("1 2 + .");
+  result=ForthExample.ExecutionOutput();   // result will be "3"
 ```
 
  If scripts reads from input buffer ( ACCEPT ) , input buffer can be assigned and cleared by members
@@ -100,3 +97,6 @@ This free software released into public domain and can be used without any restr
   void forth_writememory(CAddr address, Cell size, std::vector<char> &buffer)
 
 ```
+
+Example:
+
