@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.15)
 find_package(GTest REQUIRED)
 add_executable(test_constructor constructor.cc forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h )
 add_executable(test_forthtestsuit1 testsuit1.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)

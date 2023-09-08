@@ -86,22 +86,14 @@
 \ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \ next definitions are added to original code to define not standard words
 \ Vladlen Popolitov
-: CHAR+ ( c-addr1 -- c-addr2 ) \ 94
-\ add char size to c-addr1 and get c-addr2.
-  1+
-;
+
 : CELL ( -- cellsize )
   1 CELLS
-;
-: CELL+ ( a-addr1 -- a-addr2 ) \ 94
-\ add cell size to a-addr1 and get a-addr2.
-  1 CELLS +
 ;
 : CELL- ( a-addr1 -- a-addr2 )
 \ subtract cell size to a-addr1 and get a-addr2.
   1 CELLS -
 ;
-
 : DS>F S>D D>F ;
 : F>DS F>D D>S ;
 : KEY? FALSE ; \ do not stop thinking by key pressed

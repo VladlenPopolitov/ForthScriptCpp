@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.15)
 add_executable(EmbededScript EmbededScript.cpp ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 
 set_property(TARGET EmbededScript PROPERTY CXX_STANDARD 20)

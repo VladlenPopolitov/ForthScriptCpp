@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.15)
 add_executable(ForthRobots ForthRobots.cpp )
 add_library(ForthRobotsLib display.cpp intrins.cpp motion.cpp screena.cpp crobots.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 
