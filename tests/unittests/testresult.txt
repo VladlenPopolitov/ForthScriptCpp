@@ -142,9 +142,7 @@ exceptiontest  RES 0
 ****
 End of Facility word tests
 facilitytest  RES 0 
-***************
-INCORRECT RESULT: T{ S" abcd"  S" 1234" SSQ13  S= ROT ROT SSQ12 S= -> TRUE TRUE }T
-INCORRECT RESULT: T{ S\" abcd" S\" 1234" SSQ13 S= ROT ROT SSQ12 S= -> TRUE TRUE }T****
+*******************
 End of File-Access word set tests
 filetest  RES 0 
 ****
@@ -178,14 +176,14 @@ Block                   -
 Double number           0
 Exception               0
 Facility                0
-File-access             2
+File-access             0
 Locals                  -
 Memory-allocation       0
 Programming-tools       0
 Search-order            0
 String                  0
 ---------------------------
-Total                   2
+Total                   0
 ---------------------------
 
 

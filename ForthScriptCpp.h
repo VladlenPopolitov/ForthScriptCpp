@@ -658,9 +658,9 @@ S\" http://www.forth200x.org/escaped-strings.html
 " : parse\" dup >r  0 swap c! begin dup while over c@ [char] \" <> while over c@ [char] \\ = if  "
 "  1 /string r@ addEscape else over c@ r@ addchar  1 /string then repeat then dup   "
 "  if 1 /string  then  r> drop ;  "
-" create pocket  256 1 chars + allot  "
-" : readEscaped source >in @ /string tuck pocket parse\" nip - >in +! pocket ;  "
-" : S\\\" readEscaped count  state @  if  postpone sliteral  then ; IMMEDIATE  "
+// " create pocket  256 1 chars + allot  " // buffer to store parsed string
+" : readEscaped source >in @ /string tuck NEWPARSEBUFFER dup >R parse\" nip - >in +! R> ;  " // ( "ccc" -- c-addr ) - 
+" : S\\\" readEscaped count state @  if  postpone sliteral  then ; IMMEDIATE  " //( "string" -- caddr u )
 
 /******
 
@@ -1346,17 +1346,14 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 			if (inputBufferStringsCurrent < inputBufferStrings.size()){
 				// load next string from input buffer
 				const std::string &value = inputBufferStrings.at(inputBufferStringsCurrent);
-				auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBufferRefill).segment;
-				sourceBufferVirtual.resize(0);
-				std::copy(value.begin(), value.end(), std::back_inserter(sourceBufferVirtual));
-				VirtualMemory.at(vmSegmentSourceBufferRefill).end = VirtualMemory.at(vmSegmentSourceBufferRefill).start + 
-					static_cast<Cell>(VirtualMemory.at(vmSegmentSourceBufferRefill).segment.size());
-				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, static_cast<Cell>(sourceBufferVirtual.size()), 0);
+				auto address=setVirtualMemory(value,vmSegmentSourceBufferRefill);
+				setSourceVariables(address, CELL(value.size()), 0);
 				return true;
 			}
 			else {
 				// fill input buffer by zero length vector
-				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, 0, 0);
+				assert(!"Should not be here");
+				setSourceVariables(VirtualMemory.at(vmSegmentSourceBufferRefill).start, 0, 0); // @bug - check when this condition happens
 				return false;
 			}
 		}
@@ -2404,16 +2401,14 @@ Code Reserved for	Code Reserved for
 		// SOURCE ( -- c-addr u )
 		void source() {
 			REQUIRE_DSTACK_AVAILABLE(2, "SOURCE");
-			push(getDataCell(VarOffsetSourceAddress)); // bug it is not content of variable, it is address of variable
-			//auto &sourceBufferVirtual = VirtualMemory.at(vmSegmentSourceBuffer).segment;
-			//push(sourceBufferVirtual.size());
+			push(getDataCell(VarOffsetSourceAddress)); 
 			push(getDataCell(VarOffsetSourceSize));
 		}
 		// SOURCE-ID ( -- n )
 		Cell sourceid{};
 		void sourcedashid() {
 			REQUIRE_DSTACK_AVAILABLE(1, "SOURCE-ID");
-			push(sourceid); // bug it is not content of variable, it is address of variable
+			push(sourceid); 
 		}
 		void setSourceId(SCell value) {
 			sourceid = value;
@@ -4296,8 +4291,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			dStack.setTop(VarOffsetWordBuffer);
 			dStack.push(CELL(name.size()));
 			} else {
-				std::cerr << "Wrong nt " << nt << std::endl;
-				trace=true;
 				dStack.setTop(VarOffsetWordBuffer);
 				dStack.push(0);
 			}
@@ -4305,7 +4298,11 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		/// NAME>INTERPRET
 		void namemoreinterpret(){
 			REQUIRE_DSTACK_DEPTH(1, "NAME>INTERPRET");
-			//dStack.setTop(0);
+			auto nt=dStack.getTop();
+			if(nt==exitXt){
+				// Interpretation semantics for this word are undefined
+				dStack.setTop(0); 	
+			}
 		}
 		/// NAME>COMPILE
 		void namemorecompile(){
@@ -4321,8 +4318,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				dStack.push(CELL(compileCommaXt));
 			}
 			} else {
-				std::cerr << "Wrong nt " << nt << std::endl;
-				trace=true;
 				dStack.setTop(wrongCommandXt);
 				dStack.push(compileCommaXt);
 			}
@@ -5552,6 +5547,7 @@ if(0){
 			setSourceBuffer();
 		}
 		void restoreInput(struct structSavedInput& save, bool emptyCurrentBuffer, bool restoreNextCommand) {
+			if(save.SourceDashId_>=0 ){
 				if (emptyCurrentBuffer) {
 					std::swap(save.inputBufferStrings_, inputBufferStrings);
 				}
@@ -5559,15 +5555,17 @@ if(0){
 					inputBufferStrings=save.inputBufferStrings_;
 				}
 				inputBufferStringsCurrent = save.inputBufferStringsCurrent_;
+				
 				setSourceBuffer();
-				setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
-				setSourceId(save.SourceDashId_);
-				InterpretState = save.interpretState_;
-				// restoree next command for evaluate
-				// do not need restore for RESTORE-INPUT
-				if (restoreNextCommand) {
-					next_command = save.next_;
-				}
+			}
+			setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
+			setSourceId(save.SourceDashId_);
+			InterpretState = save.interpretState_;
+			// restoree next command for evaluate
+			// do not need restore for RESTORE-INPUT
+			if (restoreNextCommand) {
+				next_command = save.next_;
+			}
 		}
 		size_t RestoreInput(){
 			auto size = savedInput.size();
@@ -6381,6 +6379,9 @@ if(0){
 				{ "TRAVERSE-WORDLIST-FINDFIRST", &Forth::traversedashwordlistdashfindfirst, false }, // not standard word
 				{ "ASSEMBLER", &Forth::assembler, false }, // TOOLS  EXT
 				{ "EDITOR", &Forth::editor, false }, // TOOLS  EXT
+				{ "NEWPARSEBUFFER", &Forth::newparsebuffer, false }, // not standard word
+
+				
 				
 #ifdef FORTHSCRIPTCPP_ENABLE_MEMORY
 				{ "RESIZE", &Forth::memResize , false }, //MEMORY
@@ -6507,31 +6508,6 @@ if(0){
 #endif
 		}
 		
-		void moveIntoDataSpace(Cell dst, const char *src, size_t count){
-			while (count--){
-				dataSpaceSet(dst++, *src++);
-			}
-		}
-		void moveFromDataSpace(unsigned char *dst, Cell src, size_t count){
-			while (count--){
-				*dst++ = dataSpaceAt(src++);
-			}
-		}
-		void moveFromDataSpace(std::string &dst, Cell src, size_t count){
-			dst.resize(count);
-			for(auto &c : dst) c=dataSpaceAt(src++);
-		}
-
-		size_t PutStringToEndOfDataSpace(const std::string &data){
-			auto size = data.size();
-			if (size + getDataPointer() + 2 >= VirtualMemory[vmSegmentDataSpace].end  ){
-				throwCppExceptionMessage("Not enough data space memory or input buffer memory", errorInvalidAddress);
-			}
-			auto offset = VirtualMemory[vmSegmentDataSpace].end - size - 2;
-			moveIntoDataSpace(static_cast<Cell>(offset), data.data(), size);
-			return offset;
-		}
-
 		void defineForthWords() {
 				auto line = forthDefinitions;
 				SetInput( line );
@@ -6545,40 +6521,23 @@ if(0){
 			defineForthWords();
 		}
 
-		enum vmSegments {
-			vmSegmentVariables=0,
-			vmSegmentSourceBufferRefill=1,
-			vmSegmentDataSpace=2
-		} ;
 		void forthscriptcpp_reset() {
-			size_t sourceBufferSize = 0x010000;
 			executionStarted = std::chrono::duration_cast< std::chrono::milliseconds >(
 				std::chrono::system_clock::now().time_since_epoch() );
 			dStack.resize(FORTHSCRIPTCPP_DSTACK_COUNT);
 			dStack.resetStack();
 			rStack.resize(FORTHSCRIPTCPP_RSTACK_COUNT);
 			rStack.resetStack();
-			Cell start = 0, end = 0x10000; // VarOffsetSourceBuffer;
-			VirtualMemorySegment variables{ start, end, std::vector<Char>(end) };
-			if (VirtualMemory.size() == vmSegmentVariables) VirtualMemory.push_back(variables);
-			start = end;
-			end += static_cast<Cell>(sourceBufferSize);
-			VirtualMemorySegment sourceBuffer{ start, end, std::vector<Char>(sourceBufferSize) };
-			if (VirtualMemory.size() == vmSegmentSourceBufferRefill) VirtualMemory.push_back(sourceBuffer);
-			// set SOURCE, SOURCE size, >IN
-			setSourceVariables(start, 0, 0); // size if 0, source is empty
-			start = end;
-			end += static_cast<Cell>(FORTHSCRIPTCPP_DATASPACE_SIZE);
-			VirtualMemorySegment dataSpace{ start, end , std::vector<Char>(FORTHSCRIPTCPP_DATASPACE_SIZE) };
-			if (VirtualMemory.size() == vmSegmentDataSpace) VirtualMemory.push_back(dataSpace);
-			setDataPointer(start);
-			VirtualMemoryFreeSegment = end;
+			// return stack init;
+			returnStack.resize(100);
+
+			virtualMemoryInit();
+			
 			setSourceId(0); // SOURCE-ID=0: user input 
 			setNumericBase(10); // BASE = 10
 			setIsCompiling(False);
 			setDataCell(VarOffsetBlkAddress, Cell(0)); // set BLK=0
-			// return stack init;
-			returnStack.resize(100);
+			
 			// search order setup
 			searchOrderCurrent=widForthWordList;
 			searchOrderLast=widForthAssembler;
@@ -6590,9 +6549,58 @@ if(0){
 		/******
 		Read from virtual memory
 		******/
+		enum vmSegments {
+			vmSegmentVariables=0,
+			vmSegmentSourceBufferRefill=1,
+			vmSegmentDataSpace=2,
+			vmSegmentParseBuffer0=3,
+			vmSegmentParseBuffer1=4,
+			vmSegmentParseBuffer2=5,
+			vmSegmentParseBuffer3=6
+		} ;
 		struct VirtualMemorySegment { Cell start{}, end{}; std::vector<Char> segment{}; };
 		std::vector<VirtualMemorySegment> VirtualMemory{};
 		Cell VirtualMemoryFreeSegment{};
+
+		CAddr virtualMemorySegmentInit(vmSegments segmentNum, Cell size ){
+			if (VirtualMemory.size() == segmentNum) {
+				Cell start{},end{};
+				start=(VirtualMemory.size()==0)?0:VirtualMemory.at(segmentNum-1).end+1;
+				end=start+size;
+				VirtualMemorySegment variables{ start, end, std::vector<Char>(end-start) };
+				VirtualMemory.push_back(variables);
+				VirtualMemoryFreeSegment = end;
+				return start;
+			} else {
+				throwCppExceptionMessage("VirtualMemory init failure",errorAllocate);
+			}
+			assert("!Not reachable");
+			return 0; // to avoid warning. this code in not reachable	
+		}
+		void virtualMemoryInit(){
+			const size_t sourceBufferSize = 0x010000;
+			Cell start = 0, end = 0x10000; // VarOffsetSourceBuffer;
+			auto addr=virtualMemorySegmentInit(vmSegmentVariables,0x10000);
+			addr=virtualMemorySegmentInit(vmSegmentSourceBufferRefill,sourceBufferSize);
+			setSourceVariables(addr, 0, 0); // size if 0, source is empty
+			addr=virtualMemorySegmentInit(vmSegmentDataSpace,FORTHSCRIPTCPP_DATASPACE_SIZE);
+			setDataPointer(addr);
+			addr=virtualMemorySegmentInit(vmSegmentParseBuffer0,sourceBufferSize);
+			addr=virtualMemorySegmentInit(vmSegmentParseBuffer1,sourceBufferSize);
+			addr=virtualMemorySegmentInit(vmSegmentParseBuffer2,sourceBufferSize);
+			addr=virtualMemorySegmentInit(vmSegmentParseBuffer3,sourceBufferSize);
+		}
+
+		CAddr setVirtualMemory(const std::string &value, int segmentName){
+			auto &sourceBufferVirtual = VirtualMemory.at(segmentName).segment;
+			sourceBufferVirtual.resize(0);
+			std::copy(value.begin(), value.end(), std::back_inserter(sourceBufferVirtual));
+			VirtualMemory.at(segmentName).end = VirtualMemory.at(segmentName).start + 
+				static_cast<Cell>(VirtualMemory.at(segmentName).segment.size());
+			return VirtualMemory.at(segmentName).start ;
+		}
+
+
 		Char dataSpaceAt(Cell index){
 			for (auto it = VirtualMemory.begin(), itend=VirtualMemory.end(); it != itend ; ++it){
 				if ((*it).start <= index && (*it).end > index){
@@ -6653,6 +6661,32 @@ if(0){
 				value >>= 8;
 			}
 		}
+				void moveIntoDataSpace(Cell dst, const char *src, size_t count){
+			while (count--){
+				dataSpaceSet(dst++, *src++);
+			}
+		}
+		void moveFromDataSpace(unsigned char *dst, Cell src, size_t count){
+			while (count--){
+				*dst++ = dataSpaceAt(src++);
+			}
+		}
+		void moveFromDataSpace(std::string &dst, Cell src, size_t count){
+			dst.resize(count);
+			for(auto &c : dst) c=dataSpaceAt(src++);
+		}
+		/// NEWPARSEBUFFER ( -- addr )
+		void newparsebuffer(){
+			auto address=PutStringToEndOfDataSpace(std::string(1024,' '));
+			dStack.push(address);
+		}
+		int vmSegmentParseBufferCounter{};
+		size_t PutStringToEndOfDataSpace(const std::string &data){
+			// use 4 addresses, incrementing counter every time	
+			auto address=setVirtualMemory(data,vmSegmentParseBuffer0+(++vmSegmentParseBufferCounter)%4);
+			return address;
+		}
+
 
 	public:
 		Forth(){
@@ -6755,6 +6789,7 @@ if(0){
 		}
 		void SetExecutionInputBuffer(const std::string &input){
 			std_cin.str(input);
+			std_cin.clear();
 		}
 
 		bool isExecutionInputBufferEmpty() const{
@@ -6763,6 +6798,7 @@ if(0){
 
 		void ExecutionInputBufferReset(){
 			std::stringstream().swap(std_cin);
+			std_cin.clear();
 		}
 		void ExecutionErrorBufferReset(){
 #ifndef			FORTHSCRIPTCPP_DISABLE_OUTPUT
