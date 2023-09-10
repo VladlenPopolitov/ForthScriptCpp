@@ -136,8 +136,7 @@ You should see lines duplicated:
 **
 End of Double-Number word tests
 doubletest  RES 0 
-**This should not be displayed
-INCORRECT RESULT: T{ 4 5 ' T10 C6 -> 4 77 12 }T    \ ABORT" caught, no message*
+***
 End of Exception word tests
 exceptiontest  RES 0 
 ****
@@ -177,7 +176,7 @@ Core                    0
 Core extension          0
 Block                   -
 Double number           0
-Exception               1
+Exception               0
 Facility                0
 File-access             2
 Locals                  -
@@ -186,7 +185,7 @@ Programming-tools       0
 Search-order            0
 String                  0
 ---------------------------
-Total                   3
+Total                   2
 ---------------------------
 
 

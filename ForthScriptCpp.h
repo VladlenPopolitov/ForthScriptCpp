@@ -535,8 +535,11 @@ continue the interpreter loop.
 ****/
 
 //": (abort\")   rot if abort-message then 2drop ; "
-": (abort\") rot if type -1 throw then 2drop ; "
-": abort\" postpone s\" postpone (abort\") ; immediate "
+//": (abort\") rot if type -2 throw then 2drop ; "
+//": (abort\") -2 throw ; "
+": (abort\") rot if HASEXCEPTIONFRAME  if else type then -2 throw then 2drop  ; "
+//": abort\"  postpone HASEXCEPTIONFRAME postpone IF postpone S\" POSTPONE ELSE POSTPONE 2DROP POSTPONE THEN postpone (abort\") ; immediate "
+": abort\"  postpone S\" postpone (abort\") ; immediate "
 
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
 ": fover 1 fpick ; "
@@ -1218,7 +1221,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 
 		Definition *getDefinition(Cell index){
 			if ((index < 0) || (index >= definitions.size())){
-					throwMessage("Access to definitions out of range "+std::to_string(index),errorUndefinedWord);
+					throwCppExceptionMessage("Access to definitions out of range "+std::to_string(index),errorUndefinedWord);
 			}
 			return &definitions[index];
 		}
@@ -1275,7 +1278,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		
 		Definition &definitionsAt(Cell index){
 			if (index >= definitions.size() || index<0){
-				throwMessage("Access to definitions out of range",errorUndefinedWord);
+				throwCppExceptionMessage("Access to definitions out of range",errorUndefinedWord);
 			}
 			return definitions.at(index);
 		}
@@ -1626,6 +1629,15 @@ Code Reserved for	Code Reserved for
 			std::string buffer{};
 			int ecInt=static_cast<int>(ec);
 			moveFromDataSpace(buffer, getSourceAddress(), getSourceBufferSize());
+			dStack.push(ec);
+			exceptionsThrow();
+			//throw AbortException(msg + "\nError code " + std::to_string(ecInt) +"\n" + buffer + "\n Offset " + std::to_string(getSourceBufferOffset()));
+		}
+		void throwCppExceptionMessage(const std::string &msg, enum errorCodes ec){
+			initClass();
+			std::string buffer{};
+			int ecInt=static_cast<int>(ec);
+			moveFromDataSpace(buffer, getSourceAddress(), getSourceBufferSize());
 			throw AbortException(msg + "\nError code " + std::to_string(ecInt) +"\n" + buffer + "\n Offset " + std::to_string(getSourceBufferOffset()));
 		}
 		// ABORT ( i*x -- ) ( R: j*x -- )
@@ -1691,7 +1703,7 @@ Code Reserved for	Code Reserved for
 
 #else
 
-#define RUNTIME_ERROR(msg,ec)                   do { throwMessage(msg,ec); } while (0)
+#define RUNTIME_ERROR(msg,ec)                   do { throwCppExceptionMessage(msg,ec); } while (0)
 #define RUNTIME_ERROR_IF(cond, msg,ec)          do { if (cond) RUNTIME_ERROR(msg,ec); } while (0)
 #define REQUIRE_DSTACK_DEPTH(n, name)        requireDStackDepth(n, name)
 #define REQUIRE_DSTACK_AVAILABLE(n, name)    requireDStackAvailable(n, name)
@@ -2566,7 +2578,7 @@ Code Reserved for	Code Reserved for
 			}
 			if (wordBuffer.size() > 255){
 				// @bug it is catched below
-				throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
+				throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow); return;
 			}
 			// Update the count at the beginning of the buffer.
 				wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
@@ -2622,6 +2634,7 @@ Code Reserved for	Code Reserved for
 				if (wordBuffer.size() > 255){
 					// @bug it is catched below
 					throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
+					return 0;
 				}
 				// Update the count at the beginning of the buffer.
 				//wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
@@ -2682,6 +2695,7 @@ Code Reserved for	Code Reserved for
 				if (wordBuffer.size() > 255){
 					// @bug it is catched below
 					throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
+					return;
 				}
 				// Update the count at the beginning of the buffer.
 				wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
@@ -2850,6 +2864,7 @@ Code Reserved for	Code Reserved for
 						throwMessage(std::string("PARSE: Did not find expected delimiter \'" +
 							std::string(1, delim) + "\'")
 							, errorParsedStringOverflow);
+						return;	
 					}
 				}
 				if (getSourceBufferRemain() > 0) {
@@ -4557,7 +4572,10 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			bl(); word(); find();
 
 			auto found = dStack.getTop(); pop();
-			if (!found) throwMessage("SEE: undefined word",errorParsedStringOverflow);
+			if (!found) {
+				throwMessage("SEE: undefined word",errorParsedStringOverflow);
+				return;
+			}
 
 			auto defn = getDefinition(XT(dStack.getTop())); pop();
 			if ((defn)->code == &Forth::doColon) {
@@ -5961,6 +5979,14 @@ if(0){
 		ForthStack<Cell> catchStack{};
 
 		Cell exceptionHandler{};
+		/// HASEXCEPTIONFRAME ( -- flag )
+		void hasexceptionframe(){
+			if(exceptionHandler>=5){
+				dStack.push(True);
+			} else {
+				dStack.push(False);
+			}
+		}
 		void exceptionsThrow(){
 			SCell exceptionNumber = static_cast<SCell>(dStack.getTop()); 
 			if (exceptionNumber != 0){
@@ -5986,9 +6012,14 @@ if(0){
 				}
 				else {
 					if (exceptionNumber == -1){
-						abort();
+						throwCppExceptionMessage("",static_cast<Forth::errorCodes>(exceptionNumber));
+						//std::string buffer{};
+						//moveFromDataSpace(buffer, getSourceAddress(), getSourceBufferSize());
+						//throw AbortException("Error code " + std::to_string(exceptionNumber) +"\n" + buffer + "\n Offset " + std::to_string(getSourceBufferOffset()));
+						// abort();
 					}
-					abort();
+					throwCppExceptionMessage("",static_cast<Forth::errorCodes>(exceptionNumber));
+					// abort();
 				}
 			}
 			else {
@@ -6325,7 +6356,8 @@ if(0){
 				{ "SEARCH", &Forth::search, false }, // STRINGS
 				{ "CATCHBEFORE", &Forth::exceptionsCatchBefore, false }, // not standerd word
 				{ "CATCHAFTER", &Forth::exceptionsCatchAfter, false }, // not standerd word
-				{ "THROW", &Forth::exceptionsThrow, false }, // not standerd word
+				{ "THROW", &Forth::exceptionsThrow, false }, // EXCEPTION
+				{ "HASEXCEPTIONFRAME", &Forth::hasexceptionframe, false }, // not standart (check exception frame for ABORT")
 				{ "ENVIRONMENT?", &Forth::environmentquestion, false }, // not standard word
 				{ "TRACEON", &Forth::setTraceOn, false }, // not standard word
 				{ "TRACEOFF", &Forth::setTraceOff, false }, // not standard word
@@ -6502,7 +6534,7 @@ if(0){
 		size_t PutStringToEndOfDataSpace(const std::string &data){
 			auto size = data.size();
 			if (size + getDataPointer() + 2 >= VirtualMemory[vmSegmentDataSpace].end  ){
-				throwMessage("Not enough data space memory or input buffer memory", errorInvalidAddress);
+				throwCppExceptionMessage("Not enough data space memory or input buffer memory", errorInvalidAddress);
 			}
 			auto offset = VirtualMemory[vmSegmentDataSpace].end - size - 2;
 			moveIntoDataSpace(static_cast<Cell>(offset), data.data(), size);
