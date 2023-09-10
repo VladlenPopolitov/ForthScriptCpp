@@ -8,9 +8,10 @@ CORE, CORE-EXT, DOUBLE, EXCEPTION, FILE, FLOAT, MEMORY, SEARCH, SEARCH-EXT, STRI
 ==============================================
 The list of all FORTH-2012 words with the impelementation status is in [words_status.txt](words_status.txt). 
 
-To check the Forth implementation run example SimpleForth: program read from keyboard input and execute everythng as Forth words:
+To check the Forth implementation run example SimpleForth: program reads from keyboard input and executes everything as Forth words:
 ```
 git clone https://github.com/VladlenPopolitov/ForthScriptCpp
+git submodule update --init --recursive
 cd ForthScriptCpp
 mkdir build
 cd build
