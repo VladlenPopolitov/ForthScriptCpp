@@ -534,7 +534,7 @@ continue the interpreter loop.
 
 ****/
 
-": (abort\") rot if HASEXCEPTIONFRAME  if else type then -2 throw then 2drop  ; "
+": (abort\") rot if HASEXCEPTIONFRAME INVERT if type then -2 throw then 2drop  ; "
 ": abort\"  postpone S\" postpone (abort\") ; immediate "
 
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
