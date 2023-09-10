@@ -2244,9 +2244,11 @@ Code Reserved for	Code Reserved for
 				SCell ch = EOF;
 				switch (readFromSource) {
 				case FromString:
+					std_cin.clear();
 					ch = static_cast<SCell>(std_cin.get());
 					break;
 				case FromStdCin:
+					std::cin.clear();
 					ch = static_cast<SCell>(std::cin.get());
 					break;
 				default:
@@ -2260,6 +2262,7 @@ Code Reserved for	Code Reserved for
 			Cell flag{} ;
 			switch (readFromSource) {
 				case FromString:
+					std_cin.clear();
 					flag = std_cin.rdbuf()->in_avail() > 0 ? True : False;
 					break;
 				case FromStdCin:
@@ -2282,6 +2285,7 @@ Code Reserved for	Code Reserved for
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
 			switch (writeToTarget) {
 			case ToString:
+				std_cout.clear();
 				std_cout.put(static_cast<char>(cell));
 				break;
 			case ToStdCout:
@@ -2478,9 +2482,15 @@ Code Reserved for	Code Reserved for
 			std::string line{};
 			switch (readFromSource) {
 			case FromString:
-				std::getline(std_cin, line);				break;
+				std_cin.clear();
+				std::getline(std_cin, line);
+				std_cin.clear();
+				break;
 			case FromStdCin:
-				std::getline(std::cin, line);				break;
+				std::cin.clear();
+				std::getline(std::cin, line);
+				std::cin.clear();
+				break;
 			default:
 				break;
 			}

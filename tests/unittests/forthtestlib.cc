@@ -112,6 +112,7 @@ void RunAndPrint(const char *command[],
     std::string res{}, content{}, error{};
     try{
         cppforth::Forth forth{};
+        forth.SetExecutionInputBuffer("1ABCDEFGH\n2abcdefgh\n3AbCdEfGh\n4aBcDeFgH\n\n");
         for (int i = Start; i < numberOfTestFiles; ++i){
             try{
                 std::ifstream is;
