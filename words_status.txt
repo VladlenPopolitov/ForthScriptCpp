@@ -268,7 +268,7 @@ S>F  word OK
 >FLOAT  word OK
   float words total 79   float words missing 0 
 AHEAD  word OK
-ASSEMBLER  word missing
+ASSEMBLER  word OK
 BYE  word OK
 [DEFINED]  word OK
 [ELSE]  word OK
@@ -278,23 +278,23 @@ BYE  word OK
 CODE  word missing
 CS-PICK  word OK
 CS-ROLL  word OK
-DUMP  word missing
+DUMP  word OK
 .S  word OK
-EDITOR  word missing
+EDITOR  word OK
 FORGET  word missing
-NAME>COMPILE  word missing
-NAME>INTERPRET  word missing
-NAME>STRING  word missing
+NAME>COMPILE  word OK
+NAME>INTERPRET  word OK
+NAME>STRING  word OK
 NR>  word OK
 N>R  word OK
 SEE  word OK
 STATE  word OK
 SYNONYM  word OK
 ;CODE  word missing
-TRAVERSE-WORDLIST  word missing
+TRAVERSE-WORDLIST  word OK
 WORDS  word OK
 ?  word OK
-  tools words total 27   tools words missing 10 
+  tools words total 27   tools words missing 3 
 [CHAR]  word OK
 CHAR  word OK
 EKEY>XCHAR  word missing
@@ -435,21 +435,21 @@ ALLOCATE  word OK
 FREE  word OK
 RESIZE  word OK
   memory words total 3   memory words missing 0 
-ALSO  word missing
-DEFINITIONS  word missing
+ALSO  word OK
+DEFINITIONS  word OK
 FIND  word OK
-FORTH-WORDLIST  word missing
-FORTH  word missing
-GET-CURRENT  word missing
-GET-ORDER  word missing
-ONLY  word missing
-ORDER  word missing
-PREVIOUS  word missing
+FORTH-WORDLIST  word OK
+FORTH  word OK
+GET-CURRENT  word OK
+GET-ORDER  word OK
+ONLY  word OK
+ORDER  word OK
+PREVIOUS  word OK
 SEARCH-WORDLIST  word OK
-SET-CURRENT  word missing
-SET-ORDER  word missing
-WORDLIST  word missing
-  search words total 14   search words missing 12 
+SET-CURRENT  word OK
+SET-ORDER  word OK
+WORDLIST  word OK
+  search words total 14   search words missing 0 
 BLANK  word OK
 CMOVE  word OK
 CMOVE>  word OK
@@ -475,8 +475,8 @@ UNESCAPE  word OK
   float words total 79   float words missing 0 
   locals words total 3   locals words missing 3 
   memory words total 3   memory words missing 0 
-  search words total 14   search words missing 12 
+  search words total 14   search words missing 0 
   string words total 11   string words missing 0 
-  tools words total 27   tools words missing 10 
+  tools words total 27   tools words missing 3 
   xchar words total 21   xchar words missing 15 
 

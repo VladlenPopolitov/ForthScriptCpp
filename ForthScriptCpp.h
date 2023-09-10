@@ -169,7 +169,7 @@ implementation to get the basic gist of how Forth is usually implemented.
 #endif
 
 #ifndef FORTHSCRIPTCPP_VERSION
-#define FORTHSCRIPTCPP_VERSION "1.0.2"
+#define FORTHSCRIPTCPP_VERSION "1.0.3"
 #endif
 
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
@@ -459,20 +459,11 @@ are described formally in a proposal at
 
 ****/
 
-": defer       create ['] abort ,  does> @ execute ; "
-": defer@      >body @ ; "
-": defer!      >body ! ; "
-": is          state @ if "
-"                  postpone ['] postpone defer! "
-"              else "
-"                  ' defer! "
-"              then ; immediate "
-
-": action-of   state @ if "
-"                  postpone ['] postpone defer@ "
-"              else "
-"                  ' defer@ "
-"              then ; immediate "
+": defer create ['] abort ,  does> @ execute ; "
+": defer@ >body @ ; "
+": defer! >body ! ; "
+": is state @ if postpone ['] postpone defer! else ' defer! then ; immediate "
+": action-of state @ if postpone ['] postpone defer@ else ' defer@ then ; immediate "
 
 /****
 
@@ -506,25 +497,25 @@ This is like `."`, but is an immediate word.  It can be used to display output
 during the compilation of words.
 
 ****/
-": thenthenthen dup  here swap -  swap ! ; immediate  " // used in 'sliteral' word definition
+": thenthenthen dup here swap - swap ! ; immediate " // used in 'sliteral' word definition
 
 ": sliteral "
-"    >r "
-"    ['] (branch) , here >r 0 , "  // compile a branch with dummy offset
-"    r> r> 2dup >r >r "
-"    swap cell+ 1+ swap "             // copy into the first byte after the offset
-"    dup 1+ allot  cmove align "      // allocate dataspace and copy string into it
-"    r> dup postpone thenthenthen  " // resolve the branch 
-"    cell+ 1+ postpone literal "      // compile literal for address
-"    r> postpone literal "         // compile literal for length
-" ; immediate  "
+">r "
+"['] (branch) , here >r 0 , "  // compile a branch with dummy offset
+"r> r> 2dup >r >r "
+"swap cell+ 1+ swap "             // copy into the first byte after the offset
+"dup 1+ allot  cmove align "      // allocate dataspace and copy string into it
+"r> dup postpone thenthenthen  " // resolve the branch 
+"cell+ 1+ postpone literal "      // compile literal for address
+"r> postpone literal "         // compile literal for length
+"; immediate  "
 
-" : s\" [char] \" parse state @ if postpone sliteral then ; immediate "
- ": C\" [char] \" parse state @ if postpone sliteral postpone swap postpone 1- postpone dup postpone rot postpone swap postpone C!  else swap 1- dup rot swap C! then ; immediate "
-" : .\" postpone s\" postpone type ; immediate "
+": s\" [char] \" parse state @ if postpone sliteral then ; immediate "
+": C\" [char] \" parse state @ if postpone sliteral postpone swap postpone 1- postpone dup postpone rot postpone swap postpone C!  else swap 1- dup rot swap C! then ; immediate "
+": .\" postpone s\" postpone type ; immediate "
 
-" : .(  [char] ) parse type ; immediate "
-" : ERASE 0 FILL ;  "
+": .(  [char] ) parse type ; immediate "
+": ERASE 0 FILL ; "
 
 /****
 
@@ -644,9 +635,9 @@ comment.  They are blank-delimited words just like every other Forth word.
 
 ****/
 
-": \\   source nip >in ! ; immediate "
-": #!   postpone \\ ; immediate "
- ": (    [char] ) parse 2drop ; immediate "
+": \\ source nip >in ! ; immediate "
+": #! postpone \\ ; immediate "
+ ": ( [char] ) parse 2drop ; immediate "
 /****
 S\" http://www.forth200x.org/escaped-strings.html
 
@@ -677,32 +668,32 @@ S\" http://www.forth200x.org/escaped-strings.html
 CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURCE
 
 *****/
-" 0 CONSTANT CASE IMMEDIATE  "
-" : OF 1+ >R POSTPONE OVER POSTPONE = POSTPONE IF POSTPONE DROP R> ; IMMEDIATE  "
-" : ENDOF >R   POSTPONE ELSE R> ; IMMEDIATE  "
-" : ENDCASE POSTPONE DROP   0 ?DO POSTPONE THEN LOOP ; IMMEDIATE  "
+"0 CONSTANT CASE IMMEDIATE  "
+": OF 1+ >R POSTPONE OVER POSTPONE = POSTPONE IF POSTPONE DROP R> ; IMMEDIATE  "
+": ENDOF >R   POSTPONE ELSE R> ; IMMEDIATE  "
+": ENDCASE POSTPONE DROP   0 ?DO POSTPONE THEN LOOP ; IMMEDIATE  "
 /******
  [IF] [ELSE] [THEN] implementation
  ******/
- " : [THEN] ( -- ) ; IMMEDIATE  "
- " : [ELSE] 1 BEGIN " // level 
- "       BEGIN BL UPPERWORD COUNT DUP WHILE "		// level adr len 
- "       2DUP S\" [IF]\" COMPARE 0= IF "		// level adr len 
- "             2DROP 1+ "						// level' 
- "          ELSE "								// level adr len 
- "            2DUP S\" [ELSE]\" COMPARE 0= IF " // level adr len 
- "                2DROP 1- DUP IF 1+ THEN "		// level' 
- " ELSE "										// level adr len 
- " S\" [THEN]\" COMPARE 0= IF "					// level 
- "                   1- "						// level' 
- "               THEN "							//
- "             THEN "							//
- "           THEN ?DUP 0= IF EXIT THEN "		// level' 
- "       REPEAT 2DROP "							// level 
- "   REFILL 0= UNTIL "							// level 
- "    DROP ; IMMEDIATE  "
- " : [IF] ( flag -- ) 0= IF POSTPONE [ELSE] THEN ; IMMEDIATE  "
- " : [UNDEFINED] BL WORD FIND NIP 0= ; IMMEDIATE  "
+ ": [THEN] ( -- ) ; IMMEDIATE  "
+ ": [ELSE] 1 BEGIN " // level 
+ "BEGIN BL UPPERWORD COUNT DUP WHILE "		// level adr len 
+ "2DUP S\" [IF]\" COMPARE 0= IF "		// level adr len 
+ "2DROP 1+ "						// level' 
+ "ELSE "								// level adr len 
+ "2DUP S\" [ELSE]\" COMPARE 0= IF " // level adr len 
+ "2DROP 1- DUP IF 1+ THEN "		// level' 
+ "ELSE "										// level adr len 
+ "S\" [THEN]\" COMPARE 0= IF "					// level 
+ "1- "						// level' 
+ "THEN "							//
+ "THEN "							//
+ "THEN ?DUP 0= IF EXIT THEN "		// level' 
+ "REPEAT 2DROP "							// level 
+ "REFILL 0= UNTIL "							// level 
+ "DROP ; IMMEDIATE  "
+ ": [IF] ( flag -- ) 0= IF POSTPONE [ELSE] THEN ; IMMEDIATE  "
+ ": [UNDEFINED] BL WORD FIND NIP 0= ; IMMEDIATE  "
 /**
  * Core-ext 
  * 
@@ -710,7 +701,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 ": isspace? ( c -- f ) BL 1+ U< ; "
 ": isnotspace? ( c -- f ) isspace? 0= ; "
 ": xt-skip " //( addr1 n1 xt -- addr2 n2 ) \ skip all characters satisfying xt ( c -- f ) 
-"   >R BEGIN DUP WHILE OVER C@ R@ EXECUTE WHILE 1 /STRING REPEAT THEN R> DROP ; "
+">R BEGIN DUP WHILE OVER C@ R@ EXECUTE WHILE 1 /STRING REPEAT THEN R> DROP ; "
 ": parse-name " // ( "name" -- c-addr u ) 
 "SOURCE >IN @ /STRING ['] isspace? xt-skip OVER >R ['] isnotspace? xt-skip " // ( end-word restlen r: start-word ) 
 "2DUP 1 MIN + SOURCE DROP - >IN ! DROP R> TUCK - ; "
@@ -723,11 +714,11 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 ": BEGIN-STRUCTURE CREATE HERE 0 0 , DOES> @ ; "
 ": END-STRUCTURE SWAP ! ; "
 ": +FIELD CREATE OVER , + DOES> @ + ; "
-": FIELD:    ( n1 \"name\" -- n2 ; addr1 -- addr2 )  ALIGNED 1 CELLS +FIELD ; "
-": CFIELD:   ( n1 \"name\" -- n2 ; addr1 -- addr2 )  1 CHARS   +FIELD ; "
-": FFIELD:   ( n1 \"name\" -- n2 ; addr1 -- addr2 )  FALIGNED 1 FLOATS +FIELD ; "
-": SFFIELD:  ( n1 \"name\" -- n2 ; addr1 -- addr2 )  SFALIGNED 1 SFLOATS +FIELD ; "
-": DFFIELD:  ( n1 \"name\" -- n2 ; addr1 -- addr2 )  DFALIGNED 1 DFLOATS +FIELD ; "
+": FIELD: ( n1 \"name\" -- n2 ; addr1 -- addr2 ) ALIGNED 1 CELLS +FIELD ; "
+": CFIELD: ( n1 \"name\" -- n2 ; addr1 -- addr2 ) 1 CHARS   +FIELD ; "
+": FFIELD: ( n1 \"name\" -- n2 ; addr1 -- addr2 ) FALIGNED 1 FLOATS +FIELD ; "
+": SFFIELD: ( n1 \"name\" -- n2 ; addr1 -- addr2 ) SFALIGNED 1 SFLOATS +FIELD ; "
+": DFFIELD: ( n1 \"name\" -- n2 ; addr1 -- addr2 ) DFALIGNED 1 DFLOATS +FIELD ; "
 /**
  *  Locals
  * 
@@ -817,8 +808,8 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		": .dquot   [char] \" emit ; " 
 
 		": about "
-		"      cr "
-		"      .\" For more, visit <https://github.com/VladlenPopolitov/ForthScriptCpp>.\" cr ; "
+		"cr "
+		".\" For more, visit <https://github.com/VladlenPopolitov/ForthScriptCpp>.\" cr ; "
 
 
 		": welcome "
@@ -836,7 +827,13 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 "[UNDEFINED] FIND-XT-NAME [IF] : FIND-XT-NAME DROP S\" ________________\" TYPE ; [THEN] "
 ": display-disasm-line ( addr -- ) hex dup 8 U.R BL EMIT DUP @ 8 U.R BL EMIT DUP FIND-CALLER BL EMIT FIND-XT-NAME CR ; "
 ": disasm ( addr u -- )  CR BASE @ ROT ROT dup $100 - 0> IF DROP $100 THEN OVER + SWAP CR DO I display-disasm-line 4 +LOOP BASE !   ; "
- 
+": DUMP DISPLAY ; "
+": TRAVERSE-WORDLIST ( i * x xt wid -- j * x ) SWAP >R TRAVERSE-WORDLIST-FINDFIRST >R "
+" BEGIN R> DUP >R 0> WHILE "
+" R> R> DUP >R SWAP DUP >R SWAP EXECUTE IF "
+" R> TRAVERSE-WORDLIST-FINDNEXT >R "
+" ELSE R> DROP 0 >R THEN "
+" REPEAT R> DROP R> DROP ; "
 	;
 
 
@@ -1006,18 +1003,17 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		typedef void(Forth::*Code)(void);
 
 		struct Definition {
-
 			Code   code;
 			Cell   does;
 			AAddr  parameter;
 			Cell   flags;
 			std::string name;
 			Cell numberInVector;
+			SCell searchOrder;
 			const Cell FlagHidden = (1 << 1);
 			const  Cell FlagImmediate = (1 << 2);
-
 			Definition() : code{ nullptr }, does{ 0 }, parameter{ 0 }, flags{ 0 },
-				name{}, numberInVector{}
+				name{}, numberInVector{},searchOrder{}
 			{
 			}
 
@@ -1222,7 +1218,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 
 		Definition *getDefinition(Cell index){
 			if ((index < 0) || (index >= definitions.size())){
-					throwMessage("Access to definitions out of range",errorUndefinedWord);
+					throwMessage("Access to definitions out of range "+std::to_string(index),errorUndefinedWord);
 			}
 			return &definitions[index];
 		}
@@ -3649,6 +3645,11 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 											if (currentWord.compare("FLOATING") == 0){
 												ret = True;
 											} 
+										else
+											if (currentWord.compare("WORDLISTS") == 0){
+												ret = 256;
+											} 
+
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
 			else if (currentWord.compare("FLOATING-STACK") == 0){
 				ret = 200;
@@ -4018,7 +4019,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		// This word is compiled by ; after the EXIT.  It is never executed, but serves
 		// as a marker for use in debugging.
 		void endOfDefinition() {
-			throwMessage("(;) should never be executed",errorUnsupportedOperation);
+			// can be executed, if program directly call it by xt
+			// throwMessage("(;) should never be executed",errorUnsupportedOperation);
 		}
 
 		// ; ( C: colon-sys -- )
@@ -4099,6 +4101,221 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		****/
 
 		// Create a new definition with specified name and code.
+		const SCell widForthWordList = 0;
+		const SCell widForthEditor = 1;
+		const SCell widForthAssembler = 2;
+		SCell searchOrderCurrent{widForthWordList};
+		SCell searchOrderLast{widForthWordList};
+		std::vector<SCell> searchOrder{};
+		/// FORTH-WORDLIST ( -- wid )
+		void forthdashwordlist(){
+			REQUIRE_DSTACK_AVAILABLE(1, "FORTH-WORDLIST");
+			dStack.push(0); 
+		}
+		/// WORDLIST ( -- wid )
+		void wordlist(){
+			REQUIRE_DSTACK_AVAILABLE(1, "WORDLIST");
+			dStack.push(++searchOrderLast); 
+		}
+		/// GET-ORDER ( -- widn ... wid1 n )
+		void getdashorder(){
+			REQUIRE_DSTACK_AVAILABLE(searchOrder.size()+1, "GET-ORDER");
+			for(auto i : searchOrder ){
+				dStack.push(i); 
+			}
+			dStack.push(CELL(searchOrder.size())); 
+		}
+		///  SET-ORDER ( widn ... wid1 n -- )
+		void setdashorder(){
+			REQUIRE_DSTACK_DEPTH(1, "SET-ORDER");
+			SCell n=dStack.getTop();pop();
+			if(n==-1){
+				only(); // -1 SET-ORDER and ONLY must have the same behaviour
+			} else {
+			REQUIRE_DSTACK_DEPTH(n, "SET-ORDER");
+			searchOrder.clear();
+			while(n>0){
+				--n;
+				Cell wid=dStack.getTop();pop();
+				searchOrder.insert(searchOrder.begin(),wid);
+			}
+			}
+		}
+		// GET-CURRENT ( -- wid )
+		void getdashcurrent(){
+			REQUIRE_DSTACK_AVAILABLE(1, "GET-CURRENT");
+			dStack.push(searchOrderCurrent); 
+		}	
+		// SET-CURRENT ( wid -- )	
+		void setdashcurrent(){
+			REQUIRE_DSTACK_DEPTH(1, "SET-CURRENT");
+			searchOrderCurrent=dStack.getTop();pop();
+		}
+		// DEFINITIONS ( -- )
+		void searchdefinitions(){
+			if(searchOrder.size()>0){
+				searchOrderCurrent=searchOrder[searchOrder.size()-1];
+			}else {
+				searchOrderCurrent=widForthWordList;
+			}	
+			
+		}	
+		// FORTH ( -- )
+		void searchforth(){
+			if(searchOrder.size()>0){
+				searchOrder[searchOrder.size()-1]=widForthWordList;	
+			}else {
+				searchOrder.push_back(widForthWordList);
+			}	
+		}
+		// ASSEMBLER ( -- )
+		void assembler(){
+			if(searchOrder.size()>0){
+				searchOrder[searchOrder.size()-1]=widForthAssembler;	
+			}else {
+				searchOrder.push_back(widForthAssembler);
+			}	
+		}
+		// EDITOR ( -- )
+		void editor(){
+			if(searchOrder.size()>0){
+				searchOrder[searchOrder.size()-1]=widForthEditor;	
+			}else {
+				searchOrder.push_back(widForthEditor);
+			}	
+		}
+		///  ONLY (  -- )
+		void only(){
+				searchOrder.resize(2);
+				searchOrder[0]=widForthWordList;
+				searchOrder[1]=widForthWordList;
+		}
+		///  PREVIOUS (  -- )
+		void previous(){
+			if(searchOrder.size()>0){
+				searchOrder.resize(searchOrder.size()-1);
+			} else {
+				// throw exception
+			}	
+		}
+		/// @brief  ORDER ( -- )
+		void order(){
+			for(auto it=searchOrder.rbegin(),itEnd=searchOrder.rend();it!=itEnd;++it){
+#ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
+				
+				switch (writeToTarget) {
+				case ToString:
+					std_cout << "wid" << (*it)<< " ";
+					break;
+				case ToStdCout:
+					std::cout << "wid" << (*it)<< " ";;
+					std::cout.flush();
+					break;
+				default:
+					break;
+				}
+#endif
+			}					
+#ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT			
+			switch (writeToTarget) {
+			case ToString:
+				std_cout << "wid" << searchOrderCurrent << " ";
+				break;
+			case ToStdCout:
+				std::cout << "wid" << searchOrderCurrent << " ";;
+				std::cout.flush();
+				break;
+			default:
+				break;
+			}
+#endif
+		}
+		/// ALSO ( -- )
+		void also(){
+			if(searchOrder.size()>0){
+				searchOrder.push_back(searchOrder[searchOrder.size()-1]);	
+			}else {
+				searchOrder.push_back(widForthWordList);
+			}	
+		}
+		/// TRAVERSE-WORDLIST - implemented in interpret()
+		void traversedashwordlist(){}	
+		//  TRAVERSE-WORDLIST-FINDFIRST ( wid -- nt / 0 )
+		void traversedashwordlistdashfindfirst(){
+							REQUIRE_DSTACK_DEPTH(1, "TRAVERSE-WORDLIST-FINDFIRST");
+							auto wid = dStack.getTop(); 
+							for (auto i = definitions.rbegin(), iend=definitions.rend(); i != iend ; ++i) {
+								auto& defnLook = *i;
+								//if (!defn.isFindable())
+								if (defnLook.isHidden())
+									continue;
+								if(defnLook.searchOrder==wid){
+									dStack.setTop(defnLook.numberInVector);
+									return;
+								}
+							}
+							dStack.setTop(0);	
+		}
+		void traversedashwordlistdashfindnext(){
+					REQUIRE_DSTACK_DEPTH(1, "TRAVERSE-WORDLIST-FINDNEXT");
+					auto nt = dStack.getTop(); 
+					if(nt>0 && nt<definitions.size()){
+						auto wid=definitions[nt].searchOrder;
+						for (auto i = nt-1; i > 0 ; --i) {
+							auto& defnLook = definitions[i];
+							//if (!defn.isFindable())
+							if (defnLook.isHidden())
+								continue;
+							if(defnLook.searchOrder==wid){
+								dStack.setTop(defnLook.numberInVector);
+								return;
+							}
+						}
+					}
+					dStack.setTop(0);	
+		}
+		/// NAME>STRING ( nt -- c-addr u )
+		void namemorestring(){
+			REQUIRE_DSTACK_DEPTH(1, "NAME>STRING");
+			auto nt=dStack.getTop();
+			if(nt>=0 && nt<definitions.size()){
+			auto defn=getDefinition(nt);
+			auto &name=defn->name;
+			moveIntoDataSpace(VarOffsetWordBuffer,name.c_str(),name.size());
+			dStack.setTop(VarOffsetWordBuffer);
+			dStack.push(CELL(name.size()));
+			} else {
+				std::cerr << "Wrong nt " << nt << std::endl;
+				trace=true;
+				dStack.setTop(VarOffsetWordBuffer);
+				dStack.push(0);
+			}
+		}
+		/// NAME>INTERPRET
+		void namemoreinterpret(){
+			REQUIRE_DSTACK_DEPTH(1, "NAME>INTERPRET");
+			//dStack.setTop(0);
+		}
+		/// NAME>COMPILE
+		void namemorecompile(){
+			REQUIRE_DSTACK_DEPTH(1, "NAME>COMPILE");
+			REQUIRE_DSTACK_AVAILABLE(1, "NAME>COMPILE");
+			auto nt=dStack.getTop();
+			if(nt>=0 && nt<definitions.size()){
+			auto defn=getDefinition(nt);
+			auto immediate=defn->isImmediate();
+			if(immediate){
+				dStack.push(CELL(executeXt));
+			} else {
+				dStack.push(CELL(compileCommaXt));
+			}
+			} else {
+				std::cerr << "Wrong nt " << nt << std::endl;
+				trace=true;
+				dStack.setTop(wrongCommandXt);
+				dStack.push(compileCommaXt);
+			}
+		}
 		void definePrimitive(const char* name, Code code, bool setImmediate) {
 			alignDataPointer();
 
@@ -4108,7 +4325,9 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			defn.name = name;
 			for (auto & c: defn.name) c = toupper_ascii(static_cast<unsigned char>(c));
 			definitions.emplace_back(std::move(defn));
-			getDefinition(CELL(definitions.size()) - 1)->numberInVector = CELL(definitions.size()) - 1;
+			auto lastDefinition=getDefinition(CELL(definitions.size()) - 1);
+			lastDefinition->numberInVector = CELL(definitions.size()) - 1;
+			lastDefinition->searchOrder=searchOrderCurrent;
 			if (setImmediate) immediate();
 		}
 
@@ -4118,7 +4337,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				return 0;
 			std::string Word1(nameLength,' ');
 			moveFromDataSpace(Word1, nameToFind, nameLength);
-			for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
+			return findDefinition(Word1);
+			/* for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
 			for (auto i = definitions.rbegin(), iend=definitions.rend(); i != iend ; ++i) {
 				auto& defn = *i;
 				//if (!defn.isFindable())
@@ -4129,21 +4349,59 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 					return defn.numberInVector; 
 				}
 			}
-			return 0;
+			return 0; */
 		}
 
 		// Find a definition by name.
 		Xt findDefinition(const std::string& nameToFind) {
+			std::string Word1(nameToFind);
+			return findDefinition(Word1);
+		}
+		Xt findDefinition(std::string& nameToFind) {
 			auto nameLength = nameToFind.size();
 			if (nameLength == 0)
 				return 0;
-			std::string Word1{nameToFind};
+			//std::string Word1{nameToFind};
+			int foundInWordlist{-1};
+			Xt nameXt{0};  
+			for (auto & c: nameToFind) c = toupper_ascii(static_cast<unsigned char>(c));
+			for (auto i = definitions.rbegin(), iend=definitions.rend(); i != iend ; ++i) {
+				auto& defn = *i;
+				//if (!defn.isFindable())
+				if (defn.isHidden())
+					continue;
+				auto& name = defn.name;
+				if(nameLength==name.length() && nameToFind.compare(name)==0) {
+					// check if this word is in the search order 
+					auto wordWid=defn.searchOrder; // wordlist number
+					auto foundElement=std::find(searchOrder.begin(), searchOrder.end(), wordWid); // look this wordlist in searchOrder vector
+					if(foundElement != searchOrder.end()){ // if found
+						auto elementNum=std::distance(searchOrder.begin(),foundElement); // get element number
+						if(elementNum>foundInWordlist){ // if element has more priority - use it
+							foundInWordlist=elementNum; // new priority 
+							nameXt=defn.numberInVector; // new xt for word
+							if(foundInWordlist==(searchOrder.size()-1)){
+								return nameXt; // if it has maximum priority - leave immediatelly
+							}
+						}
+					}	
+				}
+			}
+			return nameXt;
+		}
+		Xt findDefinitionByWid(CAddr nameToFind, Cell nameLength,SCell wid) {
+			if (nameLength == 0)
+				return 0;
+			std::string Word1(nameLength,' ');
+			moveFromDataSpace(Word1, nameToFind, nameLength);
 			for (auto & c: Word1) c = toupper_ascii(static_cast<unsigned char>(c));
 			for (auto i = definitions.rbegin(), iend=definitions.rend(); i != iend ; ++i) {
 				auto& defn = *i;
 				//if (!defn.isFindable())
 				if (defn.isHidden())
 					continue;
+				if(defn.searchOrder!=wid)
+				 	continue;		
 				auto& name = defn.name;
 				if(nameLength==name.length() && Word1.compare(name)==0) {
 					return defn.numberInVector; 
@@ -4168,7 +4426,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				push(definitionsAt(word).isImmediate() ? 1 : Cell(-1));
 			}
 		}
-		// SEARCH-WORDLIST ( c-addr -- c-addr 0  |  xt 1  |  xt -1 )
+		// SEARCH-WORDLIST ( c-addr u wid -- 0 | xt 1 | xt -1 )
 		void searchdashwordlist() {
 			REQUIRE_DSTACK_DEPTH(3, "SEARCH-WORDLIST");
 			auto wid = CELL(dStack.getTop()); pop();
@@ -4176,12 +4434,12 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			auto caddr = CADDR(dStack.getTop()); pop();
 			//auto length = static_cast<Cell>(getDataChar(caddr));
 			auto name = caddr;
-			auto word = findDefinition(name, length);
+			auto word = findDefinitionByWid(name, length,wid);
 			if (word == 0) {
 				push(0);
 			}
 			else {
-				dStack.setTop(CELL(word));
+				dStack.push(CELL(word));
 				push(definitionsAt(word).isImmediate() ? 1 : Cell(-1));
 			}
 		}
@@ -5105,7 +5363,8 @@ if(0){
 								// std::string currentWord{};
 								// moveFromDataSpace(currentWord, caddr, length);
 								if (!interpretNumbers(currentWord)){
-									std::cerr << "!!!Wrong word "<<currentWord<<std::endl;
+									// uncomment during debug if information is need about wrong words
+									// std::cerr << "!!!Wrong word "<<currentWord<<std::endl;
 									push(CELL(-13));
 									exceptionsThrow();
 									xt = getDataCell(next_command);
@@ -5171,7 +5430,7 @@ if(0){
 							if (xt >= definitions.size()){
 								throwMessage("wrong XT", errorInvalidAddress);
 							}
-#endif							
+#endif						
 							next_command += sizeof(next_command);
 						}
 					//}
@@ -5884,8 +6143,10 @@ if(0){
 			swapXt = 15,
 			plusLoopCheckXt = 16 ,
 			noopXt = 17,
-			doFLiteralXt = 18
-
+			doFLiteralXt = 18,
+			traverseDashWordlistXt=19,
+			executeXt=20,
+			compileCommaXt=21
 
 		};
 		void definePrimitives() {
@@ -5898,29 +6159,33 @@ if(0){
 			CodeWord codeWords[] = {
 				// name             code
 				// ------------------------------
-				{ "", nullptr, true }, // empty difinition (zero index - not found)
-				{ "(LIT)", &Forth::doLiteral, false },
-				{ "(DOES)", &Forth::setDoes, false },
-				{ "EXIT", &Forth::exit, false },
-				{ "(;)", &Forth::endOfDefinition, false },
-				{ "(BRANCH)", &Forth::branch, false },
-				{ "(ZBRANCH)", &Forth::zbranch, false },
-				{ ">R", &Forth::toR, false },
-				{ "R>", &Forth::rFrom, false },
-				{ "2DROP",&Forth::drop2, false },
-				{ "2DUP", &Forth::dup2, false },
-				{ "1+", &Forth::plus1, false },
-				{ "=", &Forth::equals, false },
-				{ "ROT", &Forth::rot, false },
-				{ "+", &Forth::plus, false },  // CORE
-				{ "SWAP", &Forth::swap, false },
-				{ "", &Forth::loops_plusloop_check, false },
+				{ "noop", nullptr, true }, // empty difinition (zero index - not found)
+				{ "(LIT)", &Forth::doLiteral, false }, //1
+				{ "(DOES)", &Forth::setDoes, false }, //2
+				{ "EXIT", &Forth::exit, false }, //3 
+				{ "(;)", &Forth::endOfDefinition, false }, //4
+				{ "(BRANCH)", &Forth::branch, false }, //5
+				{ "(ZBRANCH)", &Forth::zbranch, false }, //6
+				{ ">R", &Forth::toR, false }, //7
+				{ "R>", &Forth::rFrom, false }, //8
+				{ "2DROP",&Forth::drop2, false }, //9
+				{ "2DUP", &Forth::dup2, false }, //10
+				{ "1+", &Forth::plus1, false }, //11
+				{ "=", &Forth::equals, false }, //12
+				{ "ROT", &Forth::rot, false }, //13
+				{ "+", &Forth::plus, false },  //14 CORE
+				{ "SWAP", &Forth::swap, false }, //15
+				{ "", &Forth::loops_plusloop_check, false }, //16
 				{ "NOOP", &Forth::noop, false }, // 17
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
 				{ "(FLIT)", &Forth::doFLiteral, false }, // 18
 #else
 				{ "NOOP", &Forth::noop, false }, // 18
 #endif
+				{ "TRAVERSE-WORDLIST", &Forth::traversedashwordlist, false }, // 19
+				{ "EXECUTE", &Forth::execute, false },  // 20 CORE
+				{ "COMPILE,", &Forth::compilecomma, false }, // 21 CORE EXT
+				
 				{ ";", &Forth::semicolon, true }, // CORE
 				{ "!", &Forth::store, false },  // CORE
 				{ "*", &Forth::star, false }, // CORE
@@ -5967,7 +6232,7 @@ if(0){
 				{ "EVALUATE", &Forth::evaluate, false },  // CORE
 				{ "EVALUATESTART", &Forth::evaluateStart, false },  // not standard word
 				{ "EVALUATESTOP", &Forth::evaluateStop, false },  // not standard word
-				{ "EXECUTE", &Forth::execute, false },  // CORE
+				
 				{ "FILL", &Forth::fill, false },  // CORE
 				{ "FIND", &Forth::find, false }, // CORE
 				{ "HERE", &Forth::here, false }, // CORE
@@ -6064,7 +6329,6 @@ if(0){
 				{ "ENVIRONMENT?", &Forth::environmentquestion, false }, // not standard word
 				{ "TRACEON", &Forth::setTraceOn, false }, // not standard word
 				{ "TRACEOFF", &Forth::setTraceOff, false }, // not standard word
-				{ "SEARCH-WORDLIST", &Forth::searchdashwordlist, false }, // SEARCH
 				{ "CS-PICK", &Forth::csdashpick, false }, // TOOLS
 				{ "CS-ROLL", &Forth::csdashroll, false }, // TOOLS
 				{ "NR>", &Forth::nrmore, false }, // TOOLS
@@ -6072,15 +6336,29 @@ if(0){
 				{ "SYNONYM", &Forth::synonym, false }, // TOOLS
 				{ "SAVE-INPUT", &Forth::savedashinput, false }, // CORE EXT
 				{ "RESTORE-INPUT", &Forth::restoredashinput, false }, // CORE EXT
-				{ "COMPILE,", &Forth::compilecomma, false }, // CORE EXT
 				{ "MARKERSTART", &Forth::markerstart, false }, // word to implement marker
 				{ "MARKERREMOVE", &Forth::markerremove, false }, // word to implement marker
-
+				{ "ALSO", &Forth::also, false }, // SEARCH
+				{ "DEFINITIONS", &Forth::searchdefinitions, false }, // SEARCH
+				{ "FORTH-WORDLIST", &Forth::forthdashwordlist, false }, // SEARCH
+				{ "FORTH", &Forth::searchforth, false }, // SEARCH
+				{ "GET-CURRENT", &Forth::getdashcurrent, false }, // SEARCH
+				{ "GET-ORDER", &Forth::getdashorder, false }, // SEARCH
+				{ "ONLY", &Forth::only, false }, // SEARCH
+				{ "ORDER", &Forth::order, false }, // SEARCH
+				{ "PREVIOUS", &Forth::previous, false }, // SEARCH
+				{ "SET-CURRENT", &Forth::setdashcurrent, false }, // SEARCH
+				{ "SET-ORDER", &Forth::setdashorder, false }, // SEARCH
+				{ "WORDLIST", &Forth::wordlist, false }, // SEARCH
+				{ "SEARCH-WORDLIST", &Forth::searchdashwordlist, false }, // SEARCH
+				{ "NAME>STRING", &Forth::namemorestring, false }, // TOOLS  EXT
+				{ "NAME>INTERPRET", &Forth::namemoreinterpret, false }, // TOOLS  EXT
+				{ "NAME>COMPILE", &Forth::namemorecompile, false }, // TOOLS  EXT
+				{ "TRAVERSE-WORDLIST-FINDNEXT", &Forth::traversedashwordlistdashfindnext, false }, // not standard word
+				{ "TRAVERSE-WORDLIST-FINDFIRST", &Forth::traversedashwordlistdashfindfirst, false }, // not standard word
+				{ "ASSEMBLER", &Forth::assembler, false }, // TOOLS  EXT
+				{ "EDITOR", &Forth::editor, false }, // TOOLS  EXT
 				
-
-				
-				
-
 #ifdef FORTHSCRIPTCPP_ENABLE_MEMORY
 				{ "RESIZE", &Forth::memResize , false }, //MEMORY
 				{ "ALLOCATE", &Forth::memAllocate , false }, // MEMORY
@@ -6195,13 +6473,13 @@ if(0){
 			}
 
 #ifdef _DEBUG
-			if (doLiteralXt != findDefinition("(lit)")) 
+			if (doLiteralXt != findDefinition(std::string("(lit)"))) 
 				throwMessage("Can't find (lit) in kernel dictionary",errorUndefinedWord);
-			if (setDoesXt != findDefinition("(does)")) 
+			if (setDoesXt != findDefinition(std::string("(does)")))
 				throwMessage("Can't find (does) in kernel dictionary", errorUndefinedWord);
-			if (exitXt != findDefinition("exit")) 
+			if (exitXt != findDefinition(std::string("exit")))
 				throwMessage("Can't find EXIT in kernel dictionary", errorUndefinedWord);
-			if (endOfDefinitionXt != findDefinition("(;)")) 
+			if (endOfDefinitionXt != findDefinition(std::string("(;)")))
 				throwMessage("Can't find (;) in kernel dictionary", errorUndefinedWord);
 #endif
 		}
@@ -6278,7 +6556,12 @@ if(0){
 			setDataCell(VarOffsetBlkAddress, Cell(0)); // set BLK=0
 			// return stack init;
 			returnStack.resize(100);
-			
+			// search order setup
+			searchOrderCurrent=widForthWordList;
+			searchOrderLast=widForthAssembler;
+			searchOrder.resize(2);
+			searchOrder[0]=widForthWordList;
+			searchOrder[1]=widForthWordList;
 			initializeDefinitions();
 		}
 		/******

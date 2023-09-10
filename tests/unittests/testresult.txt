@@ -151,12 +151,20 @@ filetest  RES 0
 ****
 End of Memory-Allocation word tests
 memorytest  RES 0 
-*********
-
-Some search-order words not present - TRAVERSE-WORDLIST etc not tested
+**********
+NAME>INTERPRET returns an execution token for all
+core words with undefined interpretation semantics.
+So NAME>INTERPRET returning 0 is untested.
 
 End of Programming Tools word tests
 toolstest  RES 0 
+**********
+ONLY FORTH DEFINITIONS search order and compilation wordlist
+wid0 wid0 wid0 
+Plus another unnamed wordlist at the head of the search order
+wid4 wid0 wid0 wid4 
+End of Search Order word tests
+searchordertest  RES 0 
 **********
 End of String word tests
 stringstest  RES 0 
@@ -175,7 +183,7 @@ File-access             2
 Locals                  -
 Memory-allocation       0
 Programming-tools       0
-Search-order            -
+Search-order            0
 String                  0
 ---------------------------
 Total                   3
