@@ -534,11 +534,7 @@ continue the interpreter loop.
 
 ****/
 
-//": (abort\")   rot if abort-message then 2drop ; "
-//": (abort\") rot if type -2 throw then 2drop ; "
-//": (abort\") -2 throw ; "
 ": (abort\") rot if HASEXCEPTIONFRAME  if else type then -2 throw then 2drop  ; "
-//": abort\"  postpone HASEXCEPTIONFRAME postpone IF postpone S\" POSTPONE ELSE POSTPONE 2DROP POSTPONE THEN postpone (abort\") ; immediate "
 ": abort\"  postpone S\" postpone (abort\") ; immediate "
 
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
@@ -6013,13 +6009,8 @@ if(0){
 				else {
 					if (exceptionNumber == -1){
 						throwCppExceptionMessage("",static_cast<Forth::errorCodes>(exceptionNumber));
-						//std::string buffer{};
-						//moveFromDataSpace(buffer, getSourceAddress(), getSourceBufferSize());
-						//throw AbortException("Error code " + std::to_string(exceptionNumber) +"\n" + buffer + "\n Offset " + std::to_string(getSourceBufferOffset()));
-						// abort();
 					}
 					throwCppExceptionMessage("",static_cast<Forth::errorCodes>(exceptionNumber));
-					// abort();
 				}
 			}
 			else {
