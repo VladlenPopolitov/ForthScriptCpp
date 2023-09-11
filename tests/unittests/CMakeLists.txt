@@ -44,6 +44,13 @@ add_custom_command(
                 $<TARGET_FILE_DIR:test_forthtestsuit1>/include_fp.fth
 )
 add_custom_command(
+        TARGET test_forthtestsuit1 POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_CURRENT_SOURCE_DIR}/blocks.fb
+                $<TARGET_FILE_DIR:test_forthtestsuit1>/blocks.fb
+)
+
+add_custom_command(
         TARGET test_wordlist POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
                 ${CMAKE_CURRENT_SOURCE_DIR}/words-check.frt

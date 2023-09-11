@@ -219,6 +219,7 @@ namespace cppforth {
 		 ": catch catchbefore execute catchafter ; "
 		 ": abort -1 throw ; "
 		 ": evaluate evaluatestart noop evaluatestop ; "
+		 
 		/****
 
 		I'll start by defining the remaining basic stack operations.  `PICK` and
@@ -833,6 +834,14 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 " R> TRAVERSE-WORDLIST-FINDNEXT >R "
 " ELSE R> DROP 0 >R THEN "
 " REPEAT R> DROP R> DROP ; "
+
+/**
+ BLOCK words
+*/
+": LOAD LOADSTART NOOP ; "
+": LIST DUP SCR ! BLOCK 1024 DUMP ; " // ( u -- )
+": THRU  1+ SWAP  DO I LOAD LOOP ; " // ( i * x u1 u2 -- j * x )
+
 	;
 
 
@@ -1264,7 +1273,8 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 		const CAddr VarOffsetSourceOffset = CellSize * 4;   // >IN variable
 		const CAddr VarOffsetBlkAddress = CellSize * 5;		// BLK variable
 		const CAddr VarOffsetNumericBase = CellSize * 6;	// BASE variable
-		const CAddr VarOffsetWordBuffer = CellSize * 7;
+		const CAddr VarOffsetScrAddress = CellSize * 7;		// SCR variable
+		const CAddr VarOffsetWordBuffer = CellSize * 8;
 		const CAddr WordBufferSize = CellSize * 256;
 		const CAddr VarOffsetPadBuffer = VarOffsetWordBuffer+WordBufferSize;
 		const CAddr PadBufferSize = 256;
@@ -2450,7 +2460,6 @@ Code Reserved for	Code Reserved for
 			if (sourceid_ >= 0) { // if input from file or from input buffer
 				inputBufferStringsCurrent++;
 				if (inputBufferStringsCurrent < inputBufferStrings.size()) {
-
 					if (setSourceBuffer()) {
 						push(True);
 					}
@@ -4106,17 +4115,12 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				next_command += sizeof(next_command); 
 		}
 
-		/****
+		/******
+		 * 
+		 *  SEARCH words
+		 * 
+		*/
 
-		Dictionary
-		----------
-
-		The next section contains words that create elements in the `definitions` list,
-		look up elements by name, or traverse the list to perform some operation.
-
-		****/
-
-		// Create a new definition with specified name and code.
 		const SCell widForthWordList = 0;
 		const SCell widForthEditor = 1;
 		const SCell widForthAssembler = 2;
@@ -4332,6 +4336,224 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				dStack.push(compileCommaXt);
 			}
 		}
+
+		/****
+		 * 
+		 *  BLOCK words
+		 * 
+		*/
+		
+		std::filesystem::path blockFileName{"blocks.fb"};
+		Cell blockCurrent{};
+		struct BlockInfo {
+			Cell blockNumber;
+			CAddr blockLocation;
+			bool blockModified;
+		};
+		std::map<Cell,BlockInfo> blocksInProcess{};
+		
+		/// BLK ( -- a-addr )
+		void blk(){
+			REQUIRE_DSTACK_AVAILABLE(1, "BLK");
+			dStack.push(VarOffsetBlkAddress);
+		}
+		/// BLOCK ( u -- a-addr )
+		void block(){
+			REQUIRE_DSTACK_DEPTH(1, "BLOCK");
+			REQUIRE_DSTACK_AVAILABLE(1, "BLOCK");
+			Cell u=dStack.getTop();
+			if(u>0){
+				auto foundIt=blocksInProcess.find(u);
+				if(foundIt!=blocksInProcess.end()){
+					dStack.setTop((*foundIt).second.blockLocation);	
+				} else {	
+				std::shared_ptr<std::fstream> f{ new std::fstream(blockFileName, std::ios_base::in | std::ios_base::binary) };
+					if (f->is_open()) {
+						f->seekg(static_cast<size_t>(u-1)*1024L , std::ios_base::beg);
+						char buffer[1024];
+						f->read(buffer,1024);   // read from the file
+						auto readBytes=f->gcount();
+						f->close();
+						std::string fileContent{buffer,static_cast<size_t>(readBytes)};
+						// get memory
+						dStack.setTop(fileContent.size());
+						memAllocate();	
+						auto ec=dStack.getTop();pop();
+						// copy to memory
+						auto address=dStack.getTop();
+						moveIntoDataSpace(address,fileContent.c_str(),fileContent.size());
+						// save block info
+						struct BlockInfo newBlock {};
+						newBlock.blockNumber = u;
+						newBlock.blockLocation = address;
+						newBlock.blockModified = false;
+						blocksInProcess[u] = newBlock;
+						// push address - address already on stack top
+					}
+				}
+				blockCurrent = u;
+			}
+		}
+		/// BUFFER ( u -- a-addr )
+		void buffer(){
+			REQUIRE_DSTACK_DEPTH(1, "BUFFER");
+			REQUIRE_DSTACK_AVAILABLE(1, "BUFFER");
+			Cell u = dStack.getTop();
+			if (u > 0) {
+				auto foundIt = blocksInProcess.find(u);
+				if (foundIt != blocksInProcess.end()) {
+					dStack.setTop((*foundIt).second.blockLocation);
+				}
+				else {
+					std::shared_ptr<std::fstream> f{ new std::fstream(blockFileName, std::ios_base::in | std::ios_base::binary) };
+					if (f->is_open()) {
+						f->seekg(static_cast<size_t>(u - 1) * 1024L, std::ios_base::beg);
+						char buffer[1024];
+						f->read(buffer, 1024);   // read from the file
+						auto readBytes = f->gcount();
+						f->close();
+						std::string fileContent{buffer, static_cast<size_t>(readBytes)};
+						// get memory
+						dStack.setTop(fileContent.size());
+						memAllocate();
+						auto ec = dStack.getTop(); pop();
+						// copy to memory
+						auto address = dStack.getTop();
+						moveIntoDataSpace(address, fileContent.c_str(), fileContent.size());
+						// save block info
+						struct BlockInfo newBlock {};
+						newBlock.blockNumber = u;
+						newBlock.blockLocation = address;
+						newBlock.blockModified = false;
+						blocksInProcess[u] = newBlock;
+						// push address - address already on stack top
+					}
+				}
+				blockCurrent = u;
+			}
+
+		}
+		/// EMPTY-BUFFERS ( -- )
+		void emptydashbuffer(){
+			REQUIRE_DSTACK_AVAILABLE(1, "EMPTY-BUFFERS");
+			dStack.push(0);
+			for (auto& block : blocksInProcess) {
+				dStack.setTop(block.second.blockLocation);
+				memFree();
+				// we do not check error (if buffer was freed by other part of program)
+			}
+			dStack.pop();
+			blocksInProcess.clear();
+		}
+		/// FLUSH ( -- )
+		void flush(){
+			savedashbuffers();
+			emptydashbuffer();
+		}
+		/// LIST ( u -- )
+		void list(){
+			REQUIRE_DSTACK_DEPTH(1, "LIST");
+			REQUIRE_DSTACK_AVAILABLE(1, "LIST");
+			Cell u = dStack.getTop(); pop();
+			setDataCell(VarOffsetBlkAddress, Cell(u)); // set SCR=u
+		}
+		/// LOADSTART ( i * x u -- j * x )
+		void loadstart(){
+			REQUIRE_DSTACK_DEPTH(1, "LOADSTART");
+			Cell u = dStack.getTop(); pop();
+			if(u>0){
+				auto foundIt = blocksInProcess.find(u);
+				if (foundIt == blocksInProcess.end()) {
+					push(u);
+					buffer();
+					pop();
+				}
+				foundIt = blocksInProcess.find(u);
+				if (foundIt != blocksInProcess.end()) {
+					std::string blockContent{};
+					moveFromDataSpace(blockContent, (*foundIt).second.blockLocation, 1024);
+					SaveInput();
+					setSourceId(0);
+					setDataCell(VarOffsetBlkAddress, Cell(u)); // set BLK=u
+					SetBlockInput(blockContent);
+					InterpretState = InterpretSource;
+				} 
+				/*
+				std::fstream f(blockFileName, std::ios_base::in | std::ios_base::binary) ;
+				if (f.is_open()) {
+					f.seekg(static_cast<size_t>(u)*1024L , std::ios_base::beg);
+					auto status = f.rdstate();
+					char buffer[1024];
+					f.read(buffer,1024);   // read from the file
+					status = f.rdstate();
+					f.clear();
+					auto readBytes=f.gcount();
+					status = f.rdstate();
+					f.close();
+					std::string fileContent{buffer,static_cast<size_t>(readBytes)};
+					SaveInput();
+					setSourceId(0);
+					setDataCell(VarOffsetBlkAddress, Cell(u)); // set BLK=0
+					SetInput(fileContent);
+					InterpretState = InterpretSource;
+					// must close file according to specification
+					// closeFile();	
+				}
+				*/
+			}
+		}
+		/// SAVE-BUFFERS ( -- )
+		void savedashbuffers()
+		{
+			std::fstream f(blockFileName, std::ios_base::out | std::ios_base::in | std::ios_base::binary);
+			if (f.is_open()) {
+				for (auto& block : blocksInProcess) {
+					if (block.second.blockModified) {
+						f.seekg(static_cast<size_t>(block.second.blockNumber-1)*1024L, std::ios_base::beg);
+						if (f.rdstate() == 0) {
+							std::string buffer{};
+							moveFromDataSpace(buffer, block.second.blockLocation, 1024);
+							f.write(buffer.c_str(), buffer.size());
+							auto statue = f.rdstate();
+							auto length = f.gcount();
+							statue = f.rdstate();
+							block.second.blockModified = false;
+						}
+						auto statue = f.rdstate();
+					}
+				}
+			}
+		}
+		/// SCR ( -- a-addr )
+		void scr(){
+			REQUIRE_DSTACK_AVAILABLE(1, "SCR");
+			dStack.push(VarOffsetScrAddress);
+		}
+		/// THRU ( i * x u1 u2 -- j * x )
+		void thru(){
+			REQUIRE_DSTACK_DEPTH(2, "THRU");
+		}
+		/// UPDATE ( -- )
+		void update(){
+			Cell u = blockCurrent;
+			if (u > 0) {
+				auto foundIt = blocksInProcess.find(u);
+				if (foundIt != blocksInProcess.end()) {
+					(*foundIt).second.blockModified = true;
+				}
+			}
+		}
+		/****
+
+		Dictionary
+		----------
+
+		The next section contains words that create elements in the `definitions` list,
+		look up elements by name, or traverse the list to perform some operation.
+
+		****/
+
+		// Create a new definition with specified name and code.
 		void definePrimitive(const char* name, Code code, bool setImmediate) {
 			alignDataPointer();
 
@@ -5474,6 +5696,7 @@ if(0){
 			Cell SourceBufferSize_{}; 
 			Cell next_{};
 			SCell SourceDashId_{};
+			Cell blk{};
 			enum InputBufferSourceSavedByEnum { fromFile, fromEvaluate } InputBufferSourceSavedBy_{ fromFile };
 			std::vector<std::string> inputBufferStrings_{};
 			Cell saveId{};
@@ -5540,6 +5763,7 @@ if(0){
 			getSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
 			//save.InputBufferSourceSavedBy_ = source;
 			save.SourceDashId_ = getSourceId();
+			save.blk = getDataCell(VarOffsetBlkAddress);
 			save.interpretState_ = InterpretState;
 			save.next_ = next_command;
 		}
@@ -5550,9 +5774,19 @@ if(0){
 			savedInput.push_back(save);
 		}
 		void SetInput(const std::string &str){
-			std::string tokens{ "\n" }; // @bug \n\r ?
+			std::string tokens{ "\n" }; 
 			inputBufferStrings.clear();
 			split_str(str, inputBufferStrings, tokens);
+			inputBufferStringsCurrent = 0;
+			setSourceBuffer();
+		}
+		void SetBlockInput(const std::string& str) {
+			inputBufferStrings.clear();
+			for (auto it = str.begin(), itEnd = str.end(); it != itEnd;)
+			{
+				inputBufferStrings.push_back(std::string(it, it + 64));
+				it += 64;
+			}
 			inputBufferStringsCurrent = 0;
 			setSourceBuffer();
 		}
@@ -5570,6 +5804,7 @@ if(0){
 			}
 			setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
 			setSourceId(save.SourceDashId_);
+			setDataCell(VarOffsetBlkAddress, save.blk);
 			InterpretState = save.interpretState_;
 			// restoree next command for evaluate
 			// do not need restore for RESTORE-INPUT
@@ -5604,6 +5839,7 @@ if(0){
 			auto length = dStack.getTop(); pop();
 			auto caddr = CADDR(dStack.getTop()); pop();
 			setSourceId(-1);
+			setDataCell(VarOffsetBlkAddress, Cell(0)); // set BLK=0
 			setSourceVariables(caddr, length, 0);
 			InterpretState = InterpretSource;
 		}
@@ -6390,6 +6626,19 @@ if(0){
 				{ "ASSEMBLER", &Forth::assembler, false }, // TOOLS  EXT
 				{ "EDITOR", &Forth::editor, false }, // TOOLS  EXT
 				{ "NEWPARSEBUFFER", &Forth::newparsebuffer, false }, // not standard word
+				{ "BLK", &Forth::blk, false }, // BLOCK
+				{ "BLOCK", &Forth::block, false }, // BLOCK
+				{ "BUFFER", &Forth::buffer, false }, // BLOCK
+				{ "EMPTY-BUFFERS", &Forth::emptydashbuffer, false }, // BLOCK EXT
+				{ "FLUSH", &Forth::flush, false }, // BLOCK
+				{ "LIST", &Forth::list, false }, // BLOCK EXT
+				{ "LOADSTART", &Forth::loadstart, false }, // BLOCK
+				{ "SAVE-BUFFERS", &Forth::savedashbuffers, false }, // BLOCK
+				{ "SCR", &Forth::scr, false }, // BLOCK EXT
+				{ "THRU", &Forth::thru, false }, // BLOCK EXT
+				{ "UPDATE", &Forth::update, false }, // BLOCK 
+				
+				
 
 				
 				

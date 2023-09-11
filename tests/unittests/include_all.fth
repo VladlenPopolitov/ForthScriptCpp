@@ -19,8 +19,8 @@ S" tester.fr" INCLUDED
 : test_core S" core.fr" [']  INCLUDED  CATCH  . CR ; test_core 
 \ S" coreplustest.fth" INCLUDED
 \ S" utilities.fth" INCLUDED
-: test-ce S" coreexttest.fth" [']  INCLUDED  CATCH  . CR ; test-ce 
- \ S" blocktest.fth" INCLUDED
+: test_ce S" coreexttest.fth" [']  INCLUDED  CATCH  . CR ; test_ce 
+: test_block S" blocktest.fth" ['] INCLUDED CATCH S" blocktest  RES " TYPE . CR ; test_block 
 : test_double S" doubletest.fth" ['] INCLUDED CATCH S" doubletest  RES " TYPE . CR ; test_double 
 : test_exception S" exceptiontest.fth" ['] INCLUDED CATCH S" exceptiontest  RES " TYPE . CR ; test_exception 
 : test_facility S" facilitytest.fth" ['] INCLUDED CATCH S" facilitytest  RES " TYPE . CR ; test_facility

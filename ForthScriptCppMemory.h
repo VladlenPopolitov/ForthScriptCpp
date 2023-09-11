@@ -21,7 +21,7 @@
 	const Cell vmMaxSegmentSize = 0x04000000;
 
 		// ALLOCATE ( u -- a-addr ior )
-		// @todo reuse of the memory should me proposed and implemented 
+		// @todo reuse of the memory should be proposed and implemented 
 		void memAllocate() {
 			REQUIRE_DSTACK_DEPTH(1, "ALLOCATE");
 			REQUIRE_DSTACK_AVAILABLE(1, "ALLOCATE");
