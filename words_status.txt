@@ -317,21 +317,21 @@ XKEY  word missing
 XKEY?  word missing
 X\STRING-  word missing
   xchar words total 21   xchar words missing 15 
-BLK  word missing
-BLOCK  word missing
-BUFFER  word missing
-EMPTY-BUFFERS  word missing
+BLK  word OK
+BLOCK  word OK
+BUFFER  word OK
+EMPTY-BUFFERS  word OK
 EVALUATE  word OK
-FLUSH  word missing
-LIST  word missing
-LOAD  word missing
+FLUSH  word OK
+LIST  word OK
+LOAD  word OK
 REFILL  word OK
-SAVE-BUFFERS  word missing
-SCR  word missing
-THRU  word missing
-UPDATE  word missing
+SAVE-BUFFERS  word OK
+SCR  word OK
+THRU  word OK
+UPDATE  word OK
 \  word OK
-  block words total 14   block words missing 11 
+  block words total 14   block words missing 0 
 DABS  word OK
 D.R  word OK
 D=  word OK
@@ -467,7 +467,7 @@ UNESCAPE  word OK
 
   core words total 133 core words missing 0 
   coreext words total 49 coreext words missing 1 
-  block words total 14   block words missing 11 
+  block words total 14   block words missing 0 
   double words total 23   double words missing 0 
   exceptions words total 4 exceptions words missing 0 
   facility words total 40   facility words missing 32 
