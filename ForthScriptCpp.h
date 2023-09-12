@@ -169,7 +169,7 @@ implementation to get the basic gist of how Forth is usually implemented.
 #endif
 
 #ifndef FORTHSCRIPTCPP_VERSION
-#define FORTHSCRIPTCPP_VERSION "1.0.3"
+#define FORTHSCRIPTCPP_VERSION "1.0.4"
 #endif
 
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
@@ -635,7 +635,7 @@ comment.  They are blank-delimited words just like every other Forth word.
 
 ****/
 
-": \\ source nip >in ! ; immediate "
+": \\ BLK @ 0> IF  >IN @ 63 + 64 / 64 * >IN ! ELSE source nip >in ! THEN ; immediate "
 ": #! postpone \\ ; immediate "
  ": ( [char] ) parse 2drop ; immediate "
 /****
@@ -839,8 +839,12 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
  BLOCK words
 */
 ": LOAD LOADSTART NOOP ; "
-": LIST DUP SCR ! BLOCK 1024 DUMP ; " // ( u -- )
+": LIST-LINE ( addr -- ) dup 64 + SWAP DO I @ EMIT LOOP ; "
+": LIST-BLOCK ( addr -- ) 16 0 DO I 2 U.R BL EMIT DUP I 64 * + LIST-LINE CR LOOP DROP ; "
+": LIST DUP SCR ! BLOCK LIST-BLOCK ; " // ( u -- )
 ": THRU  1+ SWAP  DO I LOAD LOOP ; " // ( i * x u1 u2 -- j * x )
+": USING parse-name OPEN-BLOCKS ; " // ( "blockfilename" -- )
+": USE parse-name OPEN-BLOCKS ; "	// ( "blockfilename" -- )
 
 	;
 
@@ -2448,16 +2452,14 @@ Code Reserved for	Code Reserved for
 		result into `sourceBuffer`, sets `sourceOffset` to 0, and pushes a `TRUE` flag
 		onto the stack.  If not successful, it pushes a `FALSE` flag.
 
-		This uses GNU Readline if configured to do so.  Otherwise it uses the C++
-		`std::getline()` function.
-
 		****/
-
-		// REFILL ( -- flag )
-		void refill() { 
-			REQUIRE_DSTACK_AVAILABLE(1, "REFILL");
+		/// refillNextLine() is not REFILL. It only read next line from input source
+		/// and does not take into consideretion BLK variable. It is used internally to refill source buffer
+		void refillNextLine() {
+			REQUIRE_DSTACK_AVAILABLE(1, "REFILLNEXTLINE");
 			auto sourceid_ = getSourceId();
-			if (sourceid_ >= 0) { // if input from file or from input buffer
+			auto blk = getDataCell(VarOffsetBlkAddress);
+			if (sourceid_ >= 0 and blk==0) { // if input from file or from input buffer
 				inputBufferStringsCurrent++;
 				if (inputBufferStringsCurrent < inputBufferStrings.size()) {
 					if (setSourceBuffer()) {
@@ -2474,11 +2476,48 @@ Code Reserved for	Code Reserved for
 			else {
 				push(False); // input from EVALUATE
 			}
+			
+		}
+
+		// REFILL ( -- flag )
+		void refill() { 
+			REQUIRE_DSTACK_AVAILABLE(1, "REFILL");
+			auto sourceid_ = getSourceId();
+			auto blk=getDataCell(VarOffsetBlkAddress);
+			if (blk > 0) {
+				++blk;
+				dStack.push(blk);
+				block();
+				auto address=dStack.getTop();pop();
+				setSourceId(0);
+				setDataCell(VarOffsetBlkAddress, Cell(blk)); // set BLK=u
+				setSourceVariables(address, 1024, 0);
+				push(True);
+			}
+			else {
+				if (sourceid_ >= 0) { // if input from file or from input buffer
+					inputBufferStringsCurrent++;
+					if (inputBufferStringsCurrent < inputBufferStrings.size()) {
+						if (setSourceBuffer()) {
+							push(True);
+						}
+						else {
+							push(False);
+						}
+					}
+					else {
+						push(False);
+					}
+				}
+				else {
+					push(False); // input from EVALUATE
+				}
+			}
 		}
 
 		/****
 
-		`ACCEPT` is similar to `REFILL`, but puts the result into a caller-supplied
+		`ACCEPT`  reads a line from the user input device and puts the result into a caller-supplied
 		buffer.
 
 		****/
@@ -2528,12 +2567,12 @@ Code Reserved for	Code Reserved for
 		requirement.
 
 		****/
-// WORD ( char "<chars>ccc<char>" -- c-addr )
+		
 		void  skipSpacesInSource() {
 				// Skip leading delimiters
 				while(getSourceBufferRemain() > 0) {
 					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
-					if (isspace(static_cast<unsigned char>(currentChar))) {
+					if (std::isspace(static_cast<unsigned char>(currentChar))) {
 						incSourceBufferOffset();
 					} else {
 						return;
@@ -2814,7 +2853,7 @@ Code Reserved for	Code Reserved for
 				while (getSourceBufferRemain()==0){ 
 					// load next string from input buffer
 					if (delim == ')') {
-						refill();
+						refillNextLine();
 						auto flag = dStack.getTop(); pop();
 						if (!flag) {
 							//if (delim == ' ') break;
@@ -2867,7 +2906,7 @@ Code Reserved for	Code Reserved for
 			while (!exits) {
 				while (getSourceBufferRemain() == 0) {
 					// load next string from input buffer
-					refill();
+					refillNextLine();
 					auto flag = dStack.getTop(); pop();
 					if (!flag) {
 						//if (delim == ' ') break;
@@ -4343,7 +4382,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		 * 
 		*/
 		
-		std::filesystem::path blockFileName{"blocks.fb"};
+		std::string blockFileName{"blocks.fb"};
 		Cell blockCurrent{};
 		struct BlockInfo {
 			Cell blockNumber;
@@ -4352,6 +4391,15 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 		};
 		std::map<Cell,BlockInfo> blocksInProcess{};
 		
+		/// OPEN-BLOCKS ( caddr u -- ) 
+		/// use caddr u to assign the name for the file with blocks (BLOCK)
+		void opendashblocks() {
+			REQUIRE_DSTACK_DEPTH(2, "OPEN-BLOCKS");
+			auto size = dStack.getTop(); dStack.pop();
+			auto address = dStack.getTop(); dStack.pop();
+			flush();
+			moveFromDataSpace(blockFileName, address, size);
+		}
 		/// BLK ( -- a-addr )
 		void blk(){
 			REQUIRE_DSTACK_AVAILABLE(1, "BLK");
@@ -4405,21 +4453,15 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 					dStack.setTop((*foundIt).second.blockLocation);
 				}
 				else {
-					std::shared_ptr<std::fstream> f{ new std::fstream(blockFileName, std::ios_base::in | std::ios_base::binary) };
-					if (f->is_open()) {
-						f->seekg(static_cast<size_t>(u - 1) * 1024L, std::ios_base::beg);
 						char buffer[1024];
-						f->read(buffer, 1024);   // read from the file
-						auto readBytes = f->gcount();
-						f->close();
-						std::string fileContent{buffer, static_cast<size_t>(readBytes)};
+						std::memset(buffer, ' ', 1024);
 						// get memory
-						dStack.setTop(fileContent.size());
+						dStack.setTop(1024);
 						memAllocate();
 						auto ec = dStack.getTop(); pop();
 						// copy to memory
 						auto address = dStack.getTop();
-						moveIntoDataSpace(address, fileContent.c_str(), fileContent.size());
+						moveIntoDataSpace(address, buffer, 1024);
 						// save block info
 						struct BlockInfo newBlock {};
 						newBlock.blockNumber = u;
@@ -4427,7 +4469,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 						newBlock.blockModified = false;
 						blocksInProcess[u] = newBlock;
 						// push address - address already on stack top
-					}
 				}
 				blockCurrent = u;
 			}
@@ -4465,41 +4506,17 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				auto foundIt = blocksInProcess.find(u);
 				if (foundIt == blocksInProcess.end()) {
 					push(u);
-					buffer();
+					block();
 					pop();
 				}
 				foundIt = blocksInProcess.find(u);
 				if (foundIt != blocksInProcess.end()) {
-					std::string blockContent{};
-					moveFromDataSpace(blockContent, (*foundIt).second.blockLocation, 1024);
 					SaveInput();
 					setSourceId(0);
 					setDataCell(VarOffsetBlkAddress, Cell(u)); // set BLK=u
-					SetBlockInput(blockContent);
+					setSourceVariables((*foundIt).second.blockLocation, 1024, 0);
 					InterpretState = InterpretSource;
 				} 
-				/*
-				std::fstream f(blockFileName, std::ios_base::in | std::ios_base::binary) ;
-				if (f.is_open()) {
-					f.seekg(static_cast<size_t>(u)*1024L , std::ios_base::beg);
-					auto status = f.rdstate();
-					char buffer[1024];
-					f.read(buffer,1024);   // read from the file
-					status = f.rdstate();
-					f.clear();
-					auto readBytes=f.gcount();
-					status = f.rdstate();
-					f.close();
-					std::string fileContent{buffer,static_cast<size_t>(readBytes)};
-					SaveInput();
-					setSourceId(0);
-					setDataCell(VarOffsetBlkAddress, Cell(u)); // set BLK=0
-					SetInput(fileContent);
-					InterpretState = InterpretSource;
-					// must close file according to specification
-					// closeFile();	
-				}
-				*/
 			}
 		}
 		/// SAVE-BUFFERS ( -- )
@@ -5187,7 +5204,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 						break;
 					}
 				}
-				refill();
+				refillNextLine();
 			}
 		}
 
@@ -5621,7 +5638,7 @@ if(0){
 					}
 					else {
 						// 'refill' branch
-						refill(); 
+						refillNextLine();
 						auto refillFlag = dStack.getTop(); pop();
 						if (!refillFlag){  // input sorce empty ?
 							auto qty = savedInput.size();  	// if empty, check saved input sources
@@ -5780,16 +5797,7 @@ if(0){
 			inputBufferStringsCurrent = 0;
 			setSourceBuffer();
 		}
-		void SetBlockInput(const std::string& str) {
-			inputBufferStrings.clear();
-			for (auto it = str.begin(), itEnd = str.end(); it != itEnd;)
-			{
-				inputBufferStrings.push_back(std::string(it, it + 64));
-				it += 64;
-			}
-			inputBufferStringsCurrent = 0;
-			setSourceBuffer();
-		}
+
 		void restoreInput(struct structSavedInput& save, bool emptyCurrentBuffer, bool restoreNextCommand) {
 			if(save.SourceDashId_>=0 ){
 				if (emptyCurrentBuffer) {
@@ -5799,8 +5807,10 @@ if(0){
 					inputBufferStrings=save.inputBufferStrings_;
 				}
 				inputBufferStringsCurrent = save.inputBufferStringsCurrent_;
-				
-				setSourceBuffer();
+				// is restored from block (LOAD)
+				if (save.blk == 0) {
+					setSourceBuffer();
+				}
 			}
 			setSourceVariables(save.SourceBufferAddress_, save.SourceBufferSize_, save.SourceBufferOffset_);
 			setSourceId(save.SourceDashId_);
@@ -6337,7 +6347,7 @@ if(0){
 
 			for (; !isBye;) {
 				try {
-					refill();
+					refillNextLine();
 					auto refilled = dStack.getTop(); pop();
 					if (!refilled) // end-of-input
 						break;
@@ -6425,7 +6435,7 @@ if(0){
 			CodeWord codeWords[] = {
 				// name             code
 				// ------------------------------
-				{ "noop", nullptr, true }, // empty difinition (zero index - not found)
+				{ "NULLPTRWORD", nullptr, true }, // empty difinition (zero index - not found)
 				{ "(LIT)", &Forth::doLiteral, false }, //1
 				{ "(DOES)", &Forth::setDoes, false }, //2
 				{ "EXIT", &Forth::exit, false }, //3 
@@ -6637,9 +6647,8 @@ if(0){
 				{ "SCR", &Forth::scr, false }, // BLOCK EXT
 				{ "THRU", &Forth::thru, false }, // BLOCK EXT
 				{ "UPDATE", &Forth::update, false }, // BLOCK 
+				{ "OPEN-BLOCKS", &Forth::opendashblocks, false }, // not standard word for BLOCK 
 				
-				
-
 				
 				
 #ifdef FORTHSCRIPTCPP_ENABLE_MEMORY
@@ -7027,12 +7036,7 @@ if(0){
 
 		void ExecuteString(const std::string &commands){
 			SetInput(commands);
-			/// @bug delete for (inputBufferStringsCurrent = 0; inputBufferStringsCurrent<inputBufferStrings.size(); 
-			///	++inputBufferStringsCurrent){
-			/// 	setSourceBuffer();
-				// @bug delete line setSourceBufferOffset(0);
-				interpret();
-			///}
+			interpret();
 		}
 		std::string ExecutionOutput() const {
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT

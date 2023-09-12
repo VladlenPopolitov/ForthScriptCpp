@@ -49,7 +49,6 @@ add_custom_command(
                 ${CMAKE_CURRENT_SOURCE_DIR}/blocks.fb
                 $<TARGET_FILE_DIR:test_forthtestsuit1>/blocks.fb
 )
-
 add_custom_command(
         TARGET test_wordlist POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
