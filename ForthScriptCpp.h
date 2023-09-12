@@ -366,7 +366,7 @@ of a cell without using `1 CELLS`.
 
 ****/
 
-": '   bl word find drop ; "
+": ' bl word find drop ; "
 
 /****
 
@@ -572,7 +572,7 @@ continue the interpreter loop.
 ": value create 1 , , does> dup @ 1 = if cell+ @ else then ; "
 ": 2value create 2 , , , does> dup @ 2 = if cell+ 2@ else then ; " 
 ": fvalue create 3 , F,  does> dup @ 3 = if cell+ F@ else then ; "
-" : to state @ if 3 2 1 then ' >body state @ if "
+" : to state @ if 3 2 1 then NAME2DATAADDRESS state @ if "
 "postpone literal postpone dup postpone @ postpone dup postpone literal postpone = "
 "postpone if postpone drop postpone cell+ postpone ! postpone else postpone dup postpone literal postpone = "
 "postpone if postpone drop postpone cell+ postpone 2! postpone else postpone literal postpone = "
@@ -723,7 +723,10 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
  *  Locals
  * 
 */
-/*
+": LOCALS| ( \"name...name |\" -- ) "
+"BEGIN BL WORD COUNT OVER C@ [CHAR] | - OVER 1 - OR WHILE (LOCAL) REPEAT 2DROP 0 0 (LOCAL) ; IMMEDIATE "
+
+
 "12345 CONSTANT undefined-value "
 ": match-or-end? ( c-addr1 u1 c-addr2 u2 -- f ) 2 PICK 0= >R COMPARE 0= R> OR ; "
 ": scan-args " // 0 c-addr1 u1 -- c-addr1 u1 ... c-addrn un n c-addrn+1 un+1
@@ -734,7 +737,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 "  ROT 1+ PARSE-NAME "
 "AGAIN THEN THEN THEN ; "
 ": scan-locals " // n c-addr1 u1 -- c-addr1 u1 ... c-addrn un n c-addrn+1 un+1 
-"  2DUP S" |" COMPARE 0= 0= IF EXIT THEN "
+"  2DUP S\" |\" COMPARE 0= 0= IF EXIT THEN "
 "   2DROP PARSE-NAME "
 "   BEGIN "
 "   2DUP S\" --\" match-or-end? 0= WHILE "
@@ -743,13 +746,13 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 "     POSTPONE undefined-value "
 "   AGAIN THEN THEN ; "
 ": scan-end ( c-addr1 u1 -- c-addr2 u2 ) "
-"  BEGIN "" 
+"  BEGIN " 
 "     2DUP S\" :}\" match-or-end? 0= WHILE "
 "     2DROP PARSE-NAME "
 "   REPEAT ; "
 ": define-locals ( c-addr1 u1 ... c-addrn un n -- ) 0 ?DO (LOCAL) LOOP 0 0 (LOCAL) ; "
 ": {: ( -- ) 0 PARSE-NAME scan-args scan-locals scan-end 2DROP define-locals ; IMMEDIATE "
-*/
+
 /** 
  *  Strings
 */
@@ -2455,7 +2458,8 @@ Code Reserved for	Code Reserved for
 		****/
 		/// refillNextLine() is not REFILL. It only read next line from input source
 		/// and does not take into consideretion BLK variable. It is used internally to refill source buffer
-		void refillNextLine() {
+		/// return true if source buffer is refilled
+		bool refillNextLine() {
 			REQUIRE_DSTACK_AVAILABLE(1, "REFILLNEXTLINE");
 			auto sourceid_ = getSourceId();
 			auto blk = getDataCell(VarOffsetBlkAddress);
@@ -2463,18 +2467,20 @@ Code Reserved for	Code Reserved for
 				inputBufferStringsCurrent++;
 				if (inputBufferStringsCurrent < inputBufferStrings.size()) {
 					if (setSourceBuffer()) {
-						push(True);
+						//std::cerr << inputBufferStrings[inputBufferStringsCurrent];
+							
+						return true;
 					}
 					else {
-						push(False);
+						return false;
 					}
 				}
 				else {
-					push(False);
+					return false;
 				}
 			}
 			else {
-				push(False); // input from EVALUATE
+				return false; // input from EVALUATE and LOAD
 			}
 			
 		}
@@ -2652,44 +2658,52 @@ Code Reserved for	Code Reserved for
 			****/
 			wordBuffer.resize(0);  // First char of buffer is length.
 			
-				// Skip leading delimiters
-				if (getSourceBufferRemain() > 0) {
-					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
-					while (getSourceBufferRemain() > 0 && ((currentChar == delim)
-						|| (delim == ' ' && isspace(static_cast<unsigned char>(currentChar)))
-						)) {
-						incSourceBufferOffset();
-						currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+			// Skip leading delimiters
+			if (getSourceBufferRemain() > 0) {
+				auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+				while (getSourceBufferRemain() > 0 && ((currentChar == delim)
+					|| (delim == ' ' && isspace(static_cast<unsigned char>(currentChar)))
+					)) {
+					incSourceBufferOffset();
+					currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());
+				}
+			}
+			if (getSourceBufferRemain() > 0) {
+				// Copy characters until we see the delimiter again.
+				while (getSourceBufferRemain() >0 ) {
+					auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());	
+					if( currentChar != delim
+					&& !(delim == ' ' && (isspace(static_cast<unsigned char>(currentChar))))
+					) {
+					wordBuffer.push_back(static_cast<unsigned char>(currentChar));
+					incSourceBufferOffset();
+					} else {
+						break;
 					}
 				}
-				if (getSourceBufferRemain() > 0) {
-					// Copy characters until we see the delimiter again.
-					while (getSourceBufferRemain() >0 ) {
-						auto currentChar = getDataChar(getSourceAddress() + getSourceBufferOffset());	
-						if( currentChar != delim
-						&& !(delim == ' ' && (isspace(static_cast<unsigned char>(currentChar))))
-						) {
-						wordBuffer.push_back(static_cast<unsigned char>(currentChar));
-						incSourceBufferOffset();
-						} else {
-							break;
-						}
-					}
-					// source point to the delimiter char, skip it.
-					if (getSourceBufferRemain() >0 ) {
-						incSourceBufferOffset(); 
-					}
+				// source point to the delimiter char, skip it.
+				if (getSourceBufferRemain() >0 ) {
+					incSourceBufferOffset(); 
 				}
-				if (wordBuffer.size() > 255){
-					// @bug it is catched below
-					throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
-					return 0;
-				}
-				// Update the count at the beginning of the buffer.
-				//wordBuffer[0] = static_cast<char>(wordBuffer.size() - 1);
-				// copy to fixed buffer
-				//moveIntoDataSpace(VarOffsetWordBuffer, wordBuffer.c_str(), wordBuffer.size());
-				//dStack.setTop(CELL(VarOffsetWordBuffer));
+			}
+			if (wordBuffer.size() > 255){
+				// @bug it is catched below
+				throwMessage(std::string("WORD: very long word "), errorParsedStringOverflow);
+				return 0;
+			}
+			if(localVariables.size()>0){
+				std::string localName{wordBuffer};
+				for(auto &c: localName) c=toupper_ascii(c);
+				for(auto it=localVariables.rbegin(),itEnd=localVariables.rend();it!=itEnd;++it){
+					if((*it).localName==localName){
+						// compale address of local variable
+						// and retrun XT of FETCH @
+						data(doLiteralXt);
+						data((*it).localAddress+CellSize);
+						return fetchXt ;
+					}
+				}		
+			}
 			auto word = findDefinition(wordBuffer);
 			return word;
 			
@@ -2853,14 +2867,9 @@ Code Reserved for	Code Reserved for
 				while (getSourceBufferRemain()==0){ 
 					// load next string from input buffer
 					if (delim == ')') {
-						refillNextLine();
-						auto flag = dStack.getTop(); pop();
+						auto flag=refillNextLine();
 						if (!flag) {
-							//if (delim == ' ') break;
-							exits = true;
-							//throwMessage(std::string("PARSE: Did not find expected delimiter \'" +
-							//	std::string(1, delim) + "\'")
-							//	, errorParsedStringOverflow);
+							exits = true;							
 						}
 					}
 					else {
@@ -2880,9 +2889,9 @@ Code Reserved for	Code Reserved for
 					}
 				}
 			}
-			auto dataInDataSpace = PutStringToEndOfDataSpace(parseBuffer);
+			auto dataInDataSpace_ = PutStringToEndOfDataSpace(parseBuffer);
 
-			dStack.setTop(CELL(dataInDataSpace));
+			dStack.setTop(CELL(dataInDataSpace_));
 			push(static_cast<Cell>(parseBuffer.size()));
 		}
 		/****
@@ -2893,23 +2902,15 @@ Code Reserved for	Code Reserved for
 
 		// ( ( "ccc<paren>" -- )
 		void multilinecomment() {
-			
-
 			auto delim = ')';
-			
-
 			std::string parseBuffer{};
-			parseBuffer.clear();
 			// Copy characters until we see the delimiter.
-
 			bool exits{ false };
 			while (!exits) {
 				while (getSourceBufferRemain() == 0) {
 					// load next string from input buffer
-					refillNextLine();
-					auto flag = dStack.getTop(); pop();
+					auto flag = refillNextLine();
 					if (!flag) {
-						//if (delim == ' ') break;
 						throwMessage(std::string("PARSE: Did not find expected delimiter \'" +
 							std::string(1, delim) + "\'")
 							, errorParsedStringOverflow);
@@ -2928,9 +2929,8 @@ Code Reserved for	Code Reserved for
 					}
 				}
 			}
-			auto dataInDataSpace = PutStringToEndOfDataSpace(parseBuffer);
-
-			dStack.setTop(CELL(dataInDataSpace));
+			auto dataInDataSpace_ = PutStringToEndOfDataSpace(parseBuffer);
+			dStack.setTop(CELL(dataInDataSpace_));
 			push(static_cast<Cell>(parseBuffer.size()));
 		}
 
@@ -3713,6 +3713,10 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 											if (currentWord.compare("WORDLISTS") == 0){
 												ret = 256;
 											} 
+										else
+											if (currentWord.compare("#LOCALS") == 0){
+												ret = 256;
+											} 
 
 #ifdef FORTHSCRIPTCPP_ENABLE_FLOAT
 			else if (currentWord.compare("FLOATING-STACK") == 0){
@@ -4093,6 +4097,7 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			data(CELL(endOfDefinitionXt));
 			setIsCompiling( False );
 			lastDefinition().toggleHidden(); // @bug lastDefinition can be not last if compilation created additional definitions
+			localVariables.clear();
 		}
 
 		// IMMEDIATE ( -- )
@@ -4560,6 +4565,67 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				}
 			}
 		}
+
+/******
+ * 
+ * LOCALS words
+ * 
+*/
+		struct localVariable {
+			std::string localName;
+			CAddr localAddress;
+		};
+		std::vector<localVariable> localVariables{};
+		/// NAME2DATAADDRESS ( "name" -- addr ) address of execution behaviour
+		/// The same as ' >BODY , but it takes into consideration LOCALS names
+		void name2dataaddress(){
+			bl();word();
+			if(localVariables.size()>0){
+				dup();
+				count();
+				auto u=dStack.getTop(); dStack.pop();
+				auto address=dStack.getTop(); dStack.pop();
+				std::string localName{};
+				moveFromDataSpace(localName,address,u);
+				for(auto &c: localName) c=toupper_ascii(c);
+				for(auto it=localVariables.rbegin(),itEnd=localVariables.rend();it!=itEnd;++it){
+					if((*it).localName==localName){
+						dStack.setTop((*it).localAddress);
+						return;
+					}
+				}		
+			} 
+			find();drop();toBody();
+			
+		}
+		/// (LOCAL)  
+		/// EXECUTION ( c-addr u -- )
+		/// Local execution ( -- x )
+		/// TO local Run-time: ( x -- )
+		void parlocalpar(){
+			REQUIRE_DSTACK_DEPTH(2, "(LOCAL)");
+			auto u=dStack.getTop(); dStack.pop();
+			auto address=dStack.getTop(); dStack.pop();
+			if(u>0){
+			std::string localName{};
+			moveFromDataSpace(localName,address,u);
+			for(auto &c: localName) c=toupper_ascii(c);
+			struct localVariable variable{};
+			variable.localName=localName;
+			align();// in case data() makes alignment;
+			auto dataAddress=getDataPointer();
+			variable.localAddress=dataAddress+CellSize*5;	
+			localVariables.push_back(variable);		
+			data(doLiteralXt); // 1 literal
+			data(dataAddress+CellSize*6);  // 2 address
+			data(storeXt);  // 3 @
+			data(branchXt);	// 4 	
+			data(CellSize * 3);	// 5 Jump 5 to 8 
+			data(1);			// 6
+			data(0);			// 7 init by 0 (must be value from stack)
+			}
+		}
+
 		/****
 
 		Dictionary
@@ -4730,8 +4796,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			REQUIRE_DSTACK_AVAILABLE(1, "XT>NAME");
 			auto xt = XT(dStack.getTop());
 			auto& name = definitionsAt(xt).name;
-			auto dataInDataSpace = PutStringToEndOfDataSpace(definitionsAt(xt).name);
-			dStack.setTop(CELL(dataInDataSpace));
+			auto dataInDataSpace_ = PutStringToEndOfDataSpace(definitionsAt(xt).name);
+			dStack.setTop(CELL(dataInDataSpace_));
 			push(static_cast<Cell>(name.length()));
 		}
 
@@ -4801,7 +4867,17 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 					std_cout << " " << definitionsAt(xt).name;
 				else
 					std_cout << " " << SETBASE() << static_cast<SCell>(getDataCell(does));
-				does+=sizeof(Cell);
+				does+=sizeof(Cell);	
+				if(xt==branchXt || xt==zbranchXt || xt==doLiteralXt ){
+				 
+				 std_cout << " " <<  getDataCell(does)	;
+				 does+=sizeof(Cell);
+				} else 
+				if( xt==doFLiteralXt ){
+				 std_cout << " " <<  getDataFCell(does)	;
+				 does+=sizeof(FCell);
+				}	
+				
 			}
 			std_cout << " ;";
 #endif
@@ -5596,6 +5672,7 @@ if(0){
 }
 		enum InterpretStates { InterpretSource=0, InterpretWords=1 };
 		InterpretStates InterpretState = InterpretSource;
+		/// Forth cycle - read source interpret and compile
 		void interpret() {
 			Xt xt{};
 			std::string currentWord(33,0); // reserve at least 33 chars in word
@@ -5603,10 +5680,8 @@ if(0){
 				if (InterpretState == InterpretSource){
 					skipSpacesInSource();
 					if (getSourceBufferRemain() >0 ) {
-						// bl(); word(); find(); auto found = static_cast<int>(dStack.getTop()); pop();
 						xt=blWordFind(currentWord);
 						if (xt>0) {
-							// xt = XT(dStack.getTop()); pop();
 							if (getIsCompiling() && !getDefinition(xt)->isImmediate()) {
 								data(CELL(xt));
 							}
@@ -5615,13 +5690,9 @@ if(0){
 							}
 						}
 						else {
-							// Try to parse it as a number.
-							// count(); 	auto length = SIZE_T(dStack.getTop()); pop(); auto caddr = CADDR(dStack.getTop()); pop();
 							if (currentWord.size() > 0) {
-								// std::string currentWord{};
-								// moveFromDataSpace(currentWord, caddr, length);
 								if (!interpretNumbers(currentWord)){
-									// uncomment during debug if information is need about wrong words
+									// uncomment during debug if information is needed about wrong words
 									// std::cerr << "!!!Wrong word "<<currentWord<<std::endl;
 									push(CELL(-13));
 									exceptionsThrow();
@@ -5638,20 +5709,16 @@ if(0){
 					}
 					else {
 						// 'refill' branch
-						refillNextLine();
-						auto refillFlag = dStack.getTop(); pop();
-						if (!refillFlag){  // input sorce empty ?
+						auto refillFlag = refillNextLine();
+						// input sorce empty (no lines in input buffer, no lines in file, 
+						// evaluate source ended, block ended) ?
+						if (!refillFlag){  
 							auto qty = savedInput.size();  	// if empty, check saved input sources
 							if (qty > 0){					// if have saved source - restore it and run
 								RestoreInput();
 								if (InterpretState == InterpretWords){
 									if (next_command != 0){
 										xt = getDataCell(next_command);
-#ifdef _DEBUG
-										if (xt >= definitions.size()){
-											throwMessage("wrong XT", errorInvalidAddress);
-										}
-#endif
 										next_command += sizeof(next_command);
 									}
 								}
@@ -5663,35 +5730,28 @@ if(0){
 					}
 				}
 				if (InterpretState == InterpretWords){
-					//if (next_command != 0){
-						auto defn = getDefinition(xt);
-						while (defn->code == &Forth::execute) {
-							REQUIRE_DSTACK_DEPTH(1, "EXECUTE");
-							xt = dStack.getTop(); dStack.pop();
-							defn = getDefinition(xt);
-						}
+					auto defn = getDefinition(xt);
+					while (defn->code == &Forth::execute) {
+						REQUIRE_DSTACK_DEPTH(1, "EXECUTE");
+						xt = dStack.getTop(); dStack.pop();
+						defn = getDefinition(xt);
+					}
 #ifdef FORTHSCRIPTCPP_ENABLE_INTERNALDEBUGGER
-						if (stepfunction){
-							if (currentstep-- == 0){
-								stepfunction(this, xt, next_command);
-								currentstep = maxstep;
-							}
+					if (stepfunction){
+						if (currentstep-- == 0){
+							stepfunction(this, xt, next_command);
+							currentstep = maxstep;
 						}
+					}
 #endif
-						getDefinition(xt)->executeDefinition(*this);
-						if (next_command == 0){
-							InterpretState = InterpretSource;
-						}
-						else {
-							xt = getDataCell(next_command);
-#ifdef _DEBUG
-							if (xt >= definitions.size()){
-								throwMessage("wrong XT", errorInvalidAddress);
-							}
-#endif						
-							next_command += sizeof(next_command);
-						}
-					//}
+					getDefinition(xt)->executeDefinition(*this);
+					if (next_command == 0){
+						InterpretState = InterpretSource;
+					}
+					else {
+						xt = getDataCell(next_command);
+						next_command += sizeof(next_command);
+					}
 					if (next_command == 0){
 						InterpretState = InterpretSource;
 					}
@@ -6215,8 +6275,8 @@ if(0){
 		// #>     (  xd � addr u )
 		void PicturedInputBufferEnd(){
 			REQUIRE_DSTACK_DEPTH(2, "#>");
-			auto dataInDataSpace = PutStringToEndOfDataSpace(std::string(picturedInputBuffer.rbegin(), picturedInputBuffer.rend()));
-			dStack.setTop(1,CELL(dataInDataSpace));
+			auto dataInDataSpace_ = PutStringToEndOfDataSpace(std::string(picturedInputBuffer.rbegin(), picturedInputBuffer.rend()));
+			dStack.setTop(1,CELL(dataInDataSpace_));
 			dStack.setTop(CELL(picturedInputBuffer.size()));
 
 		}
@@ -6334,52 +6394,10 @@ if(0){
 				}
 			}
 		}
-		bool alreadyRunning = false;
+		
 		// QUIT ( -- )
 		void quit() {
 
-			if (alreadyRunning)
-				abort();
-			alreadyRunning = true;
-
-			rStack.resetStack();
-			setIsCompiling( False );
-
-			for (; !isBye;) {
-				try {
-					refillNextLine();
-					auto refilled = dStack.getTop(); pop();
-					if (!refilled) // end-of-input
-						break;
-
-					interpret();
-				}
-				catch (const AbortException& abortEx) {
-					std::string msg(abortEx.what());
-					if (msg.length() > 0) {
-#ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
-						switch (writeToTarget) {
-						case ToString:
-							std_cout << "<<< " << msg << " >>>" << std::endl;
-							break;
-						case ToStdCout:
-							std::cout << "<<< " << msg << " >>>" << std::endl;
-							std::cout.flush();
-							break;
-						default:
-							break;
-						}
-#endif
-					}
-					dStack.resetStack();
-					rStack.resetStack();
-					controlStackIf_Begin.resetStack();
-					controlStackLoops.resetStack();
-					setIsCompiling( False );
-				}
-				prompt();
-			}
-			cr();
 		}
 
 
@@ -6422,7 +6440,9 @@ if(0){
 			doFLiteralXt = 18,
 			traverseDashWordlistXt=19,
 			executeXt=20,
-			compileCommaXt=21
+			compileCommaXt=21,
+			fetchXt=22,
+			storeXt=23
 
 		};
 		void definePrimitives() {
@@ -6461,9 +6481,10 @@ if(0){
 				{ "TRAVERSE-WORDLIST", &Forth::traversedashwordlist, false }, // 19
 				{ "EXECUTE", &Forth::execute, false },  // 20 CORE
 				{ "COMPILE,", &Forth::compilecomma, false }, // 21 CORE EXT
-				
+				{ "@", &Forth::fetch, false },  // 22 CORE				
+				{ "!", &Forth::store, false },  // 23 CORE
 				{ ";", &Forth::semicolon, true }, // CORE
-				{ "!", &Forth::store, false },  // CORE
+				
 				{ "*", &Forth::star, false }, // CORE
 				{ "-", &Forth::minus, false }, // CORE
 				{ ".", &Forth::dot, false },   // CORE
@@ -6478,7 +6499,7 @@ if(0){
 				{ ">", &Forth::greaterThan, false },  // CORE
 				{ ">BODY", &Forth::toBody, false }, // CORE
 				{ ">IN", &Forth::toIn, false }, // CORE
-				{ "@", &Forth::fetch, false },  // CORE
+
 				{ "ABORT", &Forth::abort, false },  // CORE
 				{ "ABORT-MESSAGE", &Forth::abortMessage, false },  // not standard
 				{ "ACCEPT", &Forth::accept, false },  // CORE
@@ -6648,6 +6669,8 @@ if(0){
 				{ "THRU", &Forth::thru, false }, // BLOCK EXT
 				{ "UPDATE", &Forth::update, false }, // BLOCK 
 				{ "OPEN-BLOCKS", &Forth::opendashblocks, false }, // not standard word for BLOCK 
+				{ "NAME2DATAADDRESS", &Forth::name2dataaddress, false }, // not standard word for LOCALS and TO
+				{ "(LOCAL)", &Forth::parlocalpar, false }, // LOCALS
 				
 				
 				

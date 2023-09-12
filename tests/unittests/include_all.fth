@@ -24,9 +24,8 @@ S" tester.fr" INCLUDED
 : test_double S" doubletest.fth" ['] INCLUDED CATCH S" doubletest  RES " TYPE . CR ; test_double 
 : test_exception S" exceptiontest.fth" ['] INCLUDED CATCH S" exceptiontest  RES " TYPE . CR ; test_exception 
 : test_facility S" facilitytest.fth" ['] INCLUDED CATCH S" facilitytest  RES " TYPE . CR ; test_facility
-
 : test_file S" filetest.fth" ['] INCLUDED CATCH S" filetest  RES " TYPE . CR ; test_file
- \ S" localstest.fth" INCLUDED
+: test_locals S" localstest.fth" ['] INCLUDED CATCH S" localstest  RES " TYPE . CR ; test_locals
 : test_memory S" memorytest.fth" ['] INCLUDED CATCH S" memorytest  RES " TYPE . CR ; test_memory
 : test_tools S" toolstest.fth" ['] INCLUDED CATCH S" toolstest  RES " TYPE . CR ; test_tools
 : test_searchorder S" searchordertest.fth" ['] INCLUDED CATCH S" searchordertest  RES " TYPE . CR ; test_searchorder

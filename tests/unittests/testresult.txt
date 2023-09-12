@@ -229,6 +229,9 @@ facilitytest  RES 0
 *******************
 End of File-Access word set tests
 filetest  RES 0 
+**********
+INCORRECT RESULT: T{ 3 10 LT30 -> 30 200 1000 1 1000 2 100 3 10 }T***
+End of Locals word set tests. <0> localstest  RES 0 
 ****
 End of Memory-Allocation word tests
 memorytest  RES 0 
@@ -243,7 +246,7 @@ toolstest  RES 0
 ONLY FORTH DEFINITIONS search order and compilation wordlist
 wid0 wid0 wid0 
 Plus another unnamed wordlist at the head of the search order
-wid4 wid0 wid0 wid4 
+wid6 wid0 wid0 wid6 
 End of Search Order word tests
 searchordertest  RES 0 
 **********
@@ -261,13 +264,13 @@ Double number           0
 Exception               0
 Facility                0
 File-access             0
-Locals                  -
+Locals                  1
 Memory-allocation       0
 Programming-tools       0
 Search-order            0
 String                  0
 ---------------------------
-Total                   0
+Total                   1
 ---------------------------
 
 

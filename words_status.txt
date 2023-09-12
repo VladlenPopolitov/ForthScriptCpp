@@ -427,10 +427,10 @@ WRITE-FILE  word OK
 WRITE-LINE  word OK
 (  word OK
   file words total 29   file words missing 0 
-(LOCAL)  word missing
-LOCALS|  word missing
-{:  word missing
-  locals words total 3   locals words missing 3 
+(LOCAL)  word OK
+LOCALS|  word OK
+{:  word OK
+  locals words total 3   locals words missing 0 
 ALLOCATE  word OK
 FREE  word OK
 RESIZE  word OK
@@ -473,7 +473,7 @@ UNESCAPE  word OK
   facility words total 40   facility words missing 32 
   file words total 29   file words missing 0 
   float words total 79   float words missing 0 
-  locals words total 3   locals words missing 3 
+  locals words total 3   locals words missing 0 
   memory words total 3   memory words missing 0 
   search words total 14   search words missing 0 
   string words total 11   string words missing 0 
