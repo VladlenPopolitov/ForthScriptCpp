@@ -300,23 +300,23 @@ CHAR  word OK
 EKEY>XCHAR  word missing
 -TRAILING-GARBAGE  word OK
 PARSE  word OK
-+X/STRING  word missing
++X/STRING  word OK
 X-SIZE  word OK
-X-WIDTH  word missing
-XC-SIZE  word missing
-XC-WIDTH  word missing
-XC,  word missing
-XC@+  word missing
+X-WIDTH  word OK
+XC-SIZE  word OK
+XC-WIDTH  word OK
+XC,  word OK
+XC@+  word OK
 XCHAR-  word OK
-XCHAR+  word missing
-XC!+  word missing
-XC!+?  word missing
-XEMIT  word missing
-XHOLD  word missing
-XKEY  word missing
+XCHAR+  word OK
+XC!+  word OK
+XC!+?  word OK
+XEMIT  word OK
+XHOLD  word OK
+XKEY  word OK
 XKEY?  word missing
-X\STRING-  word missing
-  xchar words total 21   xchar words missing 15 
+X\STRING-  word OK
+  xchar words total 21   xchar words missing 2 
 BLK  word OK
 BLOCK  word OK
 BUFFER  word OK
@@ -478,5 +478,5 @@ UNESCAPE  word OK
   search words total 14   search words missing 0 
   string words total 11   string words missing 0 
   tools words total 27   tools words missing 3 
-  xchar words total 21   xchar words missing 15 
+  xchar words total 21   xchar words missing 2 
 
