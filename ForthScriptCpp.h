@@ -572,13 +572,16 @@ continue the interpreter loop.
 ": value create 1 , , does> dup @ 1 = if cell+ @ else then ; "
 ": 2value create 2 , , , does> dup @ 2 = if cell+ 2@ else then ; " 
 ": fvalue create 3 , F,  does> dup @ 3 = if cell+ F@ else then ; "
-" : to state @ if 3 2 1 then NAME2DATAADDRESS state @ if "
+" : to state @ if 4 3 2 1 then NAME2DATAADDRESS state @ if "
 "postpone literal postpone dup postpone @ postpone dup postpone literal postpone = "
 "postpone if postpone drop postpone cell+ postpone ! postpone else postpone dup postpone literal postpone = "
-"postpone if postpone drop postpone cell+ postpone 2! postpone else postpone literal postpone = "
-"postpone if postpone cell+ postpone F! postpone then postpone then postpone then "
-"else dup @ dup 1 = if drop cell+ ! else dup 2 = if drop cell+ 2! else 3 = if cell+ F! then then then then ; immediate "
-
+"postpone if postpone drop postpone cell+ postpone 2! postpone else postpone dup postpone literal postpone = "
+"postpone if postpone cell+ postpone F! " 
+"postpone else postpone literal postpone = postpone if postpone cell+ postpone @ " 
+"postpone _assignreturnstack postpone then "
+"postpone then postpone then postpone then "
+"else dup @ dup 1 = if drop cell+ ! else dup 2 = if drop cell+ 2! else dup 3 = if cell+ F! else 4 = if cell+ @ _assignreturnstack then then then then then ; immediate "
+// else 4 = if cell+ @ _assignreturnstack then \ code to assign local variable
 ": marker create markerstart , does> @ markerremove ; "
 #ifdef FORTHSCRIPTCPP_ENABLE_FILE
 /****
@@ -2694,13 +2697,13 @@ Code Reserved for	Code Reserved for
 			if(localVariables.size()>0){
 				std::string localName{wordBuffer};
 				for(auto &c: localName) c=toupper_ascii(c);
-				for(auto it=localVariables.rbegin(),itEnd=localVariables.rend();it!=itEnd;++it){
+				for(auto it=localVariables.begin(),itEnd=localVariables.end();it!=itEnd;++it){
 					if((*it).localName==localName){
 						// compale address of local variable
 						// and retrun XT of FETCH @
 						data(doLiteralXt);
-						data((*it).localAddress+CellSize);
-						return fetchXt ;
+						data(std::distance(localVariables.begin(),it));
+						return pickReturnStackXt ;
 					}
 				}		
 			}
@@ -3962,15 +3965,59 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 
 		****/
 		ForthStack<Xt> returnStack{};
+		int returnStackSave(){
+			/// @todo add stack check
+			returnStack.push(next_command);
+			returnStack.push(0); // quantity of local variables on return stack
+			return 0;
+		}
+		
+		int returnStackRestore(){
+			auto locals = returnStack.getTop();  returnStack.pop();
+			while(locals-- > 0) {
+				returnStack.pop();
+			}
+			next_command = returnStack.getTop(); returnStack.pop();
+			return 0;
+		}
+		/// _LOCALTORETURNSTACK ( n --  ) (RS n1 -- n n2 )  n2=n+1
+		/// move data from stack to return stack, top element of return stack increase by 1
+		void localtoreturnstack(){
+			auto localsQty = returnStack.getTop(); returnStack.pop();
+			auto local = dStack.getTop(); dStack.pop();
+			returnStack.push(local);
+			returnStack.push(localsQty+1);
+		}
+		/// ASSIGNRETURNSTACK ( n u -- ) (RS -- )
+		void assignreturnstack(){
+			auto localNum = dStack.getTop(); dStack.pop();
+			auto localValue = dStack.getTop(); dStack.pop();
+			auto localsQty = returnStack.getTop(); 
+			if(localNum<localsQty){
+			 returnStack.setTop(localsQty-localNum,localValue);
+			}
+		}
+		/// PICKRETURNSTACK ( u -- n ) (RS -- )
+		void pickreturnstack(){
+			REQUIRE_DSTACK_DEPTH(1, "PICKRETURNSTACK");
+			auto localNum = dStack.getTop(); 
+			auto localsQty = returnStack.getTop(); 
+			if(localNum<localsQty){
+			 auto localValue= returnStack.getTop(localsQty-localNum);
+			 dStack.setTop(localValue);
+
+			}
+		}
+		/// : 
 		void doColon() {
-				returnStack.push(next_command);
+				if(returnStackSave()) return; // return in case of error (exception)
 				auto defn = executingWord;
 				next_command = static_cast<Xt>(definitionsAt(defn).does);
 		}
 
 		// EXIT ( -- ) ( R: nest-sys -- )
 		void exit() {
-				next_command = returnStack.getTop(); returnStack.pop();
+			if(returnStackRestore()) return ; // return in case of error
 		}
 
 		/****
@@ -4076,6 +4123,10 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 
 		// DOES>
 		void does() {
+			/// 13.3.3.1 These temporary dictionary entries shall vanish at the end of the definition, 
+			/// denoted by ; (semicolon), ;CODE, or DOES>. 
+			localVariables.clear();
+
 			data(CELL(setDoesXt));
 			data(CELL(exitXt));
 		}
@@ -4097,6 +4148,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			data(CELL(endOfDefinitionXt));
 			setIsCompiling( False );
 			lastDefinition().toggleHidden(); // @bug lastDefinition can be not last if compilation created additional definitions
+			/// 13.3.3.1 These temporary dictionary entries shall vanish at the end of the definition, 
+			/// denoted by ; (semicolon), ;CODE, or DOES>. 
 			localVariables.clear();
 		}
 
@@ -4614,15 +4667,16 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			variable.localName=localName;
 			align();// in case data() makes alignment;
 			auto dataAddress=getDataPointer();
-			variable.localAddress=dataAddress+CellSize*5;	
+			variable.localAddress=dataAddress+CellSize*3;	
 			localVariables.push_back(variable);		
-			data(doLiteralXt); // 1 literal
-			data(dataAddress+CellSize*6);  // 2 address
-			data(storeXt);  // 3 @
+			//data(doLiteralXt); // 1 literal
+			//data(dataAddress+CellSize*6);  // 2 address
+			//data(storeXt);  // 3 @
+			data(localToReturnStackXt);
 			data(branchXt);	// 4 	
 			data(CellSize * 3);	// 5 Jump 5 to 8 
-			data(1);			// 6
-			data(0);			// 7 init by 0 (must be value from stack)
+			data(4);			// 6
+			data(localVariables.size()-1);	// 7 init by number of local variable (0,1,)
 			}
 		}
 
@@ -4892,8 +4946,8 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 				throwMessage("SEE: undefined word",errorParsedStringOverflow);
 				return;
 			}
-
-			auto defn = getDefinition(XT(dStack.getTop())); pop();
+			auto xt=XT(dStack.getTop()); dStack.pop();
+			auto defn = getDefinition(xt); 
 			if ((defn)->code == &Forth::doColon) {
 #ifndef FORTHSCRIPTCPP_DISABLE_OUTPUT
 				std_cout <<  SETBASE() << static_cast<SCell>(defn->does);
@@ -5693,7 +5747,7 @@ if(0){
 							if (currentWord.size() > 0) {
 								if (!interpretNumbers(currentWord)){
 									// uncomment during debug if information is needed about wrong words
-									// std::cerr << "!!!Wrong word "<<currentWord<<std::endl;
+									//std::cerr << "!!!Wrong word "<<currentWord<<std::endl;
 									push(CELL(-13));
 									exceptionsThrow();
 									xt = getDataCell(next_command);
@@ -6317,7 +6371,7 @@ if(0){
 					while (dStack.stackDepth() > dDepth) dStack.pop();
 					while (dStack.stackDepth() < dDepth) dStack.push(0);
 
-					next_command = returnStack.getTop(); returnStack.pop();
+					returnStackRestore();
 					dStack.push(exceptionNumber);
 				}
 				else {
@@ -6442,7 +6496,10 @@ if(0){
 			executeXt=20,
 			compileCommaXt=21,
 			fetchXt=22,
-			storeXt=23
+			storeXt=23,
+			localToReturnStackXt=24,
+			assignReturnStackXt=25,
+			pickReturnStackXt=26
 
 		};
 		void definePrimitives() {
@@ -6483,6 +6540,9 @@ if(0){
 				{ "COMPILE,", &Forth::compilecomma, false }, // 21 CORE EXT
 				{ "@", &Forth::fetch, false },  // 22 CORE				
 				{ "!", &Forth::store, false },  // 23 CORE
+				{ "_LOCALTORETURNSTACK", &Forth::localtoreturnstack, false }, // 24 not standard word (for LOCALS)
+				{ "_ASSIGNRETURNSTACK", &Forth::assignreturnstack, false }, // 25 not standard word (for LOCALS)
+				{ "_PICKRETURNSTACK", &Forth::pickreturnstack, false }, // 26 not standard word (for LOCALS)
 				{ ";", &Forth::semicolon, true }, // CORE
 				
 				{ "*", &Forth::star, false }, // CORE
@@ -6820,7 +6880,7 @@ if(0){
 			rStack.resize(FORTHSCRIPTCPP_RSTACK_COUNT);
 			rStack.resetStack();
 			// return stack init;
-			returnStack.resize(100);
+			returnStack.resize(4096);
 
 			virtualMemoryInit();
 			
