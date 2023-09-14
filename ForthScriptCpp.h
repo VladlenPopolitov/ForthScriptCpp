@@ -757,7 +757,7 @@ CASE implementation https://forth-standard.org/standard/rationale#rat:core:SOURC
 ": {: ( -- ) 0 PARSE-NAME scan-args scan-locals scan-end 2DROP define-locals ; IMMEDIATE "
 
 /** 
- *  Strings
+ *  XCHAR - experimental support
 */
 // http://lars.nocrew.org/forth2012/xchar/X-SIZE.html 
 
@@ -885,8 +885,8 @@ DECIMAL
 " THEN @ REPEAT 2R> 2DROP ; "
 ": name-join ( addr u list -- ) >R 2DUP R@ @ name-present? IF R> DROP 2DROP ELSE R> name-add THEN ; "
 " VARIABLE included-names 0 included-names ! "
-": included ( i*x addr u -- j*x ) 2DUP included-names name-join INCLUDED ; "
-": include parse-name included ; "
+": INCLUDED ( i*x addr u -- j*x ) 2DUP included-names name-join INCLUDED ; "
+": INCLUDE parse-name included ; "
 ": REQUIRED ( i*x addr u -- i*x ) 2DUP included-names @ name-present? 0= IF included ELSE 2DROP THEN ; "
 ": REQUIRE PARSE-NAME REQUIRED ; "
 /****

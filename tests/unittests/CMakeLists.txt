@@ -8,7 +8,7 @@ add_executable(test_exceptions test_exceptions.cc  forthtestlib.cc forthtestlib.
 add_executable(test_strings test_strings.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 add_executable(test_wordlist test_wordlist.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h 
 words-check.frt )
-
+add_executable(test_xchar test_xchar.cc  forthtestlib.cc forthtestlib.h ../../ForthScriptCpp.h ../../ForthScriptCppFile.h ../../ForthScriptCppMemory.h)
 
 set(UNITTEST_TARGETS
 #test_parameters
@@ -18,6 +18,7 @@ test_wordlist
 #test_word_to
 test_exceptions
 test_strings
+test_xchar
 )
 add_custom_command(
         TARGET test_forthtestsuit1 POST_BUILD
