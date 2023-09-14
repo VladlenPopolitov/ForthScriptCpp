@@ -1120,32 +1120,6 @@ DECIMAL
 			{
 			}
 
-			// Example, how to call execute():
-			//	auto mainXt = getDefinition(findDefinition("MAIN"));
-			//	if (!mainXt)
-			//		throw std::runtime_error("MAIN not defined");
-			//	mainXt->executeDefinition(*this);
-			void executeDefinition(Forth &pointer) const {
-				auto saved = pointer.executingWord;
-				pointer.executingWord = numberInVector;
-				//std::cout << numberInVector << " " << name << " " << code << std::endl;
-				if (code) {
-					if (pointer.isTraceCalls()) {
-						
-						std::cout << name << " ";
-						// int i = pointer.forth_depth();
-						// std::cerr << name << " " << pointer.forth_depth();
-						// while (i > 0) std::cerr << " " << pointer.forth_tocell(i--  - 1);
-						// std::cerr<< std::endl;
-					}
-					CALL_MEMBER_FN(pointer, code)();
-				}
-				else {
-					throw AbortException("Word \""+name+"\" has nullptr code");
-				}
-				pointer.executingWord = saved;
-			}
-
 			bool isHidden() const    { return (flags & FlagHidden) != 0; }
 
 			void toggleHidden()      { flags ^= FlagHidden; }
@@ -1161,6 +1135,25 @@ DECIMAL
 			bool isFindable() const { return name.size()>0 && !isHidden(); }
 		};
 
+			void executeDefinition(struct Definition definition) {
+				auto saved = executingWord;
+				executingWord = definition.numberInVector;
+				if (definition.code) {
+					if (isTraceCalls()) {
+						
+						std::cout << definition.name << " ";
+						// int i = forth_depth();
+						// std::cerr << definition.name << " " << forth_depth();
+						// while (i > 0) std::cerr << " " << forth_tocell(i--  - 1);
+						// std::cerr<< std::endl;
+					}
+					((*this).*(definition.code))();
+				}
+				else {
+					throw AbortException("Word \""+definition.name+"\" has nullptr code");
+				}
+				executingWord = saved;
+			}
 
 		/****
 
@@ -4909,7 +4902,6 @@ moveIntoDataSpace(address,buffer,std::strlen(buffer));
 			assert(!"Should not be executed");
 			REQUIRE_DSTACK_DEPTH(1, "EXECUTE");
 			auto defn = XT(dStack.getTop()); pop();
-			definitionsAt(defn).executeDefinition(*this);
 		}
 
 		// COMPILE, ( xt -- )
@@ -5832,7 +5824,7 @@ if(0){
 							if (currentWord.size() > 0) {
 								if (!interpretNumbers(currentWord)){
 									// uncomment during debug if information is needed about wrong words
-									std::cerr << "!!!Wrong word "<<currentWord<<std::endl;
+									//std::cerr << "!!!Wrong word "<<currentWord<<std::endl;
 									push(CELL(-13));
 									exceptionsThrow();
 									xt = getDataCell(next_command);
@@ -5883,7 +5875,7 @@ if(0){
 						}
 					}
 #endif
-					getDefinition(xt)->executeDefinition(*this);
+					executeDefinition(*getDefinition(xt));
 					if (next_command == 0){
 						InterpretState = InterpretSource;
 					}

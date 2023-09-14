@@ -216,7 +216,7 @@ void WrongStackTest(cppforth::Forth* ptr) {
 		content.clear();
 		try {
 			cppforth::Forth forth{};
-
+			
 			// Execute string  f.e. from configuration file
 
 			for (int i = Start; i < numberOfTestFiles; ++i) {
